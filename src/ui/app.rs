@@ -29,7 +29,7 @@ use super::{
     global_actions::register_actions,
     header::Header,
     library::Library,
-    models::{self, build_models},
+    models::{self, build_models, PlaybackInfo},
     queue::Queue,
     search::SearchView,
     theme::{setup_theme, Theme},
@@ -56,6 +56,8 @@ impl Render for WindowShadow {
         window.set_client_inset(shadow_size);
 
         let queue = self.queue.clone();
+
+        let current_track = cx.global::<PlaybackInfo>().current_track.read(cx).clone();
 
         div()
             .id("window-backdrop")
@@ -189,7 +191,7 @@ impl Render for WindowShadow {
                             .child(self.library.clone())
                             .when(*self.show_queue.read(cx), |this| this.child(queue)),
                     )
-                    .child(self.controls.clone())
+                    .when_some(current_track, |this, _| this.child(self.controls.clone()))
                     .child(self.search.clone()),
             )
     }
