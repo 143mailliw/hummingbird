@@ -3494,6 +3494,7 @@ dependencies = [
  "directories",
  "dotenvy",
  "fnv",
+ "futures",
  "globwalk",
  "gpui",
  "image",
