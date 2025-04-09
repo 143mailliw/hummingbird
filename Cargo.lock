@@ -223,16 +223,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-attributes"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3203e79f4dd9bdda415ed03cf14dae5a2bf775c683a00f94e9cd1faf0f596e5"
-dependencies = [
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "async-broadcast"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -430,7 +420,6 @@ version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "730294c1c08c2e0f85759590518f6333f0d5a0a766a27d519c1b244c3dfd8a24"
 dependencies = [
- "async-attributes",
  "async-channel 1.9.0",
  "async-global-executor",
  "async-io 2.4.0",
@@ -1435,6 +1424,21 @@ dependencies = [
  "pkg-config",
  "vcpkg",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+ "serde",
 ]
 
 [[package]]
@@ -3484,12 +3488,14 @@ version = "0.1.0"
 dependencies = [
  "ahash",
  "anyhow",
- "async-std",
+ "async-fs",
+ "async-lock 3.4.0",
  "async-trait",
  "bitflags 2.9.0",
  "chrono",
  "clap",
  "cpal",
+ "dashmap",
  "dateparser",
  "directories",
  "dotenvy",
@@ -3513,6 +3519,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
+ "smol",
  "sqlx",
  "symphonia",
  "thiserror 2.0.12",

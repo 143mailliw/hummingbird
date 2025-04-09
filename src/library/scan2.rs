@@ -13,17 +13,20 @@
 // pairs, and optionally using MBIDs if available.
 
 use std::io::{Cursor, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::SystemTime;
 
-use async_std::fs::{read, read_dir};
-use async_std::path::PathBuf;
-use async_std::stream::StreamExt;
+use async_fs::{metadata, read, read_dir};
+use dashmap::DashMap;
+use fnv::{FnvBuildHasher, FnvHasher};
 use futures::future::join_all;
 use futures::join;
 use globwalk::GlobWalkerBuilder;
 use image::codecs::jpeg::JpegEncoder;
 use image::imageops::thumbnail;
 use image::{EncodableLayout, ImageReader};
+use smol::stream::StreamExt;
 use sqlx::SqlitePool;
 use tracing::warn;
 
@@ -37,23 +40,48 @@ struct FileInformation {
     album_art: Option<Box<[u8]>>,
 }
 
-// SqlitePool is alerady an Arc under the hood, no point in wrapping it
-async fn scan(path: PathBuf, pool: SqlitePool) -> anyhow::Result<()> {
+type ScanRecord = DashMap<PathBuf, u64, FnvBuildHasher>;
+
+#[derive(Debug, Clone)]
+struct ScanState {
+    scan_record: ScanRecord,
+    pool: SqlitePool,
+    scan_record_path: std::path::PathBuf,
+}
+
+async fn scan(scan_state: Arc<ScanState>, path: PathBuf) -> anyhow::Result<()> {
     let mut dir_futures: Vec<_> = Vec::new();
     let mut track_futures: Vec<_> = Vec::new();
 
-    if path.exists().await {
+    if path.exists() {
         let mut children = read_dir(&path).await?;
 
         while let Some(child) = children.next().await {
             let considered_path = child?.path();
 
-            if considered_path.is_dir().await {
-                let scan = scan(considered_path, pool.clone());
+            if considered_path.is_dir() {
+                let scan = scan(scan_state.clone(), considered_path);
 
                 dir_futures.push(Box::pin(scan));
             } else {
-                let scan = scan_track(considered_path, pool.clone());
+                let timestamp = metadata(&considered_path)
+                    .await?
+                    .modified()?
+                    .duration_since(SystemTime::UNIX_EPOCH)?
+                    .as_secs();
+
+                if let Some(time) = scan_state.scan_record.get(&considered_path) {
+                    if *time == timestamp {
+                        continue;
+                    }
+                }
+
+                scan_state
+                    .scan_record
+                    .insert(considered_path.clone(), timestamp);
+
+                // SqlitePool is in a Arc already, no reason to provide the entire scan_state
+                let scan = scan_track(considered_path, scan_state.pool.clone());
 
                 track_futures.push(Box::pin(scan));
             }

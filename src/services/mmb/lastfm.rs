@@ -1,6 +1,5 @@
 use std::{path::PathBuf, sync::Arc};
 
-use async_std::task;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use client::LastFMClient;
@@ -126,7 +125,7 @@ impl Drop for LastFM {
     fn drop(&mut self) {
         if self.should_scrobble {
             debug!("attempting scrobble before dropping LastFM, this will block");
-            task::block_on(self.scrobble());
+            smol::block_on(self.scrobble());
         }
     }
 }

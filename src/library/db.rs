@@ -1,6 +1,5 @@
 use std::{path::Path, sync::Arc};
 
-use async_std::task;
 use gpui::App;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use tracing::debug;
@@ -199,12 +198,12 @@ pub trait LibraryAccess {
 impl LibraryAccess for App {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(list_albums(&pool.0, sort_method))
+        smol::block_on(list_albums(&pool.0, sort_method))
     }
 
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Arc<Vec<Track>>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(list_tracks_in_album(&pool.0, album_id))
+        smol::block_on(list_tracks_in_album(&pool.0, album_id))
     }
 
     fn get_album_by_id(
@@ -213,26 +212,26 @@ impl LibraryAccess for App {
         method: AlbumMethod,
     ) -> Result<Arc<Album>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(get_album_by_id(&pool.0, album_id, method))
+        smol::block_on(get_album_by_id(&pool.0, album_id, method))
     }
 
     fn get_artist_name_by_id(&self, artist_id: i64) -> Result<Arc<String>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(get_artist_name_by_id(&pool.0, artist_id))
+        smol::block_on(get_artist_name_by_id(&pool.0, artist_id))
     }
 
     fn get_artist_by_id(&self, artist_id: i64) -> Result<Arc<Artist>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(get_artist_by_id(&pool.0, artist_id))
+        smol::block_on(get_artist_by_id(&pool.0, artist_id))
     }
 
     fn get_track_by_id(&self, track_id: i64) -> Result<Arc<Track>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(get_track_by_id(&pool.0, track_id))
+        smol::block_on(get_track_by_id(&pool.0, track_id))
     }
 
     fn list_albums_search(&self) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
-        task::block_on(list_albums_search(&pool.0))
+        smol::block_on(list_albums_search(&pool.0))
     }
 }

@@ -7,7 +7,6 @@ use std::{
 };
 
 use ahash::AHashMap;
-use async_std::task;
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, EncodableLayout};
@@ -618,7 +617,7 @@ impl ScanThread {
         let metadata = self.read_metadata_for_path(&path);
 
         if let Some(metadata) = metadata {
-            task::block_on(self.update_metadata(metadata, &path)).unwrap();
+            smol::block_on(self.update_metadata(metadata, &path)).unwrap();
 
             self.scanned += 1;
 
@@ -658,7 +657,7 @@ impl ScanThread {
             .filter(|v| !v.0.exists())
             .map(|v| v.0)
             .for_each(|v| {
-                task::block_on(self.delete_track(v));
+                smol::block_on(self.delete_track(v));
             });
 
         self.scan_state = ScanState::Discovering;

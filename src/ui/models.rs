@@ -6,7 +6,7 @@ use std::{
 };
 
 use ahash::AHashMap;
-use async_std::sync::Mutex;
+use async_lock::Mutex;
 use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, warn};

@@ -9,8 +9,7 @@ mod settings;
 mod ui;
 mod util;
 
-#[async_std::main]
-async fn main() {
+fn main() {
     tracing_subscriber::fmt::init();
 
     tracing::info!("Starting application");
@@ -19,5 +18,5 @@ async fn main() {
         tracing::warn!("Binary not compiled with LastFM support, set LASTFM_API_KEY and LASTFM_API_SECRET at compile time to enable");
     }
 
-    crate::ui::app::run().await;
+    smol::block_on(crate::ui::app::run());
 }
