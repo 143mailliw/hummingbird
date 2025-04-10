@@ -23,16 +23,19 @@ use fnv::{FnvBuildHasher, FnvHasher};
 use futures::future::join_all;
 use futures::join;
 use globwalk::GlobWalkerBuilder;
+use gpui::{App, AppContext};
 use image::codecs::jpeg::JpegEncoder;
 use image::imageops::thumbnail;
 use image::{EncodableLayout, ImageReader};
 use smol::stream::StreamExt;
 use sqlx::SqlitePool;
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::media::builtin::symphonia::SymphoniaProvider;
 use crate::media::metadata::Metadata;
 use crate::media::traits::{MediaPlugin, MediaProvider};
+use crate::settings::{Settings, SettingsGlobal};
+use crate::ui::app::Pool;
 
 struct FileInformation {
     metadata: Metadata,
@@ -131,6 +134,20 @@ async fn scan_path_for_album_art(path: &Path) -> anyhow::Result<Option<Box<[u8]>
     }
 
     Ok(None)
+}
+
+async fn save_scan_record(scan_state: &ScanState) -> anyhow::Result<()> {
+    let scan_map: Vec<(PathBuf, u64)> = scan_state
+        .scan_record
+        .iter()
+        .map(|entry| (entry.key().clone(), *entry.value()))
+        .collect();
+
+    let json = serde_json::to_string(&scan_map)?;
+
+    async_fs::write(&scan_state.scan_record_path, json).await?;
+
+    Ok(())
 }
 
 async fn read_metadata_for_path(path: &Path) -> anyhow::Result<FileInformation> {
@@ -353,4 +370,60 @@ async fn scan_track(path: PathBuf, pool: SqlitePool) -> anyhow::Result<()> {
     .await?;
 
     Ok(())
+}
+
+fn start_scan(cx: &mut App) {
+    let paths = cx
+        .global::<SettingsGlobal>()
+        .model
+        .read(cx)
+        .scanning
+        .paths
+        .clone();
+    let pool = cx.global::<Pool>().0.clone();
+
+    let dirs = directories::ProjectDirs::from("me", "william341", "muzak")
+        .expect("couldn't find project dirs");
+    let directory = dirs.data_dir();
+    if !directory.exists() {
+        std::fs::create_dir(directory).expect("couldn't create data directory");
+    }
+    let record_path = directory.join("scan_record.json");
+
+    let record = if record_path.exists() {
+        let file = std::fs::File::open(&record_path);
+
+        let Ok(file) = file else {
+            return;
+        };
+        let reader = std::io::BufReader::new(file);
+
+        match serde_json::from_reader(reader) {
+            Ok(scan_record) => scan_record,
+            Err(e) => {
+                error!("could not read scan record: {:?}", e);
+                error!("scanning will be slow until the scan record is rebuilt");
+                DashMap::with_hasher(FnvBuildHasher::new())
+            }
+        }
+    } else {
+        DashMap::with_hasher(FnvBuildHasher::new())
+    };
+
+    cx.background_spawn(async move {
+        let scan_state = Arc::new(ScanState {
+            scan_record: record,
+            pool,
+            scan_record_path: record_path,
+        });
+
+        let mut futures_vec: Vec<_> = Vec::new();
+
+        for path in paths {
+            futures_vec.push(Box::pin(scan(scan_state.clone(), path)));
+        }
+
+        join_all(futures_vec).await;
+    })
+    .detach();
 }
