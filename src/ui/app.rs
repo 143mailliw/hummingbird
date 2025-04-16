@@ -1,6 +1,6 @@
 use core::panic;
 use std::{
-    fs,
+    env, fs,
     sync::{Arc, RwLock},
 };
 
@@ -8,12 +8,13 @@ use directories::ProjectDirs;
 use gpui::*;
 use prelude::FluentBuilder;
 use sqlx::SqlitePool;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use crate::{
     library::{
         db::create_pool,
         scan::{ScanInterface, ScanThread},
+        scan2::start_scan,
     },
     playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
     settings::{
@@ -311,11 +312,17 @@ pub async fn run() {
                 let settings = cx.global::<SettingsGlobal>().model.read(cx);
                 let mut scan_interface: ScanInterface =
                     ScanThread::start(pool.clone(), settings.scanning.clone());
-                scan_interface.scan();
+
+                cx.set_global(Pool(pool));
+
                 scan_interface.start_broadcast(cx);
 
+                if env::var("MUZAK_EXPERIMENTAL_ASYNC_SCAN").is_ok() {
+                    info!("Using experimental async scan");
+                    start_scan(cx);
+                }
+
                 cx.set_global(scan_interface);
-                cx.set_global(Pool(pool));
             } else {
                 error!("unable to create database pool: {}", pool.err().unwrap());
                 panic!("fatal: unable to create database pool");

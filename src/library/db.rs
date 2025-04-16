@@ -13,6 +13,7 @@ pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Err
     let options = SqliteConnectOptions::new()
         .filename(path)
         .statement_cache_capacity(0)
+        .optimize_on_close(true, None)
         .create_if_missing(true);
     let pool = SqlitePool::connect_with(options).await?;
 

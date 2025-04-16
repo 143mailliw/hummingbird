@@ -12,12 +12,14 @@
 // `scan2` will also solve the data deduplication problem by locking albums behind folder/disc
 // pairs, and optionally using MBIDs if available.
 
+use std::collections::HashMap;
 use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
 use async_fs::{metadata, read, read_dir};
+use async_lock::Mutex;
 use dashmap::DashMap;
 use fnv::{FnvBuildHasher, FnvHasher};
 use futures::future::join_all;
@@ -29,7 +31,7 @@ use image::imageops::thumbnail;
 use image::{EncodableLayout, ImageReader};
 use smol::stream::StreamExt;
 use sqlx::SqlitePool;
-use tracing::{error, warn};
+use tracing::{error, info_span, span, warn, Instrument, Level};
 
 use crate::media::builtin::symphonia::SymphoniaProvider;
 use crate::media::metadata::Metadata;
@@ -44,12 +46,15 @@ struct FileInformation {
 }
 
 type ScanRecord = DashMap<PathBuf, u64, FnvBuildHasher>;
+type MutexTable<T: std::hash::Hash> = Arc<Mutex<HashMap<T, Option<i64>, FnvBuildHasher>>>;
 
 #[derive(Debug, Clone)]
 struct ScanState {
     scan_record: ScanRecord,
     pool: SqlitePool,
     scan_record_path: std::path::PathBuf,
+    artist_mutex_table: MutexTable<String>,
+    album_mutex_table: MutexTable<(i64, String)>,
 }
 
 async fn scan(scan_state: Arc<ScanState>, path: PathBuf) -> anyhow::Result<()> {
@@ -84,7 +89,7 @@ async fn scan(scan_state: Arc<ScanState>, path: PathBuf) -> anyhow::Result<()> {
                     .insert(considered_path.clone(), timestamp);
 
                 // SqlitePool is in a Arc already, no reason to provide the entire scan_state
-                let scan = scan_track(considered_path, scan_state.pool.clone());
+                let scan = scan_track(considered_path, scan_state.clone());
 
                 track_futures.push(Box::pin(scan));
             }
@@ -176,10 +181,20 @@ async fn read_metadata_for_path(path: &Path) -> anyhow::Result<FileInformation> 
     })
 }
 
-async fn insert_artist(metadata: &Metadata, pool: &SqlitePool) -> anyhow::Result<Option<i64>> {
+async fn insert_artist(
+    metadata: &Metadata,
+    pool: &SqlitePool,
+    artist_mutex_table: &MutexTable<String>,
+) -> anyhow::Result<Option<i64>> {
     let Some(artist) = metadata.album_artist.as_ref().or(metadata.artist.as_ref()) else {
         return Ok(None);
     };
+
+    let mut lock = artist_mutex_table.lock().await;
+
+    if let Some(id) = lock.get(artist).cloned().flatten() {
+        return Ok(Some(id));
+    }
 
     let found: Result<(i64,), sqlx::Error> =
         sqlx::query_as(include_str!("../../queries/scan/get_artist_id.sql"))
@@ -188,7 +203,10 @@ async fn insert_artist(metadata: &Metadata, pool: &SqlitePool) -> anyhow::Result
             .await;
 
     match found {
-        Ok(v) => Ok(Some(v.0)),
+        Ok(v) => {
+            lock.insert(artist.clone(), Some(v.0));
+            Ok(Some(v.0))
+        }
         Err(sqlx::Error::RowNotFound) => {
             let insert: (i64,) =
                 sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
@@ -197,6 +215,7 @@ async fn insert_artist(metadata: &Metadata, pool: &SqlitePool) -> anyhow::Result
                     .fetch_one(pool)
                     .await?;
 
+            lock.insert(artist.clone(), Some(insert.0));
             Ok(Some(insert.0))
         }
         Err(e) => Err(e)?,
@@ -208,10 +227,17 @@ async fn insert_album(
     artist_id: i64,
     image: &Option<Box<[u8]>>,
     pool: &SqlitePool,
+    album_mutex_table: &MutexTable<(i64, String)>,
 ) -> anyhow::Result<Option<i64>> {
     let Some(album) = &metadata.album else {
         return Ok(None);
     };
+
+    let mut lock = album_mutex_table.lock().await;
+
+    if let Some(id) = lock.get(&(artist_id, album.clone())).cloned().flatten() {
+        return Ok(Some(id));
+    }
 
     let result: Result<(i64,), sqlx::Error> =
         sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
@@ -220,7 +246,11 @@ async fn insert_album(
             .await;
 
     match result {
-        Ok(v) => Ok(Some(v.0)),
+        Ok(v) => {
+            let id = v.0;
+            lock.insert((artist_id, album.clone()), Some(id));
+            Ok(Some(id))
+        }
         Err(sqlx::Error::RowNotFound) => {
             let images: Option<anyhow::Result<(Vec<u8>, Vec<u8>)>> = image.as_ref().map(|v| {
                 let reader = Cursor::new(v);
@@ -239,28 +269,29 @@ async fn insert_album(
 
                 // downscale the image to 1024x1024 if it's too large
                 let size = decoded.dimensions();
-                let downscaled = if size.0 <= 1024 || size.1 <= 1024 {
-                    v.clone().to_vec()
-                } else {
-                    let resized = image::imageops::resize(
-                        &decoded,
-                        1024,
-                        1024,
-                        image::imageops::FilterType::Lanczos3,
-                    );
-                    let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-                    let mut encoder = JpegEncoder::new_with_quality(&mut buf, 70);
+                // let downscaled = if size.0 <= 1024 || size.1 <= 1024 {
+                //     v.clone().to_vec()
+                // } else {
+                //     let resized = image::imageops::resize(
+                //         &decoded,
+                //         1024,
+                //         1024,
+                //         image::imageops::FilterType::Lanczos3,
+                //     );
+                //     let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+                //     let mut encoder = JpegEncoder::new_with_quality(&mut buf, 70);
 
-                    encoder.encode(
-                        resized.as_bytes(),
-                        resized.width(),
-                        resized.height(),
-                        image::ExtendedColorType::Rgb8,
-                    )?;
-                    buf.flush()?;
+                //     encoder.encode(
+                //         resized.as_bytes(),
+                //         resized.width(),
+                //         resized.height(),
+                //         image::ExtendedColorType::Rgb8,
+                //     )?;
+                //     buf.flush()?;
 
-                    buf.into_inner()
-                };
+                //     buf.into_inner()
+                // };
+                let downscaled = v.clone().to_vec();
 
                 anyhow::Result::Ok((thumb_buf.into_inner(), downscaled))
             });
@@ -282,7 +313,7 @@ async fn insert_album(
 
             let insert: (i64,) =
                 sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
-                    .bind(album)
+                    .bind(album.clone())
                     .bind(metadata.sort_album.as_ref().unwrap_or(album))
                     .bind(artist_id)
                     .bind(full)
@@ -293,6 +324,9 @@ async fn insert_album(
                     .bind(&metadata.isrc)
                     .fetch_one(pool)
                     .await?;
+
+            let id = insert.0;
+            lock.insert((artist_id, album.clone()), Some(id));
 
             Ok(Some(insert.0))
         }
@@ -344,18 +378,31 @@ fn file_is_scannable(path: &Path, exts: &&[&str]) -> bool {
     false
 }
 
-async fn scan_track(path: PathBuf, pool: SqlitePool) -> anyhow::Result<()> {
+async fn scan_track(path: PathBuf, scan_state: Arc<ScanState>) -> anyhow::Result<()> {
     if !file_is_scannable(path.as_ref(), &SymphoniaProvider::SUPPORTED_EXTENSIONS) {
         return Ok(());
     }
 
     let info = read_metadata_for_path(path.as_ref()).await?;
 
-    let Some(artist_id) = insert_artist(&info.metadata, &pool).await? else {
+    let Some(artist_id) = insert_artist(
+        &info.metadata,
+        &scan_state.pool,
+        &scan_state.artist_mutex_table,
+    )
+    .await?
+    else {
         return Ok(());
     };
 
-    let Some(album_id) = insert_album(&info.metadata, artist_id, &info.album_art, &pool).await?
+    let Some(album_id) = insert_album(
+        &info.metadata,
+        artist_id,
+        &info.album_art,
+        &scan_state.pool,
+        &scan_state.album_mutex_table,
+    )
+    .await?
     else {
         return Ok(());
     };
@@ -365,14 +412,14 @@ async fn scan_track(path: PathBuf, pool: SqlitePool) -> anyhow::Result<()> {
         album_id,
         path.as_ref(),
         info.duration,
-        &pool,
+        &scan_state.pool,
     )
     .await?;
 
     Ok(())
 }
 
-fn start_scan(cx: &mut App) {
+pub fn start_scan(cx: &mut App) {
     let paths = cx
         .global::<SettingsGlobal>()
         .model
@@ -415,6 +462,8 @@ fn start_scan(cx: &mut App) {
             scan_record: record,
             pool,
             scan_record_path: record_path,
+            artist_mutex_table: Arc::new(Mutex::new(HashMap::with_hasher(FnvBuildHasher::new()))),
+            album_mutex_table: Arc::new(Mutex::new(HashMap::with_hasher(FnvBuildHasher::new()))),
         });
 
         let mut futures_vec: Vec<_> = Vec::new();
@@ -423,7 +472,12 @@ fn start_scan(cx: &mut App) {
             futures_vec.push(Box::pin(scan(scan_state.clone(), path)));
         }
 
-        join_all(futures_vec).await;
+        join_all(futures_vec).instrument(info_span!("scan2")).await;
+
+        if let Err(e) = save_scan_record(scan_state.as_ref()).await {
+            warn!("Failed to save scan record: {}", e);
+            warn!("Scan will completely restart when you next start");
+        }
     })
     .detach();
 }

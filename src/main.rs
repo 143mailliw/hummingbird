@@ -1,4 +1,5 @@
 use services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET};
+use tracing_subscriber::fmt::format::FmtSpan;
 
 mod devices;
 mod library;
@@ -10,7 +11,9 @@ mod ui;
 mod util;
 
 fn main() {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::fmt()
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
 
     tracing::info!("Starting application");
 
