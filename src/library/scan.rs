@@ -373,10 +373,13 @@ impl ScanThread {
         self.visited.push(path.clone());
     }
 
-    async fn insert_artist(&self, metadata: &Metadata) -> Option<i64> {
+    async fn insert_artist(&self, metadata: &Metadata) -> anyhow::Result<Option<i64>> {
         let artist = metadata.album_artist.clone().or(metadata.artist.clone());
 
-        let artist = artist?;
+        let Some(artist) = artist else {
+            return Ok(None);
+        };
+
         let result: Result<(i64,), sqlx::Error> =
             sqlx::query_as(include_str!("../../queries/scan/create_artist.sql"))
                 .bind(&artist)
@@ -385,7 +388,7 @@ impl ScanThread {
                 .await;
 
         match result {
-            Ok(v) => Some(v.0),
+            Ok(v) => Ok(Some(v.0)),
             Err(sqlx::Error::RowNotFound) => {
                 let result: Result<(i64,), sqlx::Error> =
                     sqlx::query_as(include_str!("../../queries/scan/get_artist_id.sql"))
@@ -394,17 +397,11 @@ impl ScanThread {
                         .await;
 
                 match result {
-                    Ok(v) => Some(v.0),
-                    Err(e) => {
-                        error!("Database error while retriving artist: {:?}", e);
-                        None
-                    }
+                    Ok(v) => Ok(Some(v.0)),
+                    Err(e) => Err(e.into()),
                 }
             }
-            Err(e) => {
-                error!("Database error while creating artist: {:?}", e);
-                None
-            }
+            Err(e) => Err(e.into()),
         }
     }
 
@@ -413,9 +410,9 @@ impl ScanThread {
         metadata: &Metadata,
         artist_id: Option<i64>,
         image: &Option<Box<[u8]>>,
-    ) -> Option<i64> {
+    ) -> anyhow::Result<Option<i64>> {
         let Some(album) = &metadata.album else {
-            return None;
+            return Ok(None);
         };
         let result: Result<(i64,), sqlx::Error> =
             sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
@@ -424,16 +421,15 @@ impl ScanThread {
                 .await;
 
         match result {
-            Ok(v) => Some(v.0),
+            Ok(v) => Ok(Some(v.0)),
             Err(sqlx::Error::RowNotFound) => {
-                let thumb = match image {
+                let (resized_image, thumb) = match image {
                     Some(image) => {
-                        let decoded = image::ImageReader::new(Cursor::new(&image))
-                            .with_guessed_format()
-                            .ok()?
-                            .decode()
-                            .ok()?
-                            .into_rgba8();
+                        // if there is a decode error, just ignore it and pretend there is no image
+                        let mut decoded = image::ImageReader::new(Cursor::new(&image))
+                            .with_guessed_format()?
+                            .decode()?
+                            .into_rgb8();
 
                         let thumb = thumbnail(&decoded, 70, 70);
 
@@ -444,49 +440,36 @@ impl ScanThread {
                             .expect("i don't know how Cursor could fail");
                         buf.flush().expect("could not flush buffer");
 
-                        Some(buf.get_mut().clone())
-                    }
-                    None => None,
-                };
+                        let resized =
+                            if decoded.dimensions().0 <= 1024 || decoded.dimensions().1 <= 1024 {
+                                image.clone().to_vec()
+                            } else {
+                                decoded = image::imageops::resize(
+                                    &decoded,
+                                    1024,
+                                    1024,
+                                    image::imageops::FilterType::Lanczos3,
+                                );
+                                let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+                                let mut encoder = JpegEncoder::new_with_quality(&mut buf, 70);
 
-                let resized_image = match image {
-                    Some(image) => {
-                        let mut decoded = image::ImageReader::new(Cursor::new(&image))
-                            .with_guessed_format()
-                            .ok()?
-                            .decode()
-                            .ok()?
-                            .into_rgb8();
-
-                        if decoded.dimensions().0 <= 1024 || decoded.dimensions().1 <= 1024 {
-                            Some(image.clone().to_vec())
-                        } else {
-                            decoded = image::imageops::resize(
-                                &decoded,
-                                1024,
-                                1024,
-                                image::imageops::FilterType::Lanczos3,
-                            );
-                            let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-                            let mut encoder = JpegEncoder::new_with_quality(&mut buf, 70);
-
-                            encoder
-                                .encode(
+                                encoder.encode(
                                     decoded.as_bytes(),
                                     decoded.width(),
                                     decoded.height(),
                                     image::ExtendedColorType::Rgb8,
-                                )
-                                .expect("could not encode image");
-                            buf.flush().expect("could not flush buffer");
+                                )?;
+                                buf.flush()?;
 
-                            Some(buf.get_mut().clone())
-                        }
+                                buf.get_mut().clone()
+                            };
+
+                        (Some(resized), Some(buf.get_mut().clone()))
                     }
-                    None => None,
+                    None => (None, None),
                 };
 
-                let result: Result<(i64,), sqlx::Error> =
+                let result: (i64,) =
                     sqlx::query_as(include_str!("../../queries/scan/create_album.sql"))
                         .bind(album)
                         .bind(metadata.sort_album.as_ref().unwrap_or(album))
@@ -498,20 +481,11 @@ impl ScanThread {
                         .bind(&metadata.catalog)
                         .bind(&metadata.isrc)
                         .fetch_one(&self.pool)
-                        .await;
+                        .await?;
 
-                match result {
-                    Ok(v) => Some(v.0),
-                    Err(e) => {
-                        error!("Database error while creating album: {:?}", e);
-                        None
-                    }
-                }
+                Ok(Some(result.0))
             }
-            Err(e) => {
-                error!("Database error while retriving album: {:?}", e);
-                None
-            }
+            Err(e) => Err(e.into()),
         }
     }
 
@@ -521,8 +495,7 @@ impl ScanThread {
         album_id: Option<i64>,
         path: &Path,
         length: u64,
-    ) {
-        // literally i do not know how this could possibly fail
+    ) -> anyhow::Result<()> {
         let name = metadata
             .name
             .clone()
@@ -531,7 +504,7 @@ impl ScanThread {
                     .and_then(|x| x.to_str())
                     .map(|x| x.to_string())
             })
-            .expect("weird file recieved in update metadata");
+            .ok_or_else(|| anyhow::anyhow!("failed to retrieve filename"))?;
 
         let result: Result<(i64,), sqlx::Error> =
             sqlx::query_as(include_str!("../../queries/scan/create_track.sql"))
@@ -548,11 +521,9 @@ impl ScanThread {
                 .await;
 
         match result {
-            Ok(_) => (),
-            Err(sqlx::Error::RowNotFound) => (),
-            Err(e) => {
-                error!("Database error while creating track: {:?}", e);
-            }
+            Ok(_) => Ok(()),
+            Err(sqlx::Error::RowNotFound) => Ok(()),
+            Err(e) => Err(e.into()),
         }
     }
 
@@ -566,10 +537,12 @@ impl ScanThread {
             metadata.0.artist, metadata.0.name
         );
 
-        let artist_id = self.insert_artist(&metadata.0).await;
-        let album_id = self.insert_album(&metadata.0, artist_id, &metadata.2).await;
+        let artist_id = self.insert_artist(&metadata.0).await?;
+        let album_id = self
+            .insert_album(&metadata.0, artist_id, &metadata.2)
+            .await?;
         self.insert_track(&metadata.0, album_id, path, metadata.1)
-            .await;
+            .await?;
 
         Ok(())
     }
@@ -618,7 +591,14 @@ impl ScanThread {
         let metadata = self.read_metadata_for_path(&path);
 
         if let Some(metadata) = metadata {
-            task::block_on(self.update_metadata(metadata, &path)).unwrap();
+            let result = task::block_on(self.update_metadata(metadata, &path));
+
+            if let Err(err) = result {
+                error!(
+                    "Failed to update metadata for file: {:?}, error: {}",
+                    path, err
+                );
+            }
 
             self.scanned += 1;
 
