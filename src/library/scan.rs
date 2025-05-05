@@ -181,7 +181,6 @@ fn scan_path_for_album_art(path: &Path) -> Option<Box<[u8]>> {
     .max_depth(1)
     .build()
     .expect("Failed to build album art glob")
-    .into_iter()
     .filter_map(|e| e.ok());
 
     for entry in glob {
@@ -189,7 +188,7 @@ fn scan_path_for_album_art(path: &Path) -> Option<Box<[u8]>> {
             return Some(bytes.into_boxed_slice());
         }
     }
-    return None;
+    None
 }
 
 impl ScanThread {
@@ -544,6 +543,7 @@ impl ScanThread {
                 .bind(length as i32)
                 .bind(path.to_str())
                 .bind(&metadata.genre)
+                .bind(&metadata.artist)
                 .fetch_one(&self.pool)
                 .await;
 

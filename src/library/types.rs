@@ -224,4 +224,5 @@ pub struct Track {
     pub tags: Option<Vec<DBString>>,
     #[sqlx(try_from = "String")]
     pub location: PathBuf,
+    pub artist_names: Option<DBString>,
 }
