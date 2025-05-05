@@ -11,14 +11,15 @@
 
   outputs = inputs:
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = ["aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux"];
+      # support for non-default platforms is best-effort
+      systems = inputs.nixpkgs.lib.systems.flakeExposed;
       perSystem = {
         lib,
         pkgs,
         self',
         ...
       }: let
-        inherit (pkgs) stdenv;
+        inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
 
         rust-bin = inputs.rust-overlay.lib.mkRustBin {} pkgs;
         toolchain = rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
@@ -36,44 +37,32 @@
           nativeBuildInputs = [pkgs.pkg-config];
           buildInputs = lib.flatten [
             pkgs.openssl
-            (lib.optionals stdenv.hostPlatform.isLinux [
-              pkgs.alsa-lib
-              pkgs.libpulseaudio
+            (lib.optionals isLinux [
               pkgs.libxkbcommon
               pkgs.xorg.libxcb
+              pkgs.xorg.libX11
+              (pkgs.alsa-lib-with-plugins.override {
+                plugins = [pkgs.alsa-plugins pkgs.pipewire];
+              })
             ])
-            (lib.optionals stdenv.hostPlatform.isDarwin [
+            (lib.optionals isDarwin [
               pkgs.apple-sdk_15
               (pkgs.darwinMinVersionHook "10.15")
             ])
           ];
           cargoExtraArgs = "--features=muzak/runtime_shaders";
         };
-
-        cargoArtifacts = craneLib.buildDepsOnly depsArgs;
-        craneArgs = depsArgs // {inherit cargoArtifacts;};
-
-        mkPkg = {withGLES ? false}:
-          craneLib.buildPackage (lib.mergeAttrs craneArgs (lib.optionalAttrs stdenv.hostPlatform.isLinux {
-            RUSTFLAGS = lib.optionalString withGLES "--cfg gles";
-
-            nativeBuildInputs = craneArgs.nativeBuildInputs ++ [pkgs.autoPatchelfHook];
-            runtimeDependencies = [
-              pkgs.wayland
-              (
-                if withGLES
-                then pkgs.libglvnd
-                else pkgs.vulkan-loader
-              )
-            ];
-          }));
+        craneArgs = depsArgs // {cargoArtifacts = craneLib.buildDepsOnly depsArgs;};
       in {
         formatter = pkgs.alejandra;
-        apps = builtins.mapAttrs (_: drv: {program = drv + /bin/muzak;}) self'.packages;
-        packages = lib.mergeAttrs {default = mkPkg {};} (lib.optionalAttrs stdenv.hostPlatform.isLinux {
-          vulkan = self'.packages.default;
-          gles = mkPkg {withGLES = true;};
-        });
+        apps = builtins.mapAttrs (_: pkg: {program = pkg + /bin/muzak;}) self'.packages;
+        packages.default = craneLib.buildPackage (lib.mergeAttrs depsArgs (lib.optionalAttrs isLinux {
+          nativeBuildInputs = depsArgs.nativeBuildInputs ++ [pkgs.autoPatchelfHook];
+          runtimeDependencies = [
+            pkgs.wayland
+            pkgs.vulkan-loader
+          ];
+        }));
 
         checks = lib.mergeAttrs self'.packages {
           cargoClippy = craneLib.cargoClippy craneArgs;
@@ -82,7 +71,7 @@
 
         devShells.default = let
           adapters = lib.flatten [
-            (lib.optional stdenv.hostPlatform.isLinux pkgs.stdenvAdapters.useMoldLinker)
+            (lib.optional isLinux pkgs.stdenvAdapters.useMoldLinker)
           ];
           craneDevShell = craneLib.devShell.override {
             mkShell = pkgs.mkShell.override {
@@ -93,13 +82,14 @@
           craneDevShell {
             inherit (self') checks;
             packages = [pkgs.bacon];
-            LD_LIBRARY_PATH = lib.optionalString stdenv.hostPlatform.isLinux (
+
+            LD_LIBRARY_PATH = lib.optionalString isLinux (
               lib.makeLibraryPath [
-                pkgs.libglvnd
                 pkgs.vulkan-loader
                 pkgs.wayland
               ]
             );
+
             shellHook = ''
               rustc -Vv
             '';

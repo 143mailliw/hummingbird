@@ -213,7 +213,7 @@ impl Render for ReleaseView {
                                         button()
                                             .id("release-play-button")
                                             .size(ButtonSize::Large)
-                                            .font_weight(FontWeight::BOLD)
+                                            .font_weight(FontWeight::SEMIBOLD)
                                             .intent(ButtonIntent::Primary)
                                             .when(!current_track_in_album, |this| {
                                                 this.on_click(cx.listener(
@@ -259,7 +259,6 @@ impl Render for ReleaseView {
                                         button()
                                             .id("release-add-button")
                                             .size(ButtonSize::Large)
-                                            .font_weight(FontWeight::BOLD)
                                             .flex_none()
                                             .on_click(cx.listener(
                                                 |this: &mut ReleaseView, _, _, cx| {
@@ -286,7 +285,6 @@ impl Render for ReleaseView {
                                         button()
                                             .id("release-shuffle-button")
                                             .size(ButtonSize::Large)
-                                            .font_weight(FontWeight::BOLD)
                                             .flex_none()
                                             .on_click(cx.listener(
                                                 |this: &mut ReleaseView, _, _, cx| {
@@ -437,7 +435,7 @@ impl RenderOnce for TrackItem {
                             )
                             .child(
                                 div()
-                                    .font_weight(FontWeight::BOLD)
+                                    .font_weight(FontWeight::SEMIBOLD)
                                     .overflow_x_hidden()
                                     .text_ellipsis()
                                     .child(self.track.title.clone()),
