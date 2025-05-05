@@ -11,6 +11,7 @@ use super::models::Models;
 mod album_view;
 mod navigation;
 mod release_view;
+mod track_listing;
 
 #[derive(Clone)]
 enum LibraryView {
