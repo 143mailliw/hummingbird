@@ -4,17 +4,25 @@ use std::sync::Arc;
 
 use gpui::{px, IntoElement, ListAlignment, ListState};
 
-use crate::library::types::Track;
+use crate::library::types::{DBString, Track};
 use track_item::TrackItem;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ArtistNameVisibility {
+    Always,
+    Never,
+    OnlyIfDifferent(Option<DBString>),
+}
 
 #[derive(Clone)]
 pub struct TrackListing {
+    // TODO: replace this with Arc<Vec<i64>>, memoize TrackItem, fetch on load instead of before
     tracks: Arc<Vec<Track>>,
     track_list_state: ListState,
 }
 
 impl TrackListing {
-    pub fn new(tracks: Arc<Vec<Track>>) -> Self {
+    pub fn new(tracks: Arc<Vec<Track>>, artist_name_visibility: ArtistNameVisibility) -> Self {
         let tracks_clone = tracks.clone();
         let state = ListState::new(
             tracks.len(),
@@ -32,6 +40,7 @@ impl TrackListing {
                     } else {
                         true
                     },
+                    artist_name_visibility: artist_name_visibility.clone(),
                 }
                 .into_any_element()
             },

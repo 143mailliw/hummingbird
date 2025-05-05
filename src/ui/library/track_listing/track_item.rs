@@ -17,10 +17,13 @@ use crate::{
     },
 };
 
+use super::ArtistNameVisibility;
+
 #[derive(IntoElement)]
 pub struct TrackItem {
     pub track: Track,
     pub is_start: bool,
+    pub artist_name_visibility: ArtistNameVisibility,
 }
 
 impl RenderOnce for TrackItem {
@@ -32,6 +35,11 @@ impl RenderOnce for TrackItem {
         let track_location_2 = self.track.location.clone();
         let track_id = self.track.id;
         let album_id = self.track.album_id;
+
+        let show_artist_name = self.artist_name_visibility != ArtistNameVisibility::Never
+            && self.artist_name_visibility
+                != ArtistNameVisibility::OnlyIfDifferent(self.track.artist_names.clone());
+
         context(("context", self.track.id as usize))
             .with(
                 div()
@@ -83,6 +91,7 @@ impl RenderOnce for TrackItem {
                             .max_w_full()
                             .child(
                                 div()
+                                    .mt(px(-1.0))
                                     .w(px(62.0))
                                     .font_family("Roboto Mono")
                                     .flex_shrink_0()
@@ -100,8 +109,26 @@ impl RenderOnce for TrackItem {
                             )
                             .child(
                                 div()
-                                    .font_family("Roboto Mono")
+                                    .font_weight(FontWeight::LIGHT)
+                                    .text_sm()
+                                    .my_auto()
+                                    .text_color(theme.text_secondary)
+                                    .text_ellipsis()
+                                    .overflow_x_hidden()
+                                    .flex_shrink()
                                     .ml_auto()
+                                    .when(show_artist_name, |this| {
+                                        this.when_some(
+                                            self.track.artist_names.clone(),
+                                            |this, v| this.child(v.0),
+                                        )
+                                    }),
+                            )
+                            .child(
+                                div()
+                                    .mt(px(-1.0))
+                                    .ml(px(12.0))
+                                    .font_family("Roboto Mono")
                                     .flex_shrink_0()
                                     .child(format!(
                                         "{}:{:02}",

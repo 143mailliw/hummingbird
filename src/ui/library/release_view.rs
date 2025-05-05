@@ -25,6 +25,8 @@ use crate::{
     },
 };
 
+use super::track_listing::ArtistNameVisibility;
+
 pub struct ReleaseView {
     album: Arc<Album>,
     image: Entity<Option<Arc<RenderImage>>>,
@@ -58,7 +60,10 @@ impl ReleaseView {
             })
             .detach();
 
-            let track_listing = TrackListing::new(tracks.clone());
+            let track_listing = TrackListing::new(
+                tracks.clone(),
+                ArtistNameVisibility::OnlyIfDifferent(artist.as_ref().and_then(|v| v.name.clone())),
+            );
 
             let release_info = {
                 let mut info = String::default();
