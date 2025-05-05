@@ -9,7 +9,6 @@ pub struct LastFMClient {
     api_key: String,
     api_secret: &'static str,
     auth_session: Option<String>,
-    ua: &'static str,
 }
 
 impl LastFMClient {
@@ -18,7 +17,6 @@ impl LastFMClient {
             api_key: key,
             api_secret: secret,
             auth_session: None,
-            ua: "Muzak/0.1, lastfm-mmb/0.1",
         }
     }
 

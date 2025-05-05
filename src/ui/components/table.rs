@@ -121,7 +121,7 @@ where
         columns: Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
         handler: Option<OnSelectHandler<T, C>>,
     ) -> ListState {
-        let sort_method = sort_method_entity.read(cx).clone();
+        let sort_method = *sort_method_entity.read(cx);
         let Ok(rows) = T::get_rows(cx, sort_method) else {
             warn!("Failed to get rows");
             return ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {

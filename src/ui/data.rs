@@ -28,7 +28,7 @@ impl AlbumCache {
 
 impl Global for AlbumCache {}
 
-pub fn create_album_cache(cx: &mut App) -> () {
+pub fn create_album_cache(cx: &mut App) {
     cx.set_global(AlbumCache::new());
 }
 

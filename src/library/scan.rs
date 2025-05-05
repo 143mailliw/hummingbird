@@ -128,18 +128,6 @@ fn build_provider_table() -> Vec<(&'static [&'static str], Box<dyn MediaProvider
     )]
 }
 
-fn retrieve_base_paths() -> Vec<PathBuf> {
-    // TODO: user-defined base paths
-    // TODO: we should also probably check if these directories exist
-    let system_music = directories::UserDirs::new()
-        .unwrap()
-        .audio_dir()
-        .unwrap()
-        .to_path_buf();
-
-    vec![system_music]
-}
-
 fn file_is_scannable_with_provider(path: &Path, exts: &&[&str]) -> bool {
     for extension in exts.iter() {
         if let Some(ext) = path.extension() {
