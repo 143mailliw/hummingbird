@@ -10,7 +10,7 @@ use ahash::AHashMap;
 use async_std::task;
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
-use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, EncodableLayout};
+use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, DynamicImage, EncodableLayout};
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
 
@@ -419,7 +419,14 @@ impl ScanThread {
                             .decode()?
                             .into_rgb8();
 
-                        let thumb = thumbnail(&decoded, 70, 70);
+                        // for some reason, thumbnails don't load properly when saved as rgb8
+                        // also, into_rgba8() causes the application to crash on certain images
+                        //
+                        // no, I don't no why, and no I can't fix it upstream
+                        // this will have to do for now
+                        let decoded_rgba = DynamicImage::ImageRgb8(decoded.clone()).into_rgba8();
+
+                        let thumb = thumbnail(&decoded_rgba, 70, 70);
 
                         let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
 
