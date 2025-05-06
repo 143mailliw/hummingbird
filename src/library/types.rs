@@ -5,7 +5,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use gpui::{IntoElement, RenderImage, SharedString};
-use image::Frame;
+use image::{Frame, RgbaImage};
 use smallvec::SmallVec;
 use sqlx::{encode::IsNull, error::BoxDynError, Database, Decode, Sqlite, Type};
 
@@ -41,8 +41,12 @@ impl From<Box<[u8]>> for Thumbnail {
         let mut image = image::load_from_memory(&data)
             .unwrap()
             .as_rgba8()
-            .expect("invalid thumbnail")
-            .to_owned();
+            .map(|image| image.to_owned())
+            .unwrap_or_else(|| {
+                let mut image = RgbaImage::new(1, 1);
+                image.put_pixel(0, 0, image::Rgba([0, 0, 0, 0]));
+                image
+            });
 
         rgb_to_bgr(&mut image);
 
