@@ -83,8 +83,7 @@ impl Render for WindowShadow {
                             move |_bounds, hitbox, window, _| {
                                 let mouse = window.mouse_position();
                                 let size = window.window_bounds().get_bounds().size;
-                                let Some(edge) = resize_edge(mouse, shadow_size, size, tiling)
-                                else {
+                                let Some(edge) = resize_edge(mouse, px(30.0), size, tiling) else {
                                     return;
                                 };
                                 window.set_cursor_style(
@@ -205,24 +204,25 @@ fn resize_edge(
     size: Size<Pixels>,
     tiling: Tiling,
 ) -> Option<ResizeEdge> {
-    let edge = if pos.y < shadow_size && pos.x < shadow_size && !tiling.top && !tiling.left {
+    let edge = if pos.y < shadow_size * 2 && pos.x < shadow_size * 2 && !tiling.top && !tiling.left
+    {
         ResizeEdge::TopLeft
-    } else if pos.y < shadow_size
-        && pos.x > size.width - shadow_size
+    } else if pos.y < shadow_size * 2
+        && pos.x > size.width - shadow_size * 2
         && !tiling.top
         && !tiling.right
     {
         ResizeEdge::TopRight
     } else if pos.y < shadow_size && !tiling.top {
         ResizeEdge::Top
-    } else if pos.y > size.height - shadow_size
-        && pos.x < shadow_size
+    } else if pos.y > size.height - shadow_size * 2
+        && pos.x < shadow_size * 2
         && !tiling.bottom
         && !tiling.left
     {
         ResizeEdge::BottomLeft
-    } else if pos.y > size.height - shadow_size
-        && pos.x > size.width - shadow_size
+    } else if pos.y > size.height - shadow_size * 2
+        && pos.x > size.width - shadow_size * 2
         && !tiling.bottom
         && !tiling.right
     {
