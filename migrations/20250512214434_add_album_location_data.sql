@@ -16,4 +16,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS album_title_artist_mbid ON album (title, artis
 CREATE TRIGGER IF NOT EXISTS delete_album_paths AFTER DELETE ON album BEGIN
 DELETE FROM album_path
 WHERE
-    album_path.album_id = OLD.id END;
+    album_path.album_id = OLD.id;
+
+END;
