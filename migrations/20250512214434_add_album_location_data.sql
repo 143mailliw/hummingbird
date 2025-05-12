@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS album_path (
     path TEXT NOT NULL,
     disc_num INTEGER DEFAULT -1 NOT NULL,
     FOREIGN KEY (album_id) REFERENCES album (id),
-    PRIMARY KEY (album_id, path, disc_num)
+    PRIMARY KEY (album_id, disc_num)
 );
 
 DROP INDEX album_title_artist_id_idx;
