@@ -5,7 +5,7 @@ Muzak can be themed with a `theme.json` file located in the following places:
 |----------|----------------------------------------------------------------|
 | Linux    | `~/.local/share/muzak/theme.json`                              |
 | macOS    | `~/Library/Application Support/me.william341.muzak/theme.json` |
-| Windows  | `%appdata%\william341\muzak\data\theme.json`                        |
+| Windows  | `%appdata%\william341\muzak\data\theme.json`                   |
 
 When this file is created, deleted, or modified, the theme is reloaded. If your
 theme produces the default theme with no modified properties, it is likely that
@@ -82,5 +82,13 @@ in this example.
   "menu_item": "#282F3D00",
   "menu_item_hover": "#282F3D",
   "menu_item_active": "#0D1014",
+
+  "modal_overlay_bg": "#0C111655",
+
+  "text_input_selection": "#0673C688",
+  "caret_color": "#F4F5F6",
+
+  "palette_item_hover": "#282F3D",
+  "palette_item_active": "#0D1014"
 }
 ```

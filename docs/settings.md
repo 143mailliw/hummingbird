@@ -5,7 +5,7 @@ Muzak can be configured with a `settings.json` file located in the following pla
 |----------|-------------------------------------------------------------------|
 | Linux    | `~/.local/share/muzak/settings.json`                              |
 | macOS    | `~/Library/Application Support/me.william341.muzak/settings.json` |
-| Windows  | `%appdata%\william341\muzak\data\settings.json`                        |
+| Windows  | `%appdata%\william341\muzak\data\settings.json`                   |
 
 ## Example
 
@@ -24,7 +24,7 @@ The current Last.FM session is stored in the following places:
 |----------|-----------------------------------------------------------------|
 | Linux    | `~/.local/share/muzak/lastfm.json`                              |
 | macOS    | `~/Library/Application Support/me.william341.muzak/lastfm.json` |
-| Windows  | `%appdata%\william341\muzak\data\lastfm.json`                        |
+| Windows  | `%appdata%\william341\muzak\data\lastfm.json`                   |
 
 Deleting this file will disconnect your Last.FM account. This file should not
 be modified manually - it will be generated when you connect your Last.FM
