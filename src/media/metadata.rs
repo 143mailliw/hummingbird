@@ -24,4 +24,6 @@ pub struct Metadata {
     pub label: Option<String>,
     pub catalog: Option<String>,
     pub isrc: Option<String>,
+
+    pub mbid_album: Option<String>,
 }

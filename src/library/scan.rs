@@ -402,9 +402,16 @@ impl ScanThread {
         let Some(album) = &metadata.album else {
             return Ok(None);
         };
+
+        let mbid = metadata
+            .mbid_album
+            .clone()
+            .unwrap_or_else(|| "none".to_string());
+
         let result: Result<(i64,), sqlx::Error> =
             sqlx::query_as(include_str!("../../queries/scan/get_album_id.sql"))
                 .bind(album)
+                .bind(&mbid)
                 .fetch_one(&self.pool)
                 .await;
 
@@ -475,6 +482,7 @@ impl ScanThread {
                         .bind(&metadata.label)
                         .bind(&metadata.catalog)
                         .bind(&metadata.isrc)
+                        .bind(&mbid)
                         .fetch_one(&self.pool)
                         .await?;
 

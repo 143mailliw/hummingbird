@@ -132,6 +132,9 @@ impl SymphoniaProvider {
                 Some(StandardTagKey::SortAlbumArtist) => {
                     self.current_metadata.artist_sort = Some(tag.value.to_string())
                 }
+                Some(StandardTagKey::MusicBrainzAlbumId) => {
+                    self.current_metadata.mbid_album = Some(tag.value.to_string())
+                }
                 _ => (),
             }
         }
