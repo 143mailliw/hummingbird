@@ -491,6 +491,37 @@ impl ScanThread {
         path: &Path,
         length: u64,
     ) -> anyhow::Result<()> {
+        if album_id.is_none() {
+            return Ok(());
+        }
+
+        let disc_num = metadata.disc_current.map(|v| v as i64).unwrap_or(-1);
+        let find_path: Result<(String,), _> =
+            sqlx::query_as(include_str!("../../queries/scan/get_album_path.sql"))
+                .bind(album_id)
+                .bind(disc_num)
+                .fetch_one(&self.pool)
+                .await;
+
+        let parent = path.parent().unwrap();
+
+        match find_path {
+            Ok(path) => {
+                if path.0.as_str() != parent.as_os_str() {
+                    return Ok(());
+                }
+            }
+            Err(sqlx::Error::RowNotFound) => {
+                sqlx::query(include_str!("../../queries/scan/create_album_path.sql"))
+                    .bind(album_id)
+                    .bind(parent.to_str())
+                    .bind(disc_num)
+                    .execute(&self.pool)
+                    .await?;
+            }
+            Err(e) => return Err(e.into()),
+        }
+
         let name = metadata
             .name
             .clone()
@@ -512,6 +543,7 @@ impl ScanThread {
                 .bind(path.to_str())
                 .bind(&metadata.genre)
                 .bind(&metadata.artist)
+                .bind(parent.to_str())
                 .fetch_one(&self.pool)
                 .await;
 
