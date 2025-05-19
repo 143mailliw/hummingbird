@@ -404,11 +404,14 @@ impl Scrubber {
 }
 
 impl Render for Scrubber {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let position = *self.position.read(cx);
         let duration = *self.duration.read(cx);
         let remaining = duration - position;
+
+        let window_width = window.viewport_size().width;
+
         div()
             .pl(px(13.0))
             .pr(px(13.0))
@@ -429,18 +432,21 @@ impl Render for Scrubber {
                     .items_end()
                     .mt(px(6.0))
                     .mb(px(6.0))
-                    .child(
-                        div()
-                            .pr(px(6.0))
-                            .border_r(px(2.0))
-                            .border_color(rgb(0x4b5563))
-                            .child(format!("{:02}:{:02}", position / 60, position % 60)),
-                    )
-                    .child(div().ml(px(6.0)).text_color(rgb(0xcbd5e1)).child(format!(
+                    .child(div().mr(px(6.0)).child(format!(
                         "{:02}:{:02}",
-                        duration / 60,
-                        duration % 60
+                        position / 60,
+                        position % 60
                     )))
+                    .when(window_width > px(900.0), |this| {
+                        this.child(
+                            div()
+                                .border_color(rgb(0x4b5563))
+                                .border_l(px(2.0))
+                                .pl(px(6.0))
+                                .text_color(rgb(0xcbd5e1))
+                                .child(format!("{:02}:{:02}", duration / 60, duration % 60)),
+                        )
+                    })
                     .child(deferred(self.playback_section.clone()))
                     .child(div().h(px(30.0)))
                     .child(div().ml(auto()).child(format!(
