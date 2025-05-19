@@ -6,7 +6,10 @@ use tracing::debug;
 
 use crate::{
     library::db::{AlbumMethod, LibraryAccess},
-    ui::{constants::FONT_AWESOME, theme::Theme},
+    ui::{
+        constants::{FONT_AWESOME, ICON_ARROW_LEFT},
+        theme::Theme,
+    },
 };
 
 use super::ViewSwitchMessage;
@@ -89,7 +92,7 @@ impl Render for NavigationView {
                                     cx.emit(ViewSwitchMessage::Back);
                                 })
                             }))
-                            .child(""),
+                            .child(ICON_ARROW_LEFT),
                     )
                     .child(
                         div()

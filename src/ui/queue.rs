@@ -8,7 +8,7 @@ use prelude::FluentBuilder;
 
 use super::{
     components::button::{button, ButtonSize, ButtonStyle},
-    constants::FONT_AWESOME,
+    constants::{FONT_AWESOME, ICON_SHUFFLE, ICON_TRASH_CAN, ICON_XMARK},
     models::{Models, PlaybackInfo},
     theme::Theme,
     util::{create_or_retrieve_view, drop_image_from_app, prune_views},
@@ -278,7 +278,7 @@ impl Render for Queue {
                                     .hover(|this| this.bg(theme.nav_button_hover))
                                     .active(|this| this.bg(theme.nav_button_active))
                                     .cursor_pointer()
-                                    .child("")
+                                    .child(ICON_XMARK)
                                     .on_click(cx.listener(|this: &mut Self, _, _, cx| {
                                         this.show_queue.update(cx, |v, _| *v = !(*v))
                                     })),
@@ -311,7 +311,7 @@ impl Render for Queue {
                         button()
                             .style(ButtonStyle::MinimalNoRounding)
                             .size(ButtonSize::Large)
-                            .child(div().font_family(FONT_AWESOME).child(""))
+                            .child(div().font_family(FONT_AWESOME).child(ICON_TRASH_CAN))
                             .child("Clear")
                             .w_full()
                             .id("clear-queue")
@@ -324,7 +324,7 @@ impl Render for Queue {
                         button()
                             .style(ButtonStyle::MinimalNoRounding)
                             .size(ButtonSize::Large)
-                            .child(div().font_family(FONT_AWESOME).child(""))
+                            .child(div().font_family(FONT_AWESOME).child(ICON_SHUFFLE))
                             .when(*shuffling, |this| this.child("Shuffling"))
                             .when(!shuffling, |this| this.child("Shuffle"))
                             .w_full()

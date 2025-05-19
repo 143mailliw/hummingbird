@@ -9,7 +9,10 @@ use crate::{
 };
 
 use super::{
-    constants::{APP_ROUNDING, FONT_AWESOME},
+    constants::{
+        APP_ROUNDING, FONT_AWESOME, ICON_CHECK, ICON_EXPAND, ICON_MAGNIFYING_GLASS, ICON_MINUS,
+        ICON_XMARK,
+    },
     models::Models,
     theme::Theme,
 };
@@ -138,8 +141,10 @@ impl Render for ScanStatus {
                     .h_full()
                     .font_family(FONT_AWESOME)
                     .child(match status {
-                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => "",
-                        _ => "",
+                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => {
+                            ICON_MAGNIFYING_GLASS
+                        }
+                        _ => ICON_CHECK,
                     }),
             )
             .text_color(theme.text_secondary)
@@ -207,9 +212,9 @@ impl RenderOnce for WindowButton {
                 window.prevent_default();
             })
             .child(match self {
-                WindowButton::Close => "",
-                WindowButton::Minimize => "",
-                WindowButton::Maximize => "",
+                WindowButton::Close => ICON_XMARK,
+                WindowButton::Minimize => ICON_MINUS,
+                WindowButton::Maximize => ICON_EXPAND,
             })
             .when(self == WindowButton::Close, |this| this.rounded_tr(px(4.0)))
             .on_click(move |_, window, cx| match self {

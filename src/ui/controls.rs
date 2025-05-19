@@ -4,7 +4,10 @@ use prelude::FluentBuilder;
 
 use super::{
     components::slider::slider,
-    constants::{APP_ROUNDING, FONT_AWESOME},
+    constants::{
+        APP_ROUNDING, FONT_AWESOME, ICON_BACKWARD_STEP, ICON_BARS, ICON_FORWARD_STEP, ICON_PAUSE,
+        ICON_PLAY, ICON_REPEAT, ICON_SHUFFLE, ICON_VOLUME_HIGH, ICON_VOLUME_XMARK,
+    },
     global_actions::{Next, PlayPause, Previous},
     models::{Models, PlaybackInfo},
     theme::Theme,
@@ -254,7 +257,7 @@ impl Render for PlaybackSection {
                     .on_click(|_, _, cx| {
                         cx.global::<GPUIPlaybackInterface>().toggle_shuffle();
                     })
-                    .child("")
+                    .child(ICON_SHUFFLE)
                     .when(*shuffling, |this| {
                         this.text_color(theme.playback_button_toggled)
                     }),
@@ -285,9 +288,7 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(Previous), cx);
                             })
-                            // icon: `backward-step`
-                            // https://fontawesome.com/icons/backward-step?f=classic&s=solid
-                            .child("\u{f048}"),
+                            .child(ICON_BACKWARD_STEP),
                     )
                     .child(
                         div()
@@ -311,8 +312,10 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(PlayPause), cx);
                             })
-                            .when(*state == PlaybackState::Playing, |div| div.child(""))
-                            .when(*state != PlaybackState::Playing, |div| div.child("")),
+                            .when(*state == PlaybackState::Playing, |div| {
+                                div.child(ICON_PAUSE)
+                            })
+                            .when(*state != PlaybackState::Playing, |div| div.child(ICON_PLAY)),
                     )
                     .child(
                         div()
@@ -334,9 +337,7 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(Next), cx);
                             })
-                            // icon: `forward-step`
-                            // https://fontawesome.com/icons/forward-step?f=classic&s=solid
-                            .child("\u{f051}"),
+                            .child(ICON_FORWARD_STEP),
                     ),
             )
             .child(
@@ -363,7 +364,7 @@ impl Render for PlaybackSection {
                     .on_click(|_, _, cx| {
                         cx.global::<GPUIPlaybackInterface>().toggle_repeat();
                     })
-                    .child("")
+                    .child(ICON_REPEAT)
                     .when(*repeating, |this| {
                         this.text_color(theme.playback_button_toggled)
                     }),
@@ -518,16 +519,12 @@ impl Render for SecondaryControls {
                         .hover(|this| this.bg(theme.playback_button_hover))
                         .active(|this| this.bg(theme.playback_button_active))
                         .when(volume <= 0.0, |div| {
-                            // icon: `volume-xmark`
-                            // https://fontawesome.com/icons/volume-xmark?f=classic&s=solid
-                            div.child("\u{f6a9}").on_click(move |_, _, cx| {
+                            div.child(ICON_VOLUME_XMARK).on_click(move |_, _, cx| {
                                 cx.global::<GPUIPlaybackInterface>().set_volume(prev_volume);
                             })
                         })
                         .when(volume > 0.0, |div| {
-                            // icon: `volume-high`
-                            // https://fontawesome.com/icons/volume-high?f=classic&s=solid
-                            div.child("").on_click(move |_, _, cx| {
+                            div.child(ICON_VOLUME_HIGH).on_click(move |_, _, cx| {
                                 cx.global::<GPUIPlaybackInterface>().set_volume(0 as f64);
                             })
                         }),
@@ -560,7 +557,7 @@ impl Render for SecondaryControls {
                         .bg(theme.playback_button)
                         .hover(|this| this.bg(theme.playback_button_hover))
                         .active(|this| this.bg(theme.playback_button_active))
-                        .child("")
+                        .child(ICON_BARS)
                         .on_click(move |_, _, cx| {
                             show_queue.update(cx, |m, cx| {
                                 *m = !*m;

@@ -4,7 +4,7 @@ use tracing::error;
 use crate::{
     services::mmb::lastfm::{client::LastFMClient, LASTFM_API_KEY, LASTFM_API_SECRET},
     ui::{
-        constants::FONT_AWESOME_BRANDS,
+        constants::{FONT_AWESOME_BRANDS, ICON_LASTFM},
         models::{LastFMState, Models},
         theme::Theme,
     },
@@ -67,7 +67,7 @@ impl Render for LastFM {
                     .pt(px(3.0))
                     .text_size(px(11.0))
                     .h_full()
-                    .child(""),
+                    .child(ICON_LASTFM),
             )
             .child(
                 div().child(match self.state.read(cx) {
