@@ -274,7 +274,7 @@ impl PlaybackThread {
                 PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
                 PlaybackCommand::Stop => self.stop(),
                 PlaybackCommand::ToggleShuffle => self.toggle_shuffle(),
-                PlaybackCommand::ToggleRepeat => self.repeat = !self.repeat,
+                PlaybackCommand::ToggleRepeat => self.toggle_repeat(),
             }
         }
     }
@@ -746,6 +746,16 @@ impl PlaybackThread {
                 .send(PlaybackEvent::VolumeChanged(volume))
                 .expect("unable to send event");
         }
+    }
+
+    /// Toggles repeat mode. The queue will loop infinitely when repeat mode is enabled. If shuffle
+    /// mode is also enabled, the queue will be reshuffled when looped.
+    fn toggle_repeat(&mut self) {
+        self.repeat = !self.repeat;
+
+        self.events_tx
+            .send(PlaybackEvent::RepeatToggled(self.repeat))
+            .expect("unable to send event");
     }
 
     /// Recreates the playback stream with the given channels if any are provided, otherwise uses

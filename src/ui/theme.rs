@@ -25,6 +25,7 @@ pub struct Theme {
     pub playback_button_hover: Rgba,
     pub playback_button_active: Rgba,
     pub playback_button_border: Rgba,
+    pub playback_button_toggled: Rgba,
 
     pub window_button: Rgba,
     pub window_button_hover: Rgba,
@@ -99,6 +100,7 @@ impl Default for Theme {
             playback_button_hover: rgb(0x282F3D),
             playback_button_active: rgb(0x0D1014),
             playback_button_border: rgba(0x37404E00),
+            playback_button_toggled: rgb(0x0667B2),
 
             window_button: rgba(0x33415500),
             window_button_hover: rgb(0x282F3D),

@@ -79,6 +79,8 @@ pub enum PlaybackEvent {
     PositionChanged(u64),
     /// Notification for when shuffling is disabled or enabled by the thread.
     ShuffleToggled(bool, usize),
+    /// Indicates that the queue will/will not be repeated.
+    RepeatToggled(bool),
     /// Indicates that the volume has changed. The f64 is the new volume, from 0.0 to 1.0.
     VolumeChanged(f64),
 }

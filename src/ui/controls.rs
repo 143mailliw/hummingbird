@@ -220,6 +220,7 @@ impl Render for PlaybackSection {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
         let shuffling = self.info.shuffling.read(cx);
+        let repeating = self.info.repeating.read(cx);
         let theme = cx.global::<Theme>();
 
         div()
@@ -262,7 +263,6 @@ impl Render for PlaybackSection {
                     .border_color(theme.playback_button_border)
                     .border_1()
                     .flex()
-                    .mr_auto()
                     .child(
                         div()
                             .w(px(30.0))
@@ -336,6 +336,35 @@ impl Render for PlaybackSection {
                             // https://fontawesome.com/icons/forward-step?f=classic&s=solid
                             .child("\u{f051}"),
                     ),
+            )
+            .child(
+                div()
+                    .rounded(px(3.0))
+                    .w(px(28.0))
+                    .h(px(25.0))
+                    .mt(px(2.0))
+                    .ml(px(6.0))
+                    .mr_auto()
+                    .border_color(theme.playback_button_border)
+                    .font_family(FONT_AWESOME)
+                    .text_size(px(12.0))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
+                    .id("header-repeat-button")
+                    .active(|style| style.bg(theme.playback_button_active))
+                    .on_mouse_down(MouseButton::Left, |_, window, cx| {
+                        cx.stop_propagation();
+                        window.prevent_default();
+                    })
+                    .on_click(|_, _, cx| {
+                        cx.global::<GPUIPlaybackInterface>().toggle_repeat();
+                    })
+                    .child("")
+                    .when(*repeating, |this| {
+                        this.text_color(theme.playback_button_toggled)
+                    }),
             )
     }
 }

@@ -81,6 +81,7 @@ pub struct PlaybackInfo {
     pub playback_state: Entity<PlaybackState>,
     pub current_track: Entity<Option<CurrentTrack>>,
     pub shuffling: Entity<bool>,
+    pub repeating: Entity<bool>,
     pub volume: Entity<f64>,
     pub prev_volume: Entity<f64>,
 }
@@ -227,6 +228,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let current_track: Entity<Option<CurrentTrack>> =
         cx.new(|_| storage_data.current_track.clone());
     let shuffling: Entity<bool> = cx.new(|_| false);
+    let repeating: Entity<bool> = cx.new(|_| false);
     let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
     let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
 
@@ -236,6 +238,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         playback_state,
         current_track,
         shuffling,
+        repeating,
         volume,
         prev_volume,
     });

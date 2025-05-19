@@ -311,6 +311,13 @@ impl GPUIPlaybackInterface {
                                 cx.notify();
                             })
                             .expect("failed to update queue position"),
+                        PlaybackEvent::RepeatToggled(v) => playback_info
+                            .repeating
+                            .update(cx, |m, cx| {
+                                *m = v;
+                                cx.notify();
+                            })
+                            .expect("failed to update repeat model"),
                     }
                 }
 
