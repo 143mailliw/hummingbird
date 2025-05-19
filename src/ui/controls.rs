@@ -254,8 +254,10 @@ impl Render for PlaybackSection {
                     .on_click(|_, _, cx| {
                         cx.global::<GPUIPlaybackInterface>().toggle_shuffle();
                     })
-                    .when(*shuffling, |this| this.child(""))
-                    .when(!shuffling, |this| this.child("")),
+                    .child("")
+                    .when(*shuffling, |this| {
+                        this.text_color(theme.playback_button_toggled)
+                    }),
             )
             .child(
                 div()
