@@ -101,6 +101,9 @@ pub struct PlaybackThread {
 
     /// Whether or not the stream should be reset before playback is continued.
     pending_reset: bool,
+
+    /// Whether or not the queue should be repeated when the end of the queue is reached.
+    repeat: bool,
 }
 
 impl PlaybackThread {
@@ -128,6 +131,7 @@ impl PlaybackThread {
                     queue_next: 0,
                     last_timestamp: u64::MAX,
                     pending_reset: false,
+                    repeat: false,
                 };
 
                 thread.run();
@@ -270,6 +274,7 @@ impl PlaybackThread {
                 PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
                 PlaybackCommand::Stop => self.stop(),
                 PlaybackCommand::ToggleShuffle => self.toggle_shuffle(),
+                PlaybackCommand::ToggleRepeat => self.repeat = !self.repeat,
             }
         }
     }
@@ -453,7 +458,7 @@ impl PlaybackThread {
 
     /// Skip to the next track in the queue.
     fn next(&mut self, user_initiated: bool) {
-        let queue = self.queue.read().expect("couldn't get the queue");
+        let mut queue = self.queue.write().expect("couldn't get the queue");
 
         if self.queue_next < queue.len() {
             info!("Opening next file in queue");
@@ -465,9 +470,21 @@ impl PlaybackThread {
                 .expect("unable to send event");
             self.queue_next += 1;
         } else if !user_initiated {
-            info!("Playback queue is empty, stopping playback");
-            drop(queue);
-            self.stop();
+            if self.repeat {
+                info!("End of queue reached, repeating.");
+
+                if self.shuffle {
+                    let length = queue.len();
+                    queue[self.queue_next..length].shuffle(&mut rng());
+                }
+
+                drop(queue);
+                self.jump(0);
+            } else {
+                info!("Playback queue is empty, stopping playback");
+                drop(queue);
+                self.stop();
+            }
         }
     }
 

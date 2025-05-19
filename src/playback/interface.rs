@@ -143,6 +143,12 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
+    pub fn toggle_repeat(&self) {
+        self.commands_tx
+            .send(PlaybackCommand::ToggleRepeat)
+            .expect("could not send tx");
+    }
+
     /// Starts the broadcast loop that will read events from the playback thread and update data
     /// models accordingly. This function should be called once, and will panic if called more than
     /// once.

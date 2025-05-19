@@ -47,6 +47,9 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread shuffle (or stop shuffling) the next tracks in the
     /// queue. Note that this currently results in duplication of the *entire* queue.
     ToggleShuffle,
+    /// Requests that the playback thread toggle whether or not the current queue should be
+    /// repeated when the end is reached.
+    ToggleRepeat,
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback
