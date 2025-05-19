@@ -474,8 +474,11 @@ impl PlaybackThread {
                 info!("End of queue reached, repeating.");
 
                 if self.shuffle {
-                    let length = queue.len();
-                    queue[self.queue_next..length].shuffle(&mut rng());
+                    queue.shuffle(&mut rng());
+
+                    self.events_tx
+                        .send(PlaybackEvent::QueueUpdated)
+                        .expect("unable to send event");
                 }
 
                 drop(queue);
