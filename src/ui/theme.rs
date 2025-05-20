@@ -81,7 +81,6 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        // TODO: Theme for scrubber (when scrubber is rewritten)
         Self {
             background_primary: rgb(0x0C1116),
             background_secondary: rgb(0x161A22),

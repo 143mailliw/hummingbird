@@ -201,7 +201,6 @@ pub trait LibraryAccess {
     fn list_albums_search(&self) -> Result<Vec<(u32, String)>, sqlx::Error>;
 }
 
-// TODO: profile this with a large library
 impl LibraryAccess for App {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();

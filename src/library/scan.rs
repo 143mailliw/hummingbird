@@ -142,8 +142,6 @@ fn file_is_scannable_with_provider(path: &Path, exts: &&[&str]) -> bool {
 
 type FileInformation = (Metadata, u64, Option<Box<[u8]>>);
 
-// We don't care about the error message. If the file can't be scanned, we just ignore it.
-// TODO: it might be worth logging why the file couldn't be scanned (for plugin development)
 fn scan_file_with_provider(
     path: &PathBuf,
     provider: &mut Box<dyn MediaProvider>,
@@ -243,8 +241,6 @@ impl ScanThread {
         loop {
             self.read_commands();
 
-            // TODO: clear out old files if they've been deleted or moved
-            // TODO: connect to user interface to display progress
             // TODO: start file watcher to update db automatically when files are added or removed
             match self.scan_state {
                 ScanState::Idle => {
