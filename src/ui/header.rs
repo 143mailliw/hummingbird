@@ -141,10 +141,8 @@ impl Render for ScanStatus {
                     .h_full()
                     .font_family(FONT_AWESOME)
                     .child(match status {
-                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => {
-                            ICON_MAGNIFYING_GLASS
-                        }
-                        _ => ICON_CHECK,
+                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => ICON_CHECK,
+                        _ => ICON_MAGNIFYING_GLASS,
                     }),
             )
             .text_color(theme.text_secondary)
