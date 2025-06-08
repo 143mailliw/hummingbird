@@ -65,9 +65,14 @@ impl Element for ContextMenu {
         Some(self.id.clone())
     }
 
+    fn source_location(&self) -> Option<&'static std::panic::Location<'static>> {
+        None
+    }
+
     fn request_layout(
         &mut self,
         id: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
@@ -117,7 +122,7 @@ impl Element for ContextMenu {
             });
 
         let state = if let Some(mut anchored) = anchored {
-            let layout = anchored.request_layout(None, window, cx);
+            let layout = anchored.request_layout(None, None, window, cx);
             layout_ids.push(layout.0);
             Some((anchored, layout.0, layout.1))
         } else {
@@ -130,6 +135,7 @@ impl Element for ContextMenu {
     fn prepaint(
         &mut self,
         _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
         _: Bounds<Pixels>,
         request_layout: &mut Self::RequestLayoutState,
         window: &mut Window,
@@ -143,6 +149,7 @@ impl Element for ContextMenu {
             let bounds = window.layout_bounds(anchored.1);
 
             anchored.0.prepaint(
+                None,
                 None,
                 window.layout_bounds(anchored.1),
                 &mut anchored.2,
@@ -159,6 +166,7 @@ impl Element for ContextMenu {
     fn paint(
         &mut self,
         id: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         request_layout: &mut Self::RequestLayoutState,
         prepaint: &mut Self::PrepaintState,
@@ -171,6 +179,7 @@ impl Element for ContextMenu {
 
         if let Some(anchored) = request_layout {
             anchored.0.paint(
+                None,
                 None,
                 prepaint.unwrap(),
                 &mut anchored.2,

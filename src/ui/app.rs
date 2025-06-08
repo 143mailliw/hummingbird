@@ -77,7 +77,7 @@ impl Render for WindowShadow {
                                         point(px(0.0), px(0.0)),
                                         window.window_bounds().get_bounds().size,
                                     ),
-                                    false,
+                                    HitboxBehavior::Normal,
                                 )
                             },
                             move |_bounds, hitbox, window, _| {
@@ -101,7 +101,7 @@ impl Render for WindowShadow {
                                             CursorStyle::ResizeUpRightDownLeft
                                         }
                                     },
-                                    Some(&hitbox),
+                                    &hitbox,
                                 );
                             },
                         )
@@ -158,7 +158,7 @@ impl Render for WindowShadow {
                             .when(!tiling.left, |div| div.border_l(border_size))
                             .when(!tiling.right, |div| div.border_r(border_size))
                             .when(!tiling.is_tiled(), |div| {
-                                div.shadow(smallvec::smallvec![gpui::BoxShadow {
+                                div.shadow(vec![gpui::BoxShadow {
                                     color: Hsla {
                                         h: 0.,
                                         s: 0.,

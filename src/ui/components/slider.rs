@@ -57,6 +57,7 @@ impl Element for Slider {
     fn request_layout(
         &mut self,
         _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
@@ -65,20 +66,26 @@ impl Element for Slider {
         (window.request_layout(style, [], cx), ())
     }
 
+    fn source_location(&self) -> Option<&'static std::panic::Location<'static>> {
+        None
+    }
+
     fn prepaint(
         &mut self,
         _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         _: &mut Self::RequestLayoutState,
         window: &mut Window,
         _: &mut App,
     ) -> Self::PrepaintState {
-        self.hitbox = Some(window.insert_hitbox(bounds, false));
+        self.hitbox = Some(window.insert_hitbox(bounds, HitboxBehavior::Normal));
     }
 
     fn paint(
         &mut self,
         id: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         _: &mut Self::RequestLayoutState,
         _: &mut Self::PrepaintState,
@@ -95,7 +102,7 @@ impl Element for Slider {
         let mut corners = Corners::default();
         corners.refine(&self.style.corner_radii);
 
-        window.set_cursor_style(CursorStyle::PointingHand, self.hitbox.as_ref());
+        window.set_cursor_style(CursorStyle::PointingHand, self.hitbox.as_ref().unwrap());
 
         window.paint_quad(quad(
             bounds,
