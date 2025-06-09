@@ -2651,6 +2651,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "hummingbird"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "anyhow",
+ "async-std",
+ "async-trait",
+ "bitflags 2.9.1",
+ "chrono",
+ "clap",
+ "cpal",
+ "dateparser",
+ "directories",
+ "dotenvy",
+ "fnv",
+ "globwalk",
+ "gpui",
+ "image",
+ "indexmap",
+ "intx",
+ "isahc",
+ "md5",
+ "moka",
+ "notify",
+ "nucleo",
+ "open",
+ "rand 0.9.1",
+ "rb",
+ "rubato",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "sqlx",
+ "symphonia",
+ "thiserror 2.0.12",
+ "tracing",
+ "tracing-subscriber",
+ "unicode-segmentation",
+ "urlencoding",
+ "windows 0.60.0",
+ "windows-result 0.3.4",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3523,51 +3568,6 @@ dependencies = [
  "tagptr",
  "thiserror 1.0.69",
  "uuid",
-]
-
-[[package]]
-name = "muzak"
-version = "0.1.0"
-dependencies = [
- "ahash",
- "anyhow",
- "async-std",
- "async-trait",
- "bitflags 2.9.1",
- "chrono",
- "clap",
- "cpal",
- "dateparser",
- "directories",
- "dotenvy",
- "fnv",
- "globwalk",
- "gpui",
- "image",
- "indexmap",
- "intx",
- "isahc",
- "md5",
- "moka",
- "notify",
- "nucleo",
- "open",
- "rand 0.9.1",
- "rb",
- "rubato",
- "rust-embed",
- "serde",
- "serde_json",
- "smallvec",
- "sqlx",
- "symphonia",
- "thiserror 2.0.12",
- "tracing",
- "tracing-subscriber",
- "unicode-segmentation",
- "urlencoding",
- "windows 0.60.0",
- "windows-result 0.3.4",
 ]
 
 [[package]]

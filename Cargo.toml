@@ -1,5 +1,5 @@
 [package]
-name = "muzak"
+name = "hummingbird"
 version = "0.1.0"
 edition = "2021"
 
@@ -70,5 +70,5 @@ lto = "fat"
 opt-level = "s"
 
 [package.metadata.bundle]
-name = "Muzak"
-identifier = "me.william341.muzak"
+name = "Hummingbird"
+identifier = "org.mailliw.hummingbird"
