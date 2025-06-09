@@ -152,7 +152,7 @@ impl Render for InfoSection {
                                 .h_full()
                                 .items_center()
                                 .pb(px(6.0))
-                                .child("Muzak"),
+                                .child("Hummingbird"),
                         )
                     })
                     .when(*state != PlaybackState::Stopped, |e| {

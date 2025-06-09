@@ -260,7 +260,15 @@ pub struct Pool(pub SqlitePool);
 impl Global for Pool {}
 
 pub fn get_dirs() -> ProjectDirs {
-    directories::ProjectDirs::from("me", "william341", "muzak").expect("couldn't find project dirs")
+    let secondary_dirs = directories::ProjectDirs::from("me", "william341", "muzak")
+        .expect("couldn't generate project dirs (secondary)");
+
+    if secondary_dirs.data_dir().exists() {
+        return secondary_dirs;
+    }
+
+    directories::ProjectDirs::from("org", "mailliw", "hummingbird")
+        .expect("couldn't generate project dirs")
 }
 
 pub struct DropImageDummyModel;
@@ -352,7 +360,7 @@ pub async fn run() {
                     window_decorations: Some(WindowDecorations::Client),
                     window_min_size: Some(size(px(800.0), px(600.0))),
                     titlebar: Some(TitlebarOptions {
-                        title: Some(SharedString::from("Muzak")),
+                        title: Some(SharedString::from("Hummingbird")),
                         // TODO: fix this
                         appears_transparent: true,
                         traffic_light_position: Some(Point {

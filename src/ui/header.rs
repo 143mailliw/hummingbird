@@ -88,7 +88,7 @@ impl Render for Header {
                     .pt(px(5.0))
                     .flex()
                     .when(cfg!(not(target_os = "macos")), |this| {
-                        this.child(div().child("Muzak").mr(px(16.0)))
+                        this.child(div().child("Hummingbird").mr(px(16.0)))
                     })
                     .child(self.scan_status.clone()),
             )
