@@ -22,11 +22,11 @@ jobs:
         run: cargo build --verbose --release
       - uses: actions/upload-artifact@v4
         with:
-          name: muzak
-          path: target/release/muzak.exe
+          name: hummingbird
+          path: target/release/hummingbird.exe
       - uses: softprops/action-gh-release@v2
         with:
-          files: target/release/muzak.exe
+          files: target/release/hummingbird.exe
           prerelease: true
           name: latest
           tag_name: latest
