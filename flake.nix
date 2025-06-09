@@ -50,12 +50,12 @@
               (pkgs.darwinMinVersionHook "10.15")
             ])
           ];
-          cargoExtraArgs = "--features=muzak/runtime_shaders";
+          cargoExtraArgs = "--features=hummingbird/runtime_shaders";
         };
         craneArgs = depsArgs // {cargoArtifacts = craneLib.buildDepsOnly depsArgs;};
       in {
         formatter = pkgs.alejandra;
-        apps = builtins.mapAttrs (_: pkg: {program = pkg + /bin/muzak;}) self'.packages;
+        apps = builtins.mapAttrs (_: pkg: {program = pkg + /bin/hummingbird;}) self'.packages;
         packages.default = craneLib.buildPackage (lib.mergeAttrs depsArgs (lib.optionalAttrs isLinux {
           nativeBuildInputs = depsArgs.nativeBuildInputs ++ [pkgs.autoPatchelfHook];
           runtimeDependencies = [
