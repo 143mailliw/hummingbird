@@ -2,6 +2,7 @@
 name = "hummingbird"
 version = "0.1.0"
 edition = "2021"
+description = "Music Player"
 
 [features]
 runtime_shaders = ["gpui/runtime_shaders"]
@@ -72,3 +73,14 @@ opt-level = "s"
 [package.metadata.bundle]
 name = "Hummingbird"
 identifier = "org.mailliw.hummingbird"
+category = "public.app-category.music"
+icon = [
+    "./res/icon/32x32.png",
+    "./res/icon/32x32@2x.png",
+    "./res/icon/128x128.png",
+    "./res/icon/128x128@2x.png",
+    "./res/icon/256x256.png",
+    "./res/icon/256x256@2x.png",
+    "./res/icon/512x512.png",
+    "./res/icon/512x512@2x.png",
+]
