@@ -27,7 +27,7 @@ impl Modal {
     }
 }
 
-actions!(muzak::modal, [CloseModal]);
+actions!(hummingbird::modal, [CloseModal]);
 
 pub fn bind_actions(cx: &mut App) {
     cx.bind_keys([KeyBinding::new("escape", CloseModal, None)]);

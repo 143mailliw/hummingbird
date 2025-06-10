@@ -21,7 +21,7 @@ use crate::{
         traits::{MediaPlugin, MediaProvider},
     },
     settings::scan::ScanSettings,
-    ui::models::Models,
+    ui::{app::get_dirs, models::Models},
 };
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -209,8 +209,7 @@ impl ScanThread {
     }
 
     fn run(&mut self) {
-        let dirs = directories::ProjectDirs::from("me", "william341", "muzak")
-            .expect("couldn't find project dirs");
+        let dirs = get_dirs();
         let directory = dirs.data_dir();
         if !directory.exists() {
             fs::create_dir(directory).expect("couldn't create data directory");

@@ -48,7 +48,7 @@ jobs:
 
           # We finally codesign our app bundle, specifying the Hardened runtime option
 
-          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime target/release/bundle/osx/Muzak.app -v
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime target/release/bundle/osx/Hummingbird.app -v
       - name: "Notarize app bundle"
         env:
           PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_APPLE_ID }}
@@ -66,7 +66,7 @@ jobs:
           # notarization service
 
           echo "Creating temp notarization archive"
-          ditto -c -k --keepParent "target/release/bundle/osx/Muzak.app" "notarization.zip"
+          ditto -c -k --keepParent "target/release/bundle/osx/Hummingbird.app" "notarization.zip"
 
           # Here we send the notarization request to the Apple's Notarization service, waiting for the result.
           # This typically takes a few seconds inside a CI environment, but it might take more depending on the App
@@ -79,13 +79,13 @@ jobs:
           # Finally, we need to "attach the staple" to our executable, which will allow our app to be
           # validated by macOS even when an internet connection is not available.
           echo "Attach staple"
-          xcrun stapler staple "target/release/bundle/osx/Muzak.app"
+          xcrun stapler staple "target/release/bundle/osx/Hummingbird.app"
       - uses: actions/upload-artifact@v4
         with:
-          name: muzak
+          name: hummingbird
           path: target/release/bundle/osx/
       - name: Zip files
-        run: zip -r macos.zip Muzak.app/
+        run: zip -r macos.zip Hummingbird.app/
         working-directory: target/release/bundle/osx
       - uses: softprops/action-gh-release@v2
         with:

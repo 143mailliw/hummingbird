@@ -1,15 +1,34 @@
 # Theming
-Muzak can be themed with a `theme.json` file located in the following places:
+Hummingbird can be themed with a `theme.json` file located in the following places:
 
-| Platform | Location                                                       |
-|----------|----------------------------------------------------------------|
-| Linux    | `~/.local/share/muzak/theme.json`                              |
-| macOS    | `~/Library/Application Support/me.william341.muzak/theme.json` |
-| Windows  | `%appdata%\william341\muzak\data\theme.json`                   |
+| Platform | Location                                                           |
+|----------|--------------------------------------------------------------------|
+| Linux    | `~/.local/share/hummingbird/theme.json`                            |
+| macOS    | `~/Library/Application Support/org.mailliw.hummingbird/theme.json` |
+| Windows  | `%appdata%\mailliw\hummingbird\data\theme.json`                    |
+
+> [!NOTE]
+> The default data directory was chanaged when Muzak was renamed to Hummingbird.
+>
+> If you first opened the application before the name change, your configuration files may
+> be in the previous location.
+>
+> <details>
+> <summary>Legacy (pre-Hummingbird) folder location</summary>
+> <br>
+>
+> | Platform | Location                                                       |
+> |----------|----------------------------------------------------------------|
+> | Linux    | `~/.local/share/muzak/theme.json`                              |
+> | macOS    | `~/Library/Application Support/me.william341.muzak/theme.json` |
+> | Windows  | `%appdata%\william341\muzak\data\theme.json`                   |
+>
+> This can be applied to all paths - they have all been changed in the same manner.
+> </details>
 
 When this file is created, deleted, or modified, the theme is reloaded. If your
 theme produces the default theme with no modified properties, it is likely that
-your theme failed to parse - running with `RUST_LOG=muzak=info` may give you
+your theme failed to parse - running with `RUST_LOG=hummingbird=info` may give you
 more information.
 
 Colors are specified as CSS-style hex codes (`#ABCDEF`). If a color is not

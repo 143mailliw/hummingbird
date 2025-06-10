@@ -5,7 +5,7 @@ use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 
 use super::models::PlaybackInfo;
 
-actions!(muzak, [Quit, PlayPause, Next, Previous, Search]);
+actions!(hummingbird, [Quit, PlayPause, Next, Previous, Search]);
 
 pub fn register_actions(cx: &mut App) {
     debug!("registering actions");
@@ -28,7 +28,7 @@ pub fn register_actions(cx: &mut App) {
     }
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
     cx.set_menus(vec![Menu {
-        name: SharedString::from("Muzak"),
+        name: SharedString::from("Hummingbird"),
         items: vec![MenuItem::action("Quit", Quit)],
     }]);
 }

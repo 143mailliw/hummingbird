@@ -17,10 +17,10 @@ use crate::devices::{
 /// meaning that the playback thread will likely submit the next samples immediately.
 ///
 /// The following environment variables can be used to configure the dummy device:
-/// - `MUZAK_DUMMY_SAMPLE_RATE`: The sample rate of the dummy device. Defaults to 44100.
-/// - `MUZAK_DUMMY_BIT_FORMAT`: The bit format of the dummy device. Defaults to `S16`.
-/// - `MUZAK_DUMMY_CHANNELS`: The number of channels of the dummy device. Defaults to 2.
-/// - `MUZAK_DUMMY_BUFFER_SIZE`: The buffer size of the dummy device. Defaults to 4096.
+/// - `HB_DUMMY_SAMPLE_RATE`: The sample rate of the dummy device. Defaults to 44100.
+/// - `HB_DUMMY_BIT_FORMAT`: The bit format of the dummy device. Defaults to `S16`.
+/// - `HB_DUMMY_CHANNELS`: The number of channels of the dummy device. Defaults to 2.
+/// - `HB_DUMMY_BUFFER_SIZE`: The buffer size of the dummy device. Defaults to 4096.
 ///   - This doesn't actually do anything: no samples are ever loaded into a buffer.
 pub struct DummyDeviceProvider {}
 
@@ -56,14 +56,14 @@ pub struct DummyDevice {}
 
 impl DummyDevice {
     pub fn get_sample_rate() -> u32 {
-        env::var("MUZAK_DUMMY_SAMPLE_RATE")
+        env::var("HB_DUMMY_SAMPLE_RATE")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(44100)
     }
 
     pub fn get_bit_format() -> SampleFormat {
-        let string = env::var("MUZAK_DUMMY_BIT_FORMAT")
+        let string = env::var("HB_DUMMY_BIT_FORMAT")
             .ok()
             .unwrap_or("S16".to_string());
 
@@ -84,14 +84,14 @@ impl DummyDevice {
     }
 
     pub fn get_channels() -> u16 {
-        env::var("MUZAK_DUMMY_CHANNELS")
+        env::var("HB_DUMMY_CHANNELS")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(2)
     }
 
     pub fn get_buffer_size() -> u32 {
-        env::var("MUZAK_DUMMY_BUFFER_SIZE")
+        env::var("HB_DUMMY_BUFFER_SIZE")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(4096)
@@ -127,7 +127,7 @@ impl Device for DummyDevice {
     }
 
     fn get_name(&self) -> Result<String, InfoError> {
-        Ok("Muzak Dummy Audio Device".to_string())
+        Ok("Hummingbird Dummy Audio Device".to_string())
     }
 
     fn get_uid(&self) -> Result<String, InfoError> {
