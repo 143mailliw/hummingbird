@@ -1,6 +1,6 @@
 use intx::{I24, U24};
 use rubato::{FftFixedIn, VecResampler};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::media::playback::{PlaybackFrame, Samples};
 
@@ -172,8 +172,8 @@ impl Resampler {
     pub fn new(orig_rate: u32, target_rate: u32, duration: u64, channels: u16) -> Self {
         if orig_rate != target_rate {
             info!(
-                "Resampling required, resampling from {:?} to {:?}",
-                orig_rate, target_rate
+                "Resampling required, resampling from {:?} to {:?} (duration {:?})",
+                orig_rate, target_rate, duration
             );
         }
 
@@ -203,9 +203,15 @@ impl Resampler {
         let source: Vec<Vec<f32>> = convert_samples(frame.samples);
 
         let resampled = if source[0].len() < self.duration as usize {
-            self.resampler
-                .process_partial(Some(&source), None)
-                .expect("resampler error")
+            if source[0].len() == 0 {
+                warn!("Zero length PlaybackFrame presented to convert_formats!");
+                warn!("This is a decoding bug: please report it (with logs)");
+                Vec::new()
+            } else {
+                self.resampler
+                    .process_partial(Some(&source), None)
+                    .expect("resampler error")
+            }
         } else {
             self.resampler
                 .process(&source, None)
