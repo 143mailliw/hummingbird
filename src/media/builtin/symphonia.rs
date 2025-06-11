@@ -3,7 +3,7 @@ use std::{ffi::OsStr, fs::File};
 use intx::{I24, U24};
 use symphonia::{
     core::{
-        audio::{AudioBufferRef, Signal},
+        audio::{AsAudioBufferRef, AudioBufferRef, Signal},
         codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL},
         errors::Error,
         formats::{FormatOptions, FormatReader, SeekMode, SeekTo},
@@ -276,10 +276,11 @@ impl MediaProvider for SymphoniaProvider {
 
                     match decoded {
                         AudioBufferRef::U8(v) => {
-                            let mut samples: Vec<Vec<u8>> = Vec::new();
+                            let mut samples: Vec<Vec<u8>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -291,10 +292,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::U16(v) => {
-                            let mut samples: Vec<Vec<u16>> = Vec::new();
+                            let mut samples: Vec<Vec<u16>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -306,10 +308,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::U24(v) => {
-                            let mut samples: Vec<Vec<U24>> = Vec::new();
+                            let mut samples: Vec<Vec<U24>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(
                                         U24::try_from(sample.0)
@@ -324,10 +327,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::U32(v) => {
-                            let mut samples: Vec<Vec<u32>> = Vec::new();
+                            let mut samples: Vec<Vec<u32>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -339,10 +343,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::S8(v) => {
-                            let mut samples: Vec<Vec<i8>> = Vec::new();
+                            let mut samples: Vec<Vec<i8>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -354,10 +359,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::S16(v) => {
-                            let mut samples: Vec<Vec<i16>> = Vec::new();
+                            let mut samples: Vec<Vec<i16>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -369,10 +375,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::S24(v) => {
-                            let mut samples: Vec<Vec<I24>> = Vec::new();
+                            let mut samples: Vec<Vec<I24>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(
                                         I24::try_from(sample.0)
@@ -387,10 +394,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::S32(v) => {
-                            let mut samples: Vec<Vec<i32>> = Vec::new();
+                            let mut samples: Vec<Vec<i32>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -402,10 +410,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::F32(v) => {
-                            let mut samples: Vec<Vec<f32>> = Vec::new();
+                            let mut samples: Vec<Vec<f32>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
@@ -417,10 +426,11 @@ impl MediaProvider for SymphoniaProvider {
                             });
                         }
                         AudioBufferRef::F64(v) => {
-                            let mut samples: Vec<Vec<f64>> = Vec::new();
+                            let mut samples: Vec<Vec<f64>> =
+                                Vec::with_capacity(v.spec().channels.count());
 
                             for i in 0..channel_count {
-                                samples.push(Vec::new());
+                                samples.push(Vec::with_capacity(v.capacity()));
                                 for sample in v.chan(i) {
                                     samples[i].push(*sample);
                                 }
