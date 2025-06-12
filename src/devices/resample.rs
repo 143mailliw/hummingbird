@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use intx::{I24, U24};
 use rubato::{FftFixedIn, VecResampler};
 use tracing::{info, warn};
@@ -166,6 +168,8 @@ pub fn match_bit_depth(target_frame: PlaybackFrame, target_depth: SampleFormat) 
 pub struct Resampler {
     resampler: FftFixedIn<f32>,
     duration: u64,
+    input_buffer: Vec<VecDeque<f32>>,
+    eof: bool,
 }
 
 impl Resampler {
@@ -189,6 +193,10 @@ impl Resampler {
         Resampler {
             resampler,
             duration,
+            input_buffer: (0..channels)
+                .map(|_| VecDeque::with_capacity(duration as usize * 2))
+                .collect(),
+            eof: false,
         }
     }
 
@@ -202,28 +210,54 @@ impl Resampler {
         }
         let source: Vec<Vec<f32>> = convert_samples(frame.samples);
 
-        let resampled = if source[0].len() < self.duration as usize {
-            if source[0].len() == 0 {
-                warn!("Zero length PlaybackFrame presented to convert_formats!");
-                warn!("This is a decoding bug: please report it (with logs)");
-                Vec::new()
-            } else {
-                self.resampler
-                    .process_partial(Some(&source), None)
-                    .expect("resampler error")
-            }
-        } else {
-            self.resampler
-                .process(&source, None)
-                .expect("resampler error")
-        };
+        self.input_buffer
+            .iter_mut()
+            .zip(source.into_iter().map(|src| VecDeque::from(src)))
+            .for_each(|(buffer, mut src)| {
+                buffer.append(&mut src);
+            });
 
-        match_bit_depth(
-            PlaybackFrame {
-                samples: Samples::Float32(resampled),
-                rate: target_format.sample_rate,
-            },
-            target_format.sample_type,
-        )
+        if self.input_buffer[0].len() < self.duration as usize {
+            // if source[0].len() == 0 {
+            //     warn!("Zero length PlaybackFrame presented to convert_formats!");
+            //     warn!("This is a decoding bug: please report it (with logs)");
+            //     Vec::new()
+            // } else {
+            //     self.resampler
+            //         .process_partial(Some(&source), None)
+            //         .expect("resampler error")
+            // }
+
+            match_bit_depth(
+                PlaybackFrame {
+                    samples: Samples::Float32(Vec::with_capacity(0)),
+                    rate: target_format.sample_rate,
+                },
+                target_format.sample_type,
+            )
+        } else {
+            let split = self
+                .input_buffer
+                .iter_mut()
+                .map(|v| v.drain(0..self.duration as usize).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+
+            let resampled = self
+                .resampler
+                .process(&split, None)
+                .expect("resampler error");
+
+            match_bit_depth(
+                PlaybackFrame {
+                    samples: Samples::Float32(resampled),
+                    rate: target_format.sample_rate,
+                },
+                target_format.sample_type,
+            )
+        }
+    }
+
+    pub fn eof(&mut self) {
+        self.eof = true;
     }
 }
