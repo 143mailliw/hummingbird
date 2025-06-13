@@ -72,7 +72,7 @@ impl Render for NavigationView {
                     .w_full()
                     .max_w(px(1000.0))
                     .mx_auto()
-                    .px(px(8.0))
+                    .px(px(12.0))
                     .child(
                         div()
                             .flex()

@@ -170,7 +170,7 @@ impl Render for ReleaseView {
                             .flex_col()
                             .w_full()
                             .overflow_x_hidden()
-                            .child(div().font_weight(FontWeight::SEMIBOLD).when_some(
+                            .child(div().when_some(
                                 self.artist.as_ref().map(|v| v.name.clone()),
                                 |this, artist| this.child(artist.unwrap()),
                             ))
