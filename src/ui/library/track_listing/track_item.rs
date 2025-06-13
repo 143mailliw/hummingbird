@@ -90,15 +90,10 @@ impl RenderOnce for TrackItem {
                             })
                             .max_w_full()
                             .child(
-                                div()
-                                    .mt(px(-1.0))
-                                    .w(px(62.0))
-                                    .font_family("Roboto Mono")
-                                    .flex_shrink_0()
-                                    .child(format!(
-                                        "{}",
-                                        self.track.track_number.unwrap_or_default()
-                                    )),
+                                div().w(px(62.0)).flex_shrink_0().child(format!(
+                                    "{}",
+                                    self.track.track_number.unwrap_or_default()
+                                )),
                             )
                             .child(
                                 div()
@@ -124,18 +119,11 @@ impl RenderOnce for TrackItem {
                                         )
                                     }),
                             )
-                            .child(
-                                div()
-                                    .mt(px(-1.0))
-                                    .ml(px(12.0))
-                                    .font_family("Roboto Mono")
-                                    .flex_shrink_0()
-                                    .child(format!(
-                                        "{}:{:02}",
-                                        self.track.duration / 60,
-                                        self.track.duration % 60
-                                    )),
-                            ),
+                            .child(div().ml(px(12.0)).flex_shrink_0().child(format!(
+                                "{}:{:02}",
+                                self.track.duration / 60,
+                                self.track.duration % 60
+                            ))),
                     ),
             )
             .child(

@@ -116,14 +116,8 @@ impl TableData<AlbumColumn> for Album {
         true
     }
 
-    fn column_monospace(column: AlbumColumn) -> bool {
-        match column {
-            AlbumColumn::Title
-            | AlbumColumn::Artist
-            | AlbumColumn::Label
-            | AlbumColumn::CatalogNumber => false,
-            AlbumColumn::Date => true,
-        }
+    fn column_monospace(_column: AlbumColumn) -> bool {
+        false
     }
 
     fn get_element_id(&self) -> impl Into<gpui::ElementId> {

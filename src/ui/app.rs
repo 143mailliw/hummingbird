@@ -61,7 +61,7 @@ impl Render for WindowShadow {
 
         let queue = self.queue.clone();
 
-        div()
+        let mut element = div()
             .id("window-backdrop")
             .key_context("app")
             .bg(transparent_black())
@@ -194,7 +194,15 @@ impl Render for WindowShadow {
                     )
                     .child(self.controls.clone())
                     .child(self.search.clone()),
-            )
+            );
+
+        let text_styles = element.text_style();
+        *text_styles = Some(TextStyleRefinement::default());
+
+        let ff = &mut text_styles.as_mut().unwrap().font_features;
+        *ff = Some(FontFeatures(Arc::new(vec![("tnum".to_string(), 1)])));
+
+        element
     }
 }
 

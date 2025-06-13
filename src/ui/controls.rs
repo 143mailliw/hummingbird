@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 use gpui::*;
 use prelude::FluentBuilder;
@@ -422,8 +424,7 @@ impl Render for Scrubber {
             .flex_col()
             .line_height(rems(1.0))
             .text_size(px(15.0))
-            .font_family("Roboto Mono")
-            .font_weight(FontWeight::BOLD)
+            .font_weight(FontWeight::SEMIBOLD)
             .child(
                 div()
                     .w_full()
