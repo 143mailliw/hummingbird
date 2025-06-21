@@ -53,9 +53,7 @@ impl Render for Header {
             .border_b_1()
             .id("titlebar")
             .border_color(theme.border_color)
-            .when(cfg!(target_os = "windows"), |this| {
-                this.on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-            })
+            .window_control_area(WindowControlArea::Drag)
             .when(cfg!(not(target_os = "windows")), |this| {
                 this.on_mouse_down(MouseButton::Left, move |ev, window, _| {
                     if ev.click_count != 2 {
@@ -204,6 +202,11 @@ impl RenderOnce for WindowButton {
             .hover(|this| this.bg(hover))
             .active(|this| this.bg(active))
             .font_family(FONT_AWESOME)
+            .window_control_area(match self {
+                WindowButton::Close => WindowControlArea::Close,
+                WindowButton::Minimize => WindowControlArea::Min,
+                WindowButton::Maximize => WindowControlArea::Max,
+            })
             .text_size(px(11.0))
             .on_mouse_down(MouseButton::Left, |_, window, cx| {
                 cx.stop_propagation();
