@@ -2690,6 +2690,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "unicode-segmentation",
+ "url",
  "urlencoding",
  "windows 0.60.0",
  "windows-result 0.3.4",

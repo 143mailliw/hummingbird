@@ -1,28 +1,36 @@
-use gpui::{AssetSource, SharedString};
-use rust_embed::RustEmbed;
+pub mod bundled;
+pub mod db;
 
-#[derive(RustEmbed)]
-#[folder = "./assets"]
-#[include = "fonts/*"]
-#[exclude = "*.DS_Store"]
-pub struct Assets;
+use std::borrow::Cow;
 
-impl AssetSource for Assets {
-    fn load(&self, path: &str) -> gpui::Result<Option<std::borrow::Cow<'static, [u8]>>> {
-        Ok(Self::get(path)
-            .map(|f| Some(f.data))
-            .unwrap_or_else(|| panic!("invalid asset at {}", path)))
+use gpui::AssetSource;
+use sqlx::SqlitePool;
+use url::Url;
+
+use crate::ui::assets::bundled::BundledAssets;
+
+pub struct HummingbirdAssetSource {
+    pool: SqlitePool,
+}
+
+impl HummingbirdAssetSource {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+}
+
+impl AssetSource for HummingbirdAssetSource {
+    fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
+        let url = Url::parse(&path[1..])?;
+
+        match url.scheme() {
+            "db" => db::load(&self.pool, url),
+            "bundled" => BundledAssets::load(url),
+            _ => panic!("invalid url scheme for resource"),
+        }
     }
 
-    fn list(&self, path: &str) -> gpui::Result<Vec<SharedString>> {
-        Ok(Self::iter()
-            .filter_map(|p| {
-                if p.starts_with(path) {
-                    Some(p.into())
-                } else {
-                    None
-                }
-            })
-            .collect())
+    fn list(&self, path: &str) -> gpui::Result<Vec<gpui::SharedString>> {
+        BundledAssets.list(path)
     }
 }

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 use gpui::*;
 use prelude::FluentBuilder;
