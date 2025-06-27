@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use fnv::FnvBuildHasher;
 use gpui::{App, RenderImage, SharedString};
 use indexmap::IndexMap;
+use rustc_hash::FxBuildHasher;
 
 use super::Album;
 use crate::{
@@ -108,8 +108,8 @@ impl TableData<AlbumColumn> for Album {
         }
     }
 
-    fn get_image(&self) -> Option<Arc<RenderImage>> {
-        self.thumb.as_ref().map(|thumb| thumb.0.clone())
+    fn get_image_path(&self) -> Option<SharedString> {
+        Some(format!("!db://album/{}/thumb", self.id).into())
     }
 
     fn has_images() -> bool {
@@ -128,9 +128,9 @@ impl TableData<AlbumColumn> for Album {
         (self.id as u32, self.title.0.clone().into())
     }
 
-    fn default_columns() -> IndexMap<AlbumColumn, f32, FnvBuildHasher> {
-        let s = FnvBuildHasher::default();
-        let mut columns: IndexMap<AlbumColumn, f32, FnvBuildHasher> = IndexMap::with_hasher(s);
+    fn default_columns() -> IndexMap<AlbumColumn, f32, FxBuildHasher> {
+        let s = FxBuildHasher::default();
+        let mut columns: IndexMap<AlbumColumn, f32, FxBuildHasher> = IndexMap::with_hasher(s);
         columns.insert(AlbumColumn::Title, 300.0);
         columns.insert(AlbumColumn::Artist, 200.0);
         columns.insert(AlbumColumn::Date, 100.0);

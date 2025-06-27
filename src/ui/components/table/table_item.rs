@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use fnv::FnvBuildHasher;
 use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
+use rustc_hash::FxBuildHasher;
 
 use crate::ui::{theme::Theme, util::drop_image_from_app};
 
@@ -18,11 +18,11 @@ where
     C: Column + 'static,
 {
     data: Option<Vec<Option<SharedString>>>,
-    image: Option<Arc<RenderImage>>,
-    columns: Arc<IndexMap<C, f32, FnvBuildHasher>>,
+    columns: Arc<IndexMap<C, f32, FxBuildHasher>>,
     on_select: Option<OnSelectHandler<T, C>>,
     row: Option<Arc<T>>,
     id: Option<ElementId>,
+    image_path: Option<SharedString>,
 }
 
 impl<T, C> TableItem<T, C>
@@ -33,7 +33,7 @@ where
     pub fn new(
         cx: &mut App,
         id: T::Identifier,
-        columns: &Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
+        columns: &Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
         on_select: Option<OnSelectHandler<T, C>>,
     ) -> Entity<Self> {
         let row = T::get_row(cx, id).ok().flatten();
@@ -48,19 +48,10 @@ where
             keys.into_iter().map(|v| row.get_column(cx, *v)).collect()
         });
 
-        let image = row.as_ref().and_then(|row| row.get_image());
+        let image_path = row.as_ref().and_then(|row| row.get_image_path());
 
         cx.new(|cx| {
-            cx.on_release(|this: &mut Self, cx: &mut App| {
-                if let Some(image) = this.image.clone() {
-                    drop_image_from_app(cx, image);
-                    this.image = None;
-                    cx.refresh_windows();
-                }
-            })
-            .detach();
-
-            cx.observe(columns, |this, m, cx| {
+            cx.observe(columns, |this: &mut TableItem<T, C>, m, cx| {
                 this.columns = m.read(cx).clone();
 
                 this.data = this.row.clone().map(|row| {
@@ -75,7 +66,7 @@ where
 
             Self {
                 data,
-                image,
+                image_path,
                 columns: columns_read,
                 on_select,
                 id,
@@ -127,7 +118,7 @@ where
                             .h(px(22.0))
                             .rounded(px(3.0))
                             .bg(theme.album_art_background)
-                            .when_some(self.image.clone(), |div, image| {
+                            .when_some(self.image_path.clone(), |div, image| {
                                 div.child(img(image).w(px(22.0)).h(px(22.0)).rounded(px(3.0)))
                             }),
                     ),

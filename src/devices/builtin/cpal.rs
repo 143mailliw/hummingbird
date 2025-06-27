@@ -112,7 +112,6 @@ fn create_stream_internal<
     let stream = device.build_output_stream(
         config,
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-            debug!("Asked for data by CPAL!");
             let written = cons.read(data).unwrap_or(0);
 
             data[written..].iter_mut().for_each(|v| *v = T::muted())

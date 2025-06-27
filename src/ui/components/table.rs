@@ -4,14 +4,15 @@ mod table_item;
 use std::{rc::Rc, sync::Arc};
 
 use ahash::AHashMap;
-use fnv::FnvBuildHasher;
 use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
+use rustc_hash::FxBuildHasher;
 use table_data::{Column, TableData, TableSort};
 use table_item::TableItem;
 use tracing::warn;
 
 use crate::ui::{
+    caching::hummingbird_cache,
     constants::FONT_AWESOME,
     theme::Theme,
     util::{create_or_retrieve_view, prune_views},
@@ -32,7 +33,7 @@ where
     T: TableData<C> + 'static,
     C: Column + 'static,
 {
-    columns: Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
+    columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
     views: Entity<RowMap<T, C>>,
     render_counter: Entity<usize>,
     list_state: ListState,
@@ -118,7 +119,7 @@ where
         views: Entity<RowMap<T, C>>,
         render_counter: Entity<usize>,
         sort_method_entity: &Entity<Option<TableSort<C>>>,
-        columns: Entity<Arc<IndexMap<C, f32, FnvBuildHasher>>>,
+        columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
         handler: Option<OnSelectHandler<T, C>>,
     ) -> ListState {
         let sort_method = *sort_method_entity.read(cx);
@@ -245,6 +246,7 @@ where
         }
 
         div()
+            .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 100))
             .id(T::get_table_name())
             .overflow_x_scroll()
             .w_full()
