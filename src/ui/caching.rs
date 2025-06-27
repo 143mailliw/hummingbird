@@ -39,7 +39,7 @@ impl ImageCacheProvider for HummingbirdImageCacheProvider {
     }
 }
 
-struct HummingbirdImageCache {
+pub struct HummingbirdImageCache {
     max_items: usize,
     usage_list: VecDeque<u64>,
     cache: FxHashMap<u64, (ImageCacheItem, Resource)>,
@@ -104,7 +104,7 @@ impl ImageCache for HummingbirdImageCache {
 
             if let Some(Ok(image)) = image.0.get() {
                 debug!("requesting image to be dropped");
-                cx.drop_image(image, None);
+                cx.drop_image(image, Some(window));
             }
 
             ImageSource::Resource(image.1).remove_asset(cx);
