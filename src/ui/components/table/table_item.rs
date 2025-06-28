@@ -4,7 +4,7 @@ use gpui::{prelude::FluentBuilder, *};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::ui::{theme::Theme, util::drop_image_from_app};
+use crate::ui::theme::Theme;
 
 use super::{
     table_data::{Column, TableData},

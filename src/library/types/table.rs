@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gpui::{App, RenderImage, SharedString};
+use gpui::{App, SharedString};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
@@ -129,7 +129,7 @@ impl TableData<AlbumColumn> for Album {
     }
 
     fn default_columns() -> IndexMap<AlbumColumn, f32, FxBuildHasher> {
-        let s = FxBuildHasher::default();
+        let s = FxBuildHasher;
         let mut columns: IndexMap<AlbumColumn, f32, FxBuildHasher> = IndexMap::with_hasher(s);
         columns.insert(AlbumColumn::Title, 300.0);
         columns.insert(AlbumColumn::Artist, 200.0);

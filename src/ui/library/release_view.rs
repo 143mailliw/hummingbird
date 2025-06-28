@@ -16,12 +16,10 @@ use crate::{
     ui::{
         components::button::{button, ButtonIntent, ButtonSize},
         constants::FONT_AWESOME,
-        data::Decode,
         global_actions::PlayPause,
         library::track_listing::TrackListing,
         models::PlaybackInfo,
         theme::Theme,
-        util::drop_image_from_app,
     },
 };
 

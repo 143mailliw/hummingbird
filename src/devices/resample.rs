@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use intx::{I24, U24};
 use rubato::{FftFixedIn, VecResampler};
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::media::playback::{PlaybackFrame, Samples};
 
@@ -212,7 +212,7 @@ impl Resampler {
 
         self.input_buffer
             .iter_mut()
-            .zip(source.into_iter().map(|src| VecDeque::from(src)))
+            .zip(source.into_iter().map(VecDeque::from))
             .for_each(|(buffer, mut src)| {
                 buffer.append(&mut src);
             });

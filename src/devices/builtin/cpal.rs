@@ -18,7 +18,6 @@ use cpal::{
     Host, SizedSample,
 };
 use rb::{Producer, RbConsumer, RbProducer, SpscRb, RB};
-use tracing::debug;
 
 pub struct CpalProvider {
     host: Host,

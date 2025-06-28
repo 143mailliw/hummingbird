@@ -3,7 +3,7 @@ use std::{ffi::OsStr, fs::File};
 use intx::{I24, U24};
 use symphonia::{
     core::{
-        audio::{AsAudioBufferRef, AudioBufferRef, Signal},
+        audio::{AudioBufferRef, Signal},
         codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL},
         errors::Error,
         formats::{FormatOptions, FormatReader, SeekMode, SeekTo},
