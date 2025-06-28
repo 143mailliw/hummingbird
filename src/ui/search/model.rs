@@ -21,11 +21,12 @@ use crate::{
         types::Album,
     },
     ui::{
+        caching::hummingbird_cache,
         components::input::EnrichedInputAction,
         library::ViewSwitchMessage,
         models::Models,
         theme::Theme,
-        util::{create_or_retrieve_view, drop_image_from_app, prune_views},
+        util::{create_or_retrieve_view, prune_views},
     },
 };
 
@@ -292,6 +293,7 @@ impl Render for SearchModel {
         div()
             .w_full()
             .h_full()
+            .image_cache(hummingbird_cache("search-model-cache", 50))
             .id("search-model")
             .flex()
             .p(px(4.0))
@@ -305,6 +307,7 @@ struct AlbumSearchResult {
     weak_parent: WeakEntity<SearchModel>,
     current_selection: usize,
     idx: usize,
+    image_path: Option<SharedString>,
 }
 
 impl AlbumSearchResult {
@@ -317,21 +320,13 @@ impl AlbumSearchResult {
     ) -> Entity<AlbumSearchResult> {
         cx.new(|cx| {
             let album = cx.get_album_by_id(id, AlbumMethod::Thumbnail).ok();
+            let image_path = album
+                .as_ref()
+                .map(|album| SharedString::from(format!("!db://album/{}/thumb", album.id)));
 
             let artist = album
                 .as_ref()
                 .and_then(|album| cx.get_artist_name_by_id(album.artist_id).ok());
-
-            cx.on_release(|this: &mut Self, cx: &mut App| {
-                if let Some(album) = this.album.clone() {
-                    if let Some(image) = album.thumb.clone() {
-                        drop_image_from_app(cx, image.0);
-                        this.album = None;
-                        cx.refresh_windows();
-                    }
-                }
-            })
-            .detach();
 
             cx.observe(
                 current_selection,
@@ -348,6 +343,7 @@ impl AlbumSearchResult {
                 weak_parent,
                 current_selection: *current_selection.read(cx),
                 idx,
+                image_path,
             }
         })
     }
@@ -388,13 +384,8 @@ impl Render for AlbumSearchResult {
                         .w(px(18.0))
                         .h(px(18.0))
                         .flex_shrink_0()
-                        .when(album.thumb.is_some(), |div| {
-                            div.child(
-                                img(album.thumb.clone().unwrap().0)
-                                    .w(px(18.0))
-                                    .h(px(18.0))
-                                    .rounded(px(2.0)),
-                            )
+                        .when_some(self.image_path.clone(), |div, path| {
+                            div.child(img(path).w(px(18.0)).h(px(18.0)).rounded(px(2.0)))
                         }),
                 )
                 .child(
