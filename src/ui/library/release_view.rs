@@ -16,12 +16,10 @@ use crate::{
     ui::{
         components::button::{button, ButtonIntent, ButtonSize},
         constants::FONT_AWESOME,
-        data::Decode,
         global_actions::PlayPause,
         library::track_listing::TrackListing,
         models::PlaybackInfo,
         theme::Theme,
-        util::drop_image_from_app,
     },
 };
 
@@ -29,17 +27,18 @@ use super::track_listing::ArtistNameVisibility;
 
 pub struct ReleaseView {
     album: Arc<Album>,
-    image: Entity<Option<Arc<RenderImage>>>,
     artist: Option<Arc<Artist>>,
     tracks: Arc<Vec<Track>>,
     track_listing: TrackListing,
     release_info: Option<SharedString>,
+    img_path: SharedString,
+    image_cache: Entity<RetainAllImageCache>,
 }
 
 impl ReleaseView {
     pub(super) fn new(cx: &mut App, album_id: i64) -> Entity<Self> {
         cx.new(|cx| {
-            let image_entity = cx.new(|_| None);
+            let image_cache = RetainAllImageCache::new(cx);
             // TODO: error handling
             let album = cx
                 .get_album_by_id(album_id, AlbumMethod::FullQuality)
@@ -49,14 +48,8 @@ impl ReleaseView {
                 .expect("Failed to retrieve tracks");
             let artist = cx.get_artist_by_id(album.artist_id).ok();
 
-            if let Some(image) = album.image.clone() {
-                cx.decode_image(image, false, image_entity.clone()).detach();
-            }
-
             cx.on_release(|this: &mut Self, cx: &mut App| {
-                if let Some(image) = this.image.read(cx).clone() {
-                    drop_image_from_app(cx, image);
-                }
+                ImageSource::Resource(Resource::Embedded(this.img_path.clone())).remove_asset(cx);
             })
             .detach();
 
@@ -89,11 +82,12 @@ impl ReleaseView {
 
             ReleaseView {
                 album,
-                image: image_entity,
                 artist,
                 tracks,
                 track_listing,
                 release_info,
+                img_path: SharedString::from(format!("!db://album/{}/full", album_id)),
+                image_cache,
             }
         })
     }
@@ -102,7 +96,6 @@ impl ReleaseView {
 impl Render for ReleaseView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
-        let image = self.image.read(cx);
 
         let is_playing =
             cx.global::<PlaybackInfo>().playback_state.read(cx) == &PlaybackState::Playing;
@@ -144,22 +137,36 @@ impl Render for ReleaseView {
                             .h(px(160.0))
                             .flex_shrink_0()
                             .overflow_hidden()
-                            .when(image.is_some(), |div| {
-                                div.child(
-                                    img(image.clone().unwrap())
-                                        .min_w(px(160.0))
-                                        .min_h(px(160.0))
-                                        .max_w(px(160.0))
-                                        .max_h(px(160.0))
-                                        .overflow_hidden()
-                                        .flex()
-                                        // TODO: Ideally this should be ObjectFit::Cover, but for
-                                        // some reason that makes the element bigger
-                                        // FIXME: Is this a GPUI bug?
-                                        .object_fit(ObjectFit::Fill)
-                                        .rounded(px(4.0)),
-                                )
-                            }),
+                            .child(
+                                img(self.img_path.clone())
+                                    .image_cache(&self.image_cache)
+                                    .min_w(px(160.0))
+                                    .min_h(px(160.0))
+                                    .max_w(px(160.0))
+                                    .max_h(px(160.0))
+                                    .overflow_hidden()
+                                    .flex()
+                                    // TODO: Ideally this should be ObjectFit::Cover, but for
+                                    // some reason that makes the element bigger
+                                    // FIXME: Is this a GPUI bug?
+                                    .object_fit(ObjectFit::Fill)
+                                    .rounded(px(4.0)),
+                            ), // .when(image.is_some(), |div| {
+                               //     div.child(
+                               //         img(image.clone().unwrap())
+                               //             .min_w(px(160.0))
+                               //             .min_h(px(160.0))
+                               //             .max_w(px(160.0))
+                               //             .max_h(px(160.0))
+                               //             .overflow_hidden()
+                               //             .flex()
+                               //             // TODO: Ideally this should be ObjectFit::Cover, but for
+                               //             // some reason that makes the element bigger
+                               //             // FIXME: Is this a GPUI bug?
+                               //             .object_fit(ObjectFit::Fill)
+                               //             .rounded(px(4.0)),
+                               //     )
+                               // }),
                     )
                     .child(
                         div()

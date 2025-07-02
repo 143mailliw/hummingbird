@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use gpui::*;
 use prelude::FluentBuilder;
 use sqlx::SqlitePool;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::{
     library::{
@@ -21,11 +21,11 @@ use crate::{
         storage::{Storage, StorageData},
         SettingsGlobal,
     },
+    ui::assets::HummingbirdAssetSource,
 };
 
 use super::{
     arguments::parse_args_and_prepare,
-    assets::Assets,
     components::{input, modal},
     constants::APP_ROUNDING,
     controls::Controls,
@@ -248,7 +248,7 @@ fn resize_edge(
 }
 
 pub fn find_fonts(cx: &mut App) -> gpui::Result<()> {
-    let paths = cx.asset_source().list("fonts")?;
+    let paths = cx.asset_source().list("!bundled:fonts")?;
     let mut fonts = vec![];
     for path in paths {
         if path.ends_with(".ttf") || path.ends_with(".otf") {
@@ -292,14 +292,15 @@ pub async fn run() {
     }
     let file = directory.join("library.db");
 
-    let pool = create_pool(file).await;
+    let Ok(pool) = create_pool(file).await else {
+        panic!("fatal: unable to create database pool");
+    };
 
     Application::new()
-        .with_assets(Assets)
+        .with_assets(HummingbirdAssetSource::new(pool.clone()))
         .run(move |cx: &mut App| {
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
-
             register_actions(cx);
 
             let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
@@ -323,19 +324,14 @@ pub async fn run() {
 
             create_album_cache(cx);
 
-            if let Ok(pool) = pool {
-                let settings = cx.global::<SettingsGlobal>().model.read(cx);
-                let mut scan_interface: ScanInterface =
-                    ScanThread::start(pool.clone(), settings.scanning.clone());
-                scan_interface.scan();
-                scan_interface.start_broadcast(cx);
+            let settings = cx.global::<SettingsGlobal>().model.read(cx);
+            let mut scan_interface: ScanInterface =
+                ScanThread::start(pool.clone(), settings.scanning.clone());
+            scan_interface.scan();
+            scan_interface.start_broadcast(cx);
 
-                cx.set_global(scan_interface);
-                cx.set_global(Pool(pool));
-            } else {
-                error!("unable to create database pool: {}", pool.err().unwrap());
-                panic!("fatal: unable to create database pool");
-            }
+            cx.set_global(scan_interface);
+            cx.set_global(Pool(pool));
 
             let drop_model = cx.new(|_| DropImageDummyModel);
 

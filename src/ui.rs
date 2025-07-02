@@ -1,6 +1,7 @@
 pub mod app;
 mod arguments;
 mod assets;
+mod caching;
 pub mod components;
 mod constants;
 mod controls;

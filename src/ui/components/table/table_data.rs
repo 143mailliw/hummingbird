@@ -1,8 +1,8 @@
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
-use fnv::FnvBuildHasher;
-use gpui::{App, ElementId, RenderImage, SharedString};
+use gpui::{App, ElementId, SharedString};
 use indexmap::IndexMap;
+use rustc_hash::FxBuildHasher;
 
 pub trait Column: Clone + Copy + Debug + Hash + PartialEq + Eq {
     /// Retrieves the friendly name text of the column.
@@ -47,10 +47,10 @@ where
     fn has_images() -> bool;
 
     /// Retrieves the associated image for the row.
-    fn get_image(&self) -> Option<Arc<RenderImage>>;
+    fn get_image_path(&self) -> Option<SharedString>;
 
     /// Retrieves the default column widths for the table.
-    fn default_columns() -> IndexMap<C, f32, FnvBuildHasher>;
+    fn default_columns() -> IndexMap<C, f32, FxBuildHasher>;
 
     /// Returns a boolean indicating whether or not a given column should be displayed using a
     /// monospaced font.

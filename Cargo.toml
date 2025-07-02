@@ -18,8 +18,8 @@ clap = { version = "4", features = ["derive"] }
 cpal = "0.15"
 dateparser = "0.2"
 directories = "6"
-fnv = "1"
 globwalk = "0.9"
+futures = "0.3"
 gpui = { git = "https://github.com/zed-industries/zed" }
 image = "0.25"
 indexmap = { version = "2", features = ["std", "serde"] }
@@ -34,6 +34,7 @@ rand = "0.9"
 rb = "0.4"
 rubato = "0.16"
 rust-embed = "8"
+rustc-hash = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 smallvec = "1"
@@ -43,6 +44,7 @@ thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 unicode-segmentation = "1"
+url = "2.5.4"
 urlencoding = "2"
 
 [build-dependencies]
