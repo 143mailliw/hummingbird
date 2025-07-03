@@ -4,7 +4,8 @@ use tracing::error;
 use crate::{
     services::mmb::lastfm::{client::LastFMClient, LASTFM_API_KEY, LASTFM_API_SECRET},
     ui::{
-        constants::{FONT_AWESOME_BRANDS, ICON_LASTFM},
+        components::icons::{icon, LAST_FM},
+        constants::FONT_AWESOME_BRANDS,
         models::{LastFMState, Models},
         theme::Theme,
     },
@@ -50,7 +51,7 @@ impl Render for LastFM {
             .text_sm()
             .px(px(12.0))
             .pb(px(6.0))
-            .pt(px(5.0))
+            .pt(px(4.0))
             .text_color(theme.text_secondary)
             .bg(theme.window_button)
             .id("lastfm-button")
@@ -62,12 +63,15 @@ impl Render for LastFM {
             })
             .child(
                 div()
-                    .font_family(FONT_AWESOME_BRANDS)
                     .mr(px(8.0))
-                    .pt(px(3.0))
+                    .pt(px(5.0))
                     .text_size(px(11.0))
                     .h_full()
-                    .child(ICON_LASTFM),
+                    .child(
+                        icon(LAST_FM)
+                            .size(px(14.0))
+                            .text_color(theme.text_secondary),
+                    ),
             )
             .child(
                 div().child(match self.state.read(cx) {

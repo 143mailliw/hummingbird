@@ -1,6 +1,9 @@
-use crate::playback::{
-    interface::GPUIPlaybackInterface,
-    queue::{DataSource, QueueItemData},
+use crate::{
+    playback::{
+        interface::GPUIPlaybackInterface,
+        queue::{DataSource, QueueItemData},
+    },
+    ui::components::icons::{icon, CROSS, SHUFFLE, TRASH},
 };
 use ahash::AHashMap;
 use gpui::*;
@@ -8,7 +11,6 @@ use prelude::FluentBuilder;
 
 use super::{
     components::button::{button, ButtonSize, ButtonStyle},
-    constants::{FONT_AWESOME, ICON_SHUFFLE, ICON_TRASH_CAN, ICON_XMARK},
     models::{Models, PlaybackInfo},
     theme::Theme,
     util::{create_or_retrieve_view, drop_image_from_app, prune_views},
@@ -267,10 +269,9 @@ impl Render for Queue {
                                 div()
                                     .flex()
                                     .id("back")
-                                    .font_family(FONT_AWESOME)
                                     .pr(px(12.0))
                                     .pl(px(12.0))
-                                    .py(px(5.0))
+                                    .py(px(9.0))
                                     .ml_auto()
                                     .text_sm()
                                     .border_l_1()
@@ -278,7 +279,7 @@ impl Render for Queue {
                                     .hover(|this| this.bg(theme.nav_button_hover))
                                     .active(|this| this.bg(theme.nav_button_active))
                                     .cursor_pointer()
-                                    .child(ICON_XMARK)
+                                    .child(icon(CROSS).size(px(16.0)))
                                     .on_click(cx.listener(|this: &mut Self, _, _, cx| {
                                         this.show_queue.update(cx, |v, _| *v = !(*v))
                                     })),
@@ -311,7 +312,7 @@ impl Render for Queue {
                         button()
                             .style(ButtonStyle::MinimalNoRounding)
                             .size(ButtonSize::Large)
-                            .child(div().font_family(FONT_AWESOME).child(ICON_TRASH_CAN))
+                            .child(icon(TRASH).size(px(14.0)).my_auto())
                             .child("Clear")
                             .w_full()
                             .id("clear-queue")
@@ -324,7 +325,7 @@ impl Render for Queue {
                         button()
                             .style(ButtonStyle::MinimalNoRounding)
                             .size(ButtonSize::Large)
-                            .child(div().font_family(FONT_AWESOME).child(ICON_SHUFFLE))
+                            .child(icon(SHUFFLE).size(px(14.0)).my_auto())
                             .when(*shuffling, |this| this.child("Shuffling"))
                             .when(!shuffling, |this| this.child("Shuffle"))
                             .w_full()

@@ -1,13 +1,15 @@
-use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
+use crate::{
+    playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
+    ui::components::icons::{
+        icon, MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, SHUFFLE, VOLUME, VOLUME_OFF,
+    },
+};
 use gpui::*;
 use prelude::FluentBuilder;
 
 use super::{
     components::slider::slider,
-    constants::{
-        APP_ROUNDING, FONT_AWESOME, ICON_BACKWARD_STEP, ICON_BARS, ICON_FORWARD_STEP, ICON_PAUSE,
-        ICON_PLAY, ICON_REPEAT, ICON_SHUFFLE, ICON_VOLUME_HIGH, ICON_VOLUME_XMARK,
-    },
+    constants::{APP_ROUNDING, FONT_AWESOME},
     global_actions::{Next, PlayPause, Previous},
     models::{Models, PlaybackInfo},
     theme::Theme,
@@ -238,12 +240,10 @@ impl Render for PlaybackSection {
                     .rounded(px(3.0))
                     .w(px(28.0))
                     .h(px(25.0))
-                    .mt(px(2.0))
+                    .mt(px(3.0))
                     .mr(px(6.0))
                     .ml_auto()
                     .border_color(theme.playback_button_border)
-                    .font_family(FONT_AWESOME)
-                    .text_size(px(12.0))
                     .flex()
                     .items_center()
                     .justify_center()
@@ -257,10 +257,9 @@ impl Render for PlaybackSection {
                     .on_click(|_, _, cx| {
                         cx.global::<GPUIPlaybackInterface>().toggle_shuffle();
                     })
-                    .child(ICON_SHUFFLE)
-                    .when(*shuffling, |this| {
+                    .child(icon(SHUFFLE).size(px(14.0)).when(*shuffling, |this| {
                         this.text_color(theme.playback_button_toggled)
-                    }),
+                    })),
             )
             .child(
                 div()
@@ -274,7 +273,6 @@ impl Render for PlaybackSection {
                             .h(px(28.0))
                             .rounded_l(px(3.0))
                             .bg(theme.playback_button)
-                            .font_family(FONT_AWESOME)
                             .flex()
                             .items_center()
                             .justify_center()
@@ -288,7 +286,7 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(Previous), cx);
                             })
-                            .child(ICON_BACKWARD_STEP),
+                            .child(icon(PREV_TRACK).size(px(16.0))),
                     )
                     .child(
                         div()
@@ -298,7 +296,6 @@ impl Render for PlaybackSection {
                             .border_l(px(1.0))
                             .border_r(px(1.0))
                             .border_color(theme.playback_button_border)
-                            .font_family(FONT_AWESOME)
                             .flex()
                             .items_center()
                             .justify_center()
@@ -313,9 +310,11 @@ impl Render for PlaybackSection {
                                 window.dispatch_action(Box::new(PlayPause), cx);
                             })
                             .when(*state == PlaybackState::Playing, |div| {
-                                div.child(ICON_PAUSE)
+                                div.child(icon(PAUSE).size(px(16.0)))
                             })
-                            .when(*state != PlaybackState::Playing, |div| div.child(ICON_PLAY)),
+                            .when(*state != PlaybackState::Playing, |div| {
+                                div.child(icon(PLAY).size(px(16.0)))
+                            }),
                     )
                     .child(
                         div()
@@ -337,7 +336,7 @@ impl Render for PlaybackSection {
                             .on_click(|_, window, cx| {
                                 window.dispatch_action(Box::new(Next), cx);
                             })
-                            .child(ICON_FORWARD_STEP),
+                            .child(icon(NEXT_TRACK).size(px(16.0))),
                     ),
             )
             .child(
@@ -345,12 +344,10 @@ impl Render for PlaybackSection {
                     .rounded(px(3.0))
                     .w(px(28.0))
                     .h(px(25.0))
-                    .mt(px(2.0))
+                    .mt(px(3.0))
                     .ml(px(6.0))
                     .mr_auto()
                     .border_color(theme.playback_button_border)
-                    .font_family(FONT_AWESOME)
-                    .text_size(px(12.0))
                     .flex()
                     .items_center()
                     .justify_center()
@@ -364,10 +361,9 @@ impl Render for PlaybackSection {
                     .on_click(|_, _, cx| {
                         cx.global::<GPUIPlaybackInterface>().toggle_repeat();
                     })
-                    .child(ICON_REPEAT)
-                    .when(*repeating, |this| {
+                    .child(icon(REPEAT).size(px(14.0)).when(*repeating, |this| {
                         this.text_color(theme.playback_button_toggled)
-                    }),
+                    })),
             )
     }
 }
@@ -513,8 +509,6 @@ impl Render for SecondaryControls {
                         .w(px(28.0))
                         .h(px(25.0))
                         .mt(px(2.0))
-                        .font_family(FONT_AWESOME)
-                        .text_size(px(12.0))
                         .flex()
                         .items_center()
                         .justify_center()
@@ -524,14 +518,16 @@ impl Render for SecondaryControls {
                         .hover(|this| this.bg(theme.playback_button_hover))
                         .active(|this| this.bg(theme.playback_button_active))
                         .when(volume <= 0.0, |div| {
-                            div.child(ICON_VOLUME_XMARK).on_click(move |_, _, cx| {
-                                cx.global::<GPUIPlaybackInterface>().set_volume(prev_volume);
-                            })
+                            div.child(icon(VOLUME_OFF).size(px(14.0)))
+                                .on_click(move |_, _, cx| {
+                                    cx.global::<GPUIPlaybackInterface>().set_volume(prev_volume);
+                                })
                         })
                         .when(volume > 0.0, |div| {
-                            div.child(ICON_VOLUME_HIGH).on_click(move |_, _, cx| {
-                                cx.global::<GPUIPlaybackInterface>().set_volume(0 as f64);
-                            })
+                            div.child(icon(VOLUME).size(px(14.0)))
+                                .on_click(move |_, _, cx| {
+                                    cx.global::<GPUIPlaybackInterface>().set_volume(0 as f64);
+                                })
                         }),
                 )
                 .child(
@@ -562,7 +558,7 @@ impl Render for SecondaryControls {
                         .bg(theme.playback_button)
                         .hover(|this| this.bg(theme.playback_button_hover))
                         .active(|this| this.bg(theme.playback_button_active))
-                        .child(ICON_BARS)
+                        .child(icon(MENU).size(px(14.0)))
                         .on_click(move |_, _, cx| {
                             show_queue.update(cx, |m, cx| {
                                 *m = !*m;
