@@ -16,7 +16,7 @@ impl BundledAssets {
 
     pub fn list(&self, path: &str) -> gpui::Result<Vec<SharedString>> {
         Ok(Self::iter()
-            .map(|p| format!("!bundled:{}", p))
+            .map(|p| format!("!bundled:{p}"))
             .filter_map(|p| {
                 if p.starts_with(path) {
                     Some(p.into())

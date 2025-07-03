@@ -64,7 +64,7 @@ impl RenderOnce for TrackItem {
                                 .mt(px(24.0))
                                 .pb(px(6.0))
                                 .when_some(self.track.disc_number, |this, num| {
-                                    this.child(format!("DISC {}", num))
+                                    this.child(format!("DISC {num}"))
                                 }),
                         )
                     })

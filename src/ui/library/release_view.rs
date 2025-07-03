@@ -86,7 +86,7 @@ impl ReleaseView {
                 tracks,
                 track_listing,
                 release_info,
-                img_path: SharedString::from(format!("!db://album/{}/full", album_id)),
+                img_path: SharedString::from(format!("!db://album/{album_id}/full")),
                 image_cache,
             }
         })
