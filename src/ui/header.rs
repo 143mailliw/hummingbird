@@ -153,7 +153,7 @@ impl Render for ScanStatus {
                     )
                 }
                 ScanEvent::DiscoverProgress(progress) => {
-                    format!("Discovering files ({})", progress)
+                    format!("Discovering files ({progress})")
                 }
                 ScanEvent::Cleaning => "".to_string(),
                 ScanEvent::ScanCompleteWatching => "Watching for updates".to_string(),
