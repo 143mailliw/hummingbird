@@ -1,16 +1,20 @@
 use gpui::SharedString;
 use rust_embed::RustEmbed;
+use tracing::debug;
 use url::Url;
 
 #[derive(RustEmbed)]
 #[folder = "./assets"]
 #[include = "fonts/*"]
+#[include = "icons/*"]
 #[exclude = "*.DS_Store"]
+#[exclude = "icons/LICENSE"]
 pub struct BundledAssets;
 
 impl BundledAssets {
     pub fn load(url: Url) -> gpui::Result<Option<std::borrow::Cow<'static, [u8]>>> {
         let path = url.path().trim_start_matches('/');
+        debug!("Loading asset: {}", path);
         Ok(Self::get(path).map(|f| Some(f.data)).unwrap_or(None))
     }
 

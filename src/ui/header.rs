@@ -6,6 +6,7 @@ use prelude::FluentBuilder;
 use crate::{
     library::scan::ScanEvent,
     services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET},
+    ui::components::icons::{icon, CROSS, MAXIMIZE, MINUS},
 };
 
 use super::{
@@ -212,11 +213,15 @@ impl RenderOnce for WindowButton {
                 cx.stop_propagation();
                 window.prevent_default();
             })
-            .child(match self {
-                WindowButton::Close => ICON_XMARK,
-                WindowButton::Minimize => ICON_MINUS,
-                WindowButton::Maximize => ICON_EXPAND,
-            })
+            .child(
+                icon(match self {
+                    WindowButton::Close => CROSS,
+                    WindowButton::Minimize => MINUS,
+                    WindowButton::Maximize => MAXIMIZE,
+                })
+                .text_color(rgb(0xFF0000))
+                .size(px(14.0)),
+            )
             .when(self == WindowButton::Close, |this| this.rounded_tr(px(4.0)))
             .on_click(move |_, window, cx| match self {
                 WindowButton::Close => cx.quit(),

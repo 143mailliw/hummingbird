@@ -1,5 +1,6 @@
 pub mod button;
 pub mod context;
+pub mod icons;
 pub mod input;
 pub mod menu;
 pub mod modal;
