@@ -6,14 +6,11 @@ use prelude::FluentBuilder;
 use crate::{
     library::scan::ScanEvent,
     services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET},
-    ui::components::icons::{icon, CROSS, MAXIMIZE, MINUS},
+    ui::components::icons::{icon, CROSS, FOLDER_CHECK, FOLDER_SEARCH, MAXIMIZE, MINUS},
 };
 
 use super::{
-    constants::{
-        APP_ROUNDING, FONT_AWESOME, ICON_CHECK, ICON_EXPAND, ICON_MAGNIFYING_GLASS, ICON_MINUS,
-        ICON_XMARK,
-    },
+    constants::{APP_ROUNDING, FONT_AWESOME},
     models::Models,
     theme::Theme,
 };
@@ -134,15 +131,20 @@ impl Render for ScanStatus {
             .text_sm()
             .child(
                 div()
-                    .mr(px(8.0))
-                    .pt(px(5.0))
+                    .mr(px(4.0))
+                    .pt(px(4.0))
                     .text_size(px(9.0))
                     .h_full()
                     .font_family(FONT_AWESOME)
-                    .child(match status {
-                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => ICON_CHECK,
-                        _ => ICON_MAGNIFYING_GLASS,
-                    }),
+                    .child(
+                        icon(match status {
+                            ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => {
+                                FOLDER_CHECK
+                            }
+                            _ => FOLDER_SEARCH,
+                        })
+                        .size(px(14.0)),
+                    ),
             )
             .text_color(theme.text_secondary)
             .child(match status {
@@ -219,7 +221,6 @@ impl RenderOnce for WindowButton {
                     WindowButton::Minimize => MINUS,
                     WindowButton::Maximize => MAXIMIZE,
                 })
-                .text_color(rgb(0xFF0000))
                 .size(px(14.0)),
             )
             .when(self == WindowButton::Close, |this| this.rounded_tr(px(4.0)))

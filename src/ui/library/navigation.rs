@@ -7,7 +7,7 @@ use tracing::debug;
 use crate::{
     library::db::{AlbumMethod, LibraryAccess},
     ui::{
-        constants::{FONT_AWESOME, ICON_ARROW_LEFT},
+        components::icons::{icon, ARROW_LEFT},
         theme::Theme,
     },
 };
@@ -77,9 +77,8 @@ impl Render for NavigationView {
                         div()
                             .flex()
                             .id("back")
-                            .font_family(FONT_AWESOME)
                             .px(px(12.0))
-                            .py(px(5.0))
+                            .py(px(9.0))
                             .mr(px(12.0))
                             .text_sm()
                             .border_r_1()
@@ -92,7 +91,7 @@ impl Render for NavigationView {
                                     cx.emit(ViewSwitchMessage::Back);
                                 })
                             }))
-                            .child(ICON_ARROW_LEFT),
+                            .child(icon(ARROW_LEFT).size(px(16.0))),
                     )
                     .child(
                         div()
