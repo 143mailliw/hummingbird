@@ -13,7 +13,7 @@ use tracing::warn;
 
 use crate::ui::{
     caching::hummingbird_cache,
-    constants::FONT_AWESOME,
+    components::icons::{icon, CHEVRON_DOWN, CHEVRON_UP},
     theme::Theme,
     util::{create_or_retrieve_view, prune_views},
 };
@@ -209,15 +209,11 @@ where
                     .child(SharedString::new_static(column_id.get_column_name()))
                     .when_some(sort_method.as_ref(), |this, method| {
                         this.when(method.column == column_id, |this| {
-                            this.child(
-                                div()
-                                    .ml(px(7.0))
-                                    .text_size(px(10.0))
-                                    .my_auto()
-                                    .font_family(FONT_AWESOME)
-                                    .when(method.ascending, |div| div.child(""))
-                                    .when(!method.ascending, |div| div.child("")),
-                            )
+                            this.child(if method.ascending {
+                                icon(CHEVRON_UP).size(px(14.0))
+                            } else {
+                                icon(CHEVRON_DOWN).size(px(14.0))
+                            })
                         })
                     })
                     .id(i)

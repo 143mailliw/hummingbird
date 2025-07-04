@@ -5,7 +5,6 @@ use crate::{
     services::mmb::lastfm::{client::LastFMClient, LASTFM_API_KEY, LASTFM_API_SECRET},
     ui::{
         components::icons::{icon, LAST_FM},
-        constants::FONT_AWESOME_BRANDS,
         models::{LastFMState, Models},
         theme::Theme,
     },
@@ -64,7 +63,7 @@ impl Render for LastFM {
             .child(
                 div()
                     .mr(px(8.0))
-                    .pt(px(5.0))
+                    .pt(px(5.5))
                     .text_size(px(11.0))
                     .h_full()
                     .child(

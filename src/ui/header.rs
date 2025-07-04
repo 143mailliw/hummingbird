@@ -9,11 +9,7 @@ use crate::{
     ui::components::icons::{icon, CROSS, FOLDER_CHECK, FOLDER_SEARCH, MAXIMIZE, MINUS},
 };
 
-use super::{
-    constants::{APP_ROUNDING, FONT_AWESOME},
-    models::Models,
-    theme::Theme,
-};
+use super::{constants::APP_ROUNDING, models::Models, theme::Theme};
 
 pub struct Header {
     scan_status: Entity<ScanStatus>,
@@ -84,7 +80,7 @@ impl Render for Header {
                     .pt(px(5.0))
                     .flex()
                     .when(cfg!(not(target_os = "macos")), |this| {
-                        this.child(div().child("Hummingbird").mr(px(16.0)))
+                        this.child(div().child("Hummingbird").mr(px(8.0)))
                     })
                     .child(self.scan_status.clone()),
             )
@@ -131,11 +127,10 @@ impl Render for ScanStatus {
             .text_sm()
             .child(
                 div()
-                    .mr(px(4.0))
+                    .mr(px(8.0))
                     .pt(px(4.0))
                     .text_size(px(9.0))
                     .h_full()
-                    .font_family(FONT_AWESOME)
                     .child(
                         icon(match status {
                             ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => {
@@ -204,7 +199,6 @@ impl RenderOnce for WindowButton {
             .bg(bg)
             .hover(|this| this.bg(hover))
             .active(|this| this.bg(active))
-            .font_family(FONT_AWESOME)
             .window_control_area(match self {
                 WindowButton::Close => WindowControlArea::Close,
                 WindowButton::Minimize => WindowControlArea::Min,

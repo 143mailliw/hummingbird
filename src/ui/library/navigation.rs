@@ -78,7 +78,7 @@ impl Render for NavigationView {
                             .flex()
                             .id("back")
                             .px(px(12.0))
-                            .py(px(9.0))
+                            .py(px(8.0))
                             .mr(px(12.0))
                             .text_sm()
                             .border_r_1()

@@ -20,3 +20,5 @@ pub const CROSS: &str = "!bundled:icons/x.svg";
 pub const VOLUME: &str = "!bundled:icons/volume.svg";
 pub const VOLUME_OFF: &str = "!bundled:icons/volume-off.svg";
 pub const MENU: &str = "!bundled:icons/menu-2.svg";
+pub const CHEVRON_UP: &str = "!bundled:icons/chevron-up.svg";
+pub const CHEVRON_DOWN: &str = "!bundled:icons/chevron-down.svg";

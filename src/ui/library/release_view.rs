@@ -14,8 +14,10 @@ use crate::{
         thread::PlaybackState,
     },
     ui::{
-        components::button::{button, ButtonIntent, ButtonSize},
-        constants::FONT_AWESOME,
+        components::{
+            button::{button, ButtonIntent, ButtonSize},
+            icons::{icon, CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE},
+        },
         global_actions::PlayPause,
         library::track_listing::TrackListing,
         models::PlaybackInfo,
@@ -229,13 +231,15 @@ impl Render for ReleaseView {
                                                     window.dispatch_action(Box::new(PlayPause), cx);
                                                 })
                                             })
-                                            .child(div().font_family(FONT_AWESOME).child(
-                                                if current_track_in_album && is_playing {
-                                                    ""
+                                            .child(
+                                                icon(if current_track_in_album && is_playing {
+                                                    PAUSE
                                                 } else {
-                                                    ""
-                                                },
-                                            ))
+                                                    PLAY
+                                                })
+                                                .size(px(16.0))
+                                                .my_auto(),
+                                            )
                                             .child(div().child(
                                                 if current_track_in_album && is_playing {
                                                     "Pause"
@@ -269,7 +273,7 @@ impl Render for ReleaseView {
                                                         .queue_list(queue_items);
                                                 },
                                             ))
-                                            .child(div().font_family(FONT_AWESOME).child("")),
+                                            .child(icon(CIRCLE_PLUS).size(px(16.0)).my_auto()),
                                     )
                                     .child(
                                         button()
@@ -304,7 +308,7 @@ impl Render for ReleaseView {
                                                     replace_queue(queue_items, cx)
                                                 },
                                             ))
-                                            .child(div().font_family(FONT_AWESOME).child("")),
+                                            .child(icon(SHUFFLE).size(px(16.0)).my_auto()),
                                     ),
                             ),
                     ),

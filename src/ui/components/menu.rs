@@ -1,6 +1,6 @@
 use gpui::{prelude::FluentBuilder, *};
 
-use crate::ui::{constants::FONT_AWESOME, theme::Theme};
+use crate::ui::{components::icons::icon, theme::Theme};
 
 type ClickEvHandler = dyn Fn(&ClickEvent, &mut Window, &mut App);
 
@@ -22,7 +22,7 @@ impl RenderOnce for CMenuItem {
         let theme = cx.global::<Theme>();
 
         match self {
-            CMenuItem::Item(id, icon, name, func) => div()
+            CMenuItem::Item(id, icon_path, name, func) => div()
                 .id(id)
                 .on_click(func)
                 .rounded(px(3.0))
@@ -46,10 +46,13 @@ impl RenderOnce for CMenuItem {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .text_size(px(12.0))
-                        .font_family(FONT_AWESOME)
-                        .text_color(theme.text_secondary)
-                        .when_some(icon, |this, icon| this.child(icon)),
+                        .when_some(icon_path, |this, icon_path| {
+                            this.child(
+                                icon(icon_path)
+                                    .size(px(12.0))
+                                    .text_color(theme.text_secondary),
+                            )
+                        }),
                 )
                 .into_any_element(),
             CMenuItem::Seperator => div()
