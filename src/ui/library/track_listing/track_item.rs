@@ -1,6 +1,7 @@
 use gpui::prelude::{FluentBuilder, *};
 use gpui::{div, px, App, FontWeight, IntoElement, RenderOnce, Window};
 
+use crate::ui::components::icons::PLUS;
 use crate::{
     library::{db::LibraryAccess, types::Track},
     playback::{
@@ -131,7 +132,7 @@ impl RenderOnce for TrackItem {
                     menu()
                         .item(menu_item(
                             "track_play",
-                            Some(""),
+                            None::<&str>,
                             "Play",
                             move |_, _, cx| {
                                 let data = QueueItemData::new(
@@ -155,13 +156,13 @@ impl RenderOnce for TrackItem {
                         ))
                         .item(menu_item(
                             "track_play_from_here",
-                            Some(""),
+                            None::<&str>,
                             "Play from here",
                             move |_, _, cx| play_from_track(cx, &self.track),
                         ))
                         .item(menu_item(
                             "track_add_to_queue",
-                            Some("+"),
+                            Some(PLUS),
                             "Add to queue",
                             move |_, _, cx| {
                                 let data = QueueItemData::new(

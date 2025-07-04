@@ -271,7 +271,7 @@ impl Render for Queue {
                                     .id("back")
                                     .pr(px(12.0))
                                     .pl(px(12.0))
-                                    .py(px(9.0))
+                                    .py(px(8.0))
                                     .ml_auto()
                                     .text_sm()
                                     .border_l_1()

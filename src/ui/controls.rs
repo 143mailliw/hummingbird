@@ -9,7 +9,7 @@ use prelude::FluentBuilder;
 
 use super::{
     components::slider::slider,
-    constants::{APP_ROUNDING, FONT_AWESOME},
+    constants::APP_ROUNDING,
     global_actions::{Next, PlayPause, Previous},
     models::{Models, PlaybackInfo},
     theme::Theme,
@@ -322,7 +322,6 @@ impl Render for PlaybackSection {
                             .h(px(28.0))
                             .rounded_r(px(3.0))
                             .bg(theme.playback_button)
-                            .font_family(FONT_AWESOME)
                             .flex()
                             .items_center()
                             .justify_center()
@@ -548,8 +547,6 @@ impl Render for SecondaryControls {
                         .w(px(28.0))
                         .h(px(25.0))
                         .mt(px(2.0))
-                        .font_family(FONT_AWESOME)
-                        .text_size(px(12.0))
                         .flex()
                         .items_center()
                         .justify_center()
