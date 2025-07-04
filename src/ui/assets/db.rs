@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use anyhow::anyhow;
-use async_std::task::block_on;
+use smol::block_on;
 use sqlx::SqlitePool;
 use url::Url;
 
