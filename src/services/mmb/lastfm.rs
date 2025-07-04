@@ -1,9 +1,9 @@
 use std::{path::PathBuf, sync::Arc};
 
-use async_std::task;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use client::LastFMClient;
+use smol::block_on;
 use tracing::{debug, warn};
 
 use crate::{media::metadata::Metadata, playback::thread::PlaybackState};
@@ -126,7 +126,7 @@ impl Drop for LastFM {
     fn drop(&mut self) {
         if self.should_scrobble {
             debug!("attempting scrobble before dropping LastFM, this will block");
-            task::block_on(self.scrobble());
+            block_on(self.scrobble());
         }
     }
 }

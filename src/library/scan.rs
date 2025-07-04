@@ -7,10 +7,10 @@ use std::{
 };
 
 use ahash::AHashMap;
-use async_std::task;
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, DynamicImage, EncodableLayout};
+use smol::block_on;
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
 
@@ -621,7 +621,7 @@ impl ScanThread {
         let metadata = self.read_metadata_for_path(&path);
 
         if let Some(metadata) = metadata {
-            let result = task::block_on(self.update_metadata(metadata, &path));
+            let result = block_on(self.update_metadata(metadata, &path));
 
             if let Err(err) = result {
                 error!(
@@ -668,7 +668,7 @@ impl ScanThread {
             .filter(|v| !v.0.exists())
             .map(|v| v.0)
             .for_each(|v| {
-                task::block_on(self.delete_track(v));
+                block_on(self.delete_track(v));
             });
 
         self.scan_state = ScanState::Discovering;
