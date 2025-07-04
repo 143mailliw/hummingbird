@@ -102,7 +102,7 @@ impl Element for ContextMenu {
                         menu.occlude()
                             .border_1()
                             .shadow_sm()
-                            .rounded(px(4.0))
+                            .rounded(px(6.0))
                             .border_color(theme.elevated_border_color)
                             .bg(theme.elevated_background)
                             .id("menu")

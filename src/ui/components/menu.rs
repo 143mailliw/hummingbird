@@ -25,35 +25,37 @@ impl RenderOnce for CMenuItem {
             CMenuItem::Item(id, icon_path, name, func) => div()
                 .id(id)
                 .on_click(func)
-                .rounded(px(3.0))
+                .rounded(px(4.0))
                 .flex()
-                .px(px(8.0))
-                .pt(px(2.0))
-                .pb(px(3.0))
+                .px(px(7.0))
+                .pt(px(5.0))
+                .pb(px(5.0))
+                .my(px(-1.0))
+                .occlude()
                 .min_w_full()
                 .bg(theme.menu_item)
                 .hover(|this| this.bg(theme.menu_item_hover))
                 .active(|this| this.bg(theme.menu_item_active))
                 .text_sm()
-                .font_weight(FontWeight::SEMIBOLD)
-                .child(div().child(name))
+                .font_weight(FontWeight::MEDIUM)
                 .child(
                     div()
-                        .w(px(12.0))
-                        .h(px(12.0))
+                        .w(px(16.0))
+                        .h(px(16.0))
+                        .mr(px(7.0))
                         .my_auto()
-                        .ml_auto()
                         .flex()
                         .items_center()
                         .justify_center()
                         .when_some(icon_path, |this, icon_path| {
                             this.child(
                                 icon(icon_path)
-                                    .size(px(12.0))
+                                    .size(px(16.0))
                                     .text_color(theme.text_secondary),
                             )
                         }),
                 )
+                .child(div().child(name))
                 .into_any_element(),
             CMenuItem::Seperator => div()
                 .w_full()
@@ -102,6 +104,6 @@ impl RenderOnce for Menu {
 pub fn menu() -> Menu {
     Menu {
         items: vec![],
-        div: div().min_w(px(200.0)).p(px(4.0)),
+        div: div().min_w(px(200.0)).px(px(2.0)).py(px(3.0)),
     }
 }
