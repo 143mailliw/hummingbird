@@ -12,8 +12,8 @@ use std::{
 use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
-use crate::devices::builtin::cpal::CpalProvider;
 use crate::devices::builtin::dummy::DummyDeviceProvider;
+use crate::{devices::builtin::cpal::CpalProvider, playback::events::RepeatState};
 // #[cfg(target_os = "linux")]
 // use crate::devices::builtin::pulse::PulseProvider;
 #[cfg(target_os = "windows")]
@@ -103,7 +103,7 @@ pub struct PlaybackThread {
     pending_reset: bool,
 
     /// Whether or not the queue should be repeated when the end of the queue is reached.
-    repeat: bool,
+    repeat: RepeatState,
 }
 
 impl PlaybackThread {
@@ -131,7 +131,7 @@ impl PlaybackThread {
                     queue_next: 0,
                     last_timestamp: u64::MAX,
                     pending_reset: false,
-                    repeat: false,
+                    repeat: RepeatState::NotRepeating,
                 };
 
                 thread.run();
@@ -274,7 +274,7 @@ impl PlaybackThread {
                 PlaybackCommand::ReplaceQueue(v) => self.replace_queue(v),
                 PlaybackCommand::Stop => self.stop(),
                 PlaybackCommand::ToggleShuffle => self.toggle_shuffle(),
-                PlaybackCommand::ToggleRepeat => self.toggle_repeat(),
+                PlaybackCommand::SetRepeat(v) => self.set_repeat(v),
             }
         }
     }
@@ -460,6 +460,14 @@ impl PlaybackThread {
     fn next(&mut self, user_initiated: bool) {
         let mut queue = self.queue.write().expect("couldn't get the queue");
 
+        if self.repeat == RepeatState::RepeatingOne {
+            info!("Repeating current track");
+            let path = queue[self.queue_next - 1].get_path().clone();
+            drop(queue);
+            self.open(&path);
+            return;
+        }
+
         if self.queue_next < queue.len() {
             info!("Opening next file in queue");
             let path = queue[self.queue_next].get_path().clone();
@@ -470,7 +478,7 @@ impl PlaybackThread {
                 .expect("unable to send event");
             self.queue_next += 1;
         } else if !user_initiated {
-            if self.repeat {
+            if self.repeat == RepeatState::Repeating {
                 info!("End of queue reached, repeating.");
 
                 if self.shuffle {
@@ -751,13 +759,13 @@ impl PlaybackThread {
         }
     }
 
-    /// Toggles repeat mode. The queue will loop infinitely when repeat mode is enabled. If shuffle
+    /// Sets the repeat mode. The queue will loop infinitely when repeat mode is enabled. When repeat once mode is enabled If shuffle
     /// mode is also enabled, the queue will be reshuffled when looped.
-    fn toggle_repeat(&mut self) {
-        self.repeat = !self.repeat;
+    fn set_repeat(&mut self, state: RepeatState) {
+        self.repeat = state;
 
         self.events_tx
-            .send(PlaybackEvent::RepeatToggled(self.repeat))
+            .send(PlaybackEvent::RepeatChanged(self.repeat))
             .expect("unable to send event");
     }
 

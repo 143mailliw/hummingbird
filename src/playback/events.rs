@@ -5,6 +5,13 @@ use crate::media::metadata::Metadata;
 use super::{queue::QueueItemData, thread::PlaybackState};
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum RepeatState {
+    NotRepeating,
+    Repeating,
+    RepeatingOne,
+}
+
 /// A command to the playback thread. This is used to control the playback thread from other
 /// threads. The playback thread recieves these commands from an MPSC channel, and processes them
 /// in the order they are recieved. They are processed every 10ms when playback is stopped, or
@@ -47,9 +54,8 @@ pub enum PlaybackCommand {
     /// Requests that the playback thread shuffle (or stop shuffling) the next tracks in the
     /// queue. Note that this currently results in duplication of the *entire* queue.
     ToggleShuffle,
-    /// Requests that the playback thread toggle whether or not the current queue should be
-    /// repeated when the end is reached.
-    ToggleRepeat,
+    /// Requests that the repeating setting should be set to the specified RepeatState.
+    SetRepeat(RepeatState),
 }
 
 /// An event from the playback thread. This is used to communicate information from the playback
@@ -79,8 +85,8 @@ pub enum PlaybackEvent {
     PositionChanged(u64),
     /// Notification for when shuffling is disabled or enabled by the thread.
     ShuffleToggled(bool, usize),
-    /// Indicates that the queue will/will not be repeated.
-    RepeatToggled(bool),
+    /// Indicates that repeat state has been changed.
+    RepeatChanged(RepeatState),
     /// Indicates that the volume has changed. The f64 is the new volume, from 0.0 to 1.0.
     VolumeChanged(f64),
 }

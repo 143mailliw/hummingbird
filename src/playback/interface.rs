@@ -11,7 +11,10 @@ use std::{
 
 use gpui::App;
 
-use crate::ui::models::{CurrentTrack, ImageEvent, MMBSEvent, Models, PlaybackInfo};
+use crate::{
+    playback::events::RepeatState,
+    ui::models::{CurrentTrack, ImageEvent, MMBSEvent, Models, PlaybackInfo},
+};
 
 use super::{
     events::{PlaybackCommand, PlaybackEvent},
@@ -143,9 +146,9 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
-    pub fn toggle_repeat(&self) {
+    pub fn set_repeat(&self, state: RepeatState) {
         self.commands_tx
-            .send(PlaybackCommand::ToggleRepeat)
+            .send(PlaybackCommand::SetRepeat(state))
             .expect("could not send tx");
     }
 
@@ -311,7 +314,7 @@ impl GPUIPlaybackInterface {
                                 cx.notify();
                             })
                             .expect("failed to update queue position"),
-                        PlaybackEvent::RepeatToggled(v) => playback_info
+                        PlaybackEvent::RepeatChanged(v) => playback_info
                             .repeating
                             .update(cx, |m, cx| {
                                 *m = v;

@@ -15,6 +15,7 @@ use crate::{
     library::scan::ScanEvent,
     media::metadata::Metadata,
     playback::{
+        events::RepeatState,
         queue::{QueueItemData, QueueItemUIData},
         thread::PlaybackState,
     },
@@ -81,7 +82,7 @@ pub struct PlaybackInfo {
     pub playback_state: Entity<PlaybackState>,
     pub current_track: Entity<Option<CurrentTrack>>,
     pub shuffling: Entity<bool>,
-    pub repeating: Entity<bool>,
+    pub repeating: Entity<RepeatState>,
     pub volume: Entity<f64>,
     pub prev_volume: Entity<f64>,
 }
@@ -228,7 +229,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let current_track: Entity<Option<CurrentTrack>> =
         cx.new(|_| storage_data.current_track.clone());
     let shuffling: Entity<bool> = cx.new(|_| false);
-    let repeating: Entity<bool> = cx.new(|_| false);
+    let repeating: Entity<RepeatState> = cx.new(|_| RepeatState::NotRepeating);
     let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
     let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
 

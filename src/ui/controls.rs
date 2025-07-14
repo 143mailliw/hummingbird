@@ -1,7 +1,8 @@
 use crate::{
-    playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
+    playback::{events::RepeatState, interface::GPUIPlaybackInterface, thread::PlaybackState},
     ui::components::icons::{
-        icon, MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, SHUFFLE, VOLUME, VOLUME_OFF,
+        icon, MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_ONCE, SHUFFLE, VOLUME,
+        VOLUME_OFF,
     },
 };
 use gpui::*;
@@ -225,7 +226,7 @@ impl Render for PlaybackSection {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let state = self.info.playback_state.read(cx);
         let shuffling = self.info.shuffling.read(cx);
-        let repeating = self.info.repeating.read(cx);
+        let repeating = *self.info.repeating.read(cx);
         let theme = cx.global::<Theme>();
 
         div()
@@ -357,12 +358,29 @@ impl Render for PlaybackSection {
                         cx.stop_propagation();
                         window.prevent_default();
                     })
-                    .on_click(|_, _, cx| {
-                        cx.global::<GPUIPlaybackInterface>().toggle_repeat();
+                    .on_click(move |_, _, cx| match repeating {
+                        RepeatState::NotRepeating => cx
+                            .global::<GPUIPlaybackInterface>()
+                            .set_repeat(RepeatState::Repeating),
+                        RepeatState::Repeating => cx
+                            .global::<GPUIPlaybackInterface>()
+                            .set_repeat(RepeatState::RepeatingOne),
+                        RepeatState::RepeatingOne => cx
+                            .global::<GPUIPlaybackInterface>()
+                            .set_repeat(RepeatState::NotRepeating),
                     })
-                    .child(icon(REPEAT).size(px(14.0)).when(*repeating, |this| {
-                        this.text_color(theme.playback_button_toggled)
-                    })),
+                    .child(
+                        icon(match repeating {
+                            RepeatState::NotRepeating | RepeatState::Repeating => REPEAT,
+                            RepeatState::RepeatingOne => REPEAT_ONCE,
+                        })
+                        .size(px(14.0))
+                        .when(
+                            repeating == RepeatState::Repeating
+                                || repeating == RepeatState::RepeatingOne,
+                            |this| this.text_color(theme.playback_button_toggled),
+                        ),
+                    ),
             )
     }
 }
