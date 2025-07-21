@@ -298,7 +298,14 @@ impl Render for SearchModel {
             .id("search-model")
             .flex()
             .p(px(4.0))
-            .child(list(self.list_state.clone()).gap(px(5.0)).w_full().h_full())
+            .child(
+                list(self.list_state.clone())
+                    .flex()
+                    .flex_row()
+                    .gap(px(5.0))
+                    .w_full()
+                    .h_full(),
+            )
     }
 }
 
@@ -394,8 +401,11 @@ impl Render for AlbumSearchResult {
                         .pl(px(8.0))
                         .mt(px(2.0))
                         .line_height(px(14.0))
+                        .flex_shrink()
                         .font_weight(FontWeight::BOLD)
                         .text_sm()
+                        .overflow_hidden()
+                        .text_ellipsis()
                         .child(album.title.clone()),
                 )
                 .when_some(self.artist.as_ref(), |this, name| {
@@ -403,6 +413,10 @@ impl Render for AlbumSearchResult {
                         div()
                             .ml_auto()
                             .mt(px(2.0))
+                            .pl(px(8.0))
+                            .flex_shrink()
+                            .overflow_hidden()
+                            .text_ellipsis()
                             .line_height(px(14.0))
                             .text_sm()
                             .text_color(theme.text_secondary)
