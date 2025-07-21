@@ -558,7 +558,7 @@ impl Element for TextElement {
         _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         request_layout: &mut Self::RequestLayoutState,
-        window: &mut Window,
+        _: &mut Window,
         cx: &mut App,
     ) -> Self::PrepaintState {
         let input = self.input.read(cx);
@@ -626,7 +626,7 @@ impl Element for TextElement {
                 let original_x = origin.x;
                 origin.y = px(0.0);
                 origin.x = -origin.x - cursor.bounds.size.width;
-                self.input.update(cx, |m, cx| {
+                self.input.update(cx, |m, _| {
                     if original_x > m.scroll_handle.bounds().size.width {
                         m.scroll_handle.set_offset(origin);
                     } else {

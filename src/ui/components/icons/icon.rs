@@ -18,7 +18,7 @@ impl RenderOnce for Icon {
     fn render(mut self, _: &mut gpui::Window, cx: &mut gpui::App) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
 
-        let color_ref = self
+        let color_ref = *self
             .svg
             .style()
             .text
@@ -26,7 +26,7 @@ impl RenderOnce for Icon {
             .color
             .get_or_insert(theme.text.into());
 
-        self.svg.path(self.icon)
+        self.svg.path(self.icon).text_color(color_ref)
     }
 }
 
