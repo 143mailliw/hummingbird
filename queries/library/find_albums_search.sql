@@ -1,5 +1,6 @@
 SELECT
-    id,
-    title
+    p.id,
+    p.title,
+    a.name
 FROM
-    album;
+    album p JOIN artist a ON p.artist_id = a.id;

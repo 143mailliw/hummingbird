@@ -12,7 +12,7 @@ use nucleo::{
     Config, Nucleo, Utf32String,
 };
 use prelude::FluentBuilder;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{
     library::{
@@ -32,10 +32,10 @@ use crate::{
 
 pub struct SearchModel {
     query: String,
-    matcher: Nucleo<(u32, String)>,
+    matcher: Nucleo<(u32, String, String)>,
     list_state: ListState,
     views_model: Entity<AHashMap<usize, Entity<AlbumSearchResult>>>,
-    last_match: Vec<(u32, String)>,
+    last_match: Vec<(u32, String, String)>,
     render_counter: Entity<usize>,
     current_selection: Entity<usize>,
 }
@@ -138,7 +138,7 @@ impl SearchModel {
 
             for album in albums {
                 injector.push(album, |v, dest| {
-                    dest[0] = Utf32String::from(v.1.clone());
+                    dest[0] = Utf32String::from(format!("{} {}", v.1, v.2));
                 });
             }
 
@@ -161,7 +161,7 @@ impl SearchModel {
 
                     for album in albums {
                         injector.push(album, |v, dest| {
-                            dest[0] = Utf32String::from(v.1.clone());
+                            dest[0] = Utf32String::from(format!("{} {}", v.1, v.2));
                         });
                     }
 
@@ -197,6 +197,7 @@ impl SearchModel {
             Normalization::Smart,
             false,
         );
+
         self.current_selection = cx.new(|_| 0);
         self.list_state.scroll_to_reveal_item(0);
     }
@@ -205,7 +206,7 @@ impl SearchModel {
         self.matcher.tick(10);
     }
 
-    fn get_matches(&self) -> Vec<(u32, String)> {
+    fn get_matches(&self) -> Vec<(u32, String, String)> {
         let snapshot = self.matcher.snapshot();
         snapshot
             .matched_items(..100.min(snapshot.matched_item_count()))
@@ -236,7 +237,7 @@ impl SearchModel {
 
     fn make_list_state(
         weak_self: WeakEntity<Self>,
-        album_ids: Option<Vec<(u32, String)>>,
+        album_ids: Option<Vec<(u32, String, String)>>,
         views_model: Entity<AHashMap<usize, Entity<AlbumSearchResult>>>,
         render_counter: Entity<usize>,
         current_selection: Entity<usize>,

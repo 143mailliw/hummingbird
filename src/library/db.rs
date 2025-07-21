@@ -177,10 +177,14 @@ pub async fn get_track_by_id(pool: &SqlitePool, track_id: i64) -> Result<Arc<Tra
     Ok(track)
 }
 
-pub async fn list_albums_search(pool: &SqlitePool) -> Result<Vec<(u32, String)>, sqlx::Error> {
+/// Lists all albums for searching. Returns a vector of tuples containing the id, name, and artist
+/// name.
+pub async fn list_albums_search(
+    pool: &SqlitePool,
+) -> Result<Vec<(u32, String, String)>, sqlx::Error> {
     let query = include_str!("../../queries/library/find_albums_search.sql");
 
-    let albums = sqlx::query_as::<_, (u32, String)>(query)
+    let albums = sqlx::query_as::<_, (u32, String, String)>(query)
         .fetch_all(pool)
         .await?;
 
@@ -198,7 +202,7 @@ pub trait LibraryAccess {
     fn get_artist_name_by_id(&self, artist_id: i64) -> Result<Arc<String>, sqlx::Error>;
     fn get_artist_by_id(&self, artist_id: i64) -> Result<Arc<Artist>, sqlx::Error>;
     fn get_track_by_id(&self, track_id: i64) -> Result<Arc<Track>, sqlx::Error>;
-    fn list_albums_search(&self) -> Result<Vec<(u32, String)>, sqlx::Error>;
+    fn list_albums_search(&self) -> Result<Vec<(u32, String, String)>, sqlx::Error>;
 }
 
 impl LibraryAccess for App {
@@ -236,7 +240,9 @@ impl LibraryAccess for App {
         block_on(get_track_by_id(&pool.0, track_id))
     }
 
-    fn list_albums_search(&self) -> Result<Vec<(u32, String)>, sqlx::Error> {
+    /// Lists all albums for searching. Returns a vector of tuples containing the id, name, and artist
+    /// name.
+    fn list_albums_search(&self) -> Result<Vec<(u32, String, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(list_albums_search(&pool.0))
     }
