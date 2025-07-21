@@ -1,8 +1,13 @@
 use crate::{
     playback::{events::RepeatState, interface::GPUIPlaybackInterface, thread::PlaybackState},
-    ui::components::icons::{
-        icon, MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_ONCE, SHUFFLE, VOLUME,
-        VOLUME_OFF,
+    settings::SettingsGlobal,
+    ui::components::{
+        context::context,
+        icons::{
+            icon, MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_OFF, REPEAT_ONCE,
+            SHUFFLE, VOLUME, VOLUME_OFF,
+        },
+        menu::{menu, menu_item},
     },
 };
 use gpui::*;
@@ -228,6 +233,12 @@ impl Render for PlaybackSection {
         let shuffling = self.info.shuffling.read(cx);
         let repeating = *self.info.repeating.read(cx);
         let theme = cx.global::<Theme>();
+        let always_repeat = cx
+            .global::<SettingsGlobal>()
+            .model
+            .read(cx)
+            .playback
+            .always_repeat;
 
         div()
             .mr(auto())
@@ -340,47 +351,89 @@ impl Render for PlaybackSection {
                     ),
             )
             .child(
-                div()
-                    .rounded(px(3.0))
-                    .w(px(28.0))
-                    .h(px(25.0))
-                    .mt(px(3.0))
-                    .ml(px(6.0))
-                    .mr_auto()
-                    .border_color(theme.playback_button_border)
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .hover(|style| style.bg(theme.playback_button_hover).cursor_pointer())
-                    .id("header-repeat-button")
-                    .active(|style| style.bg(theme.playback_button_active))
-                    .on_mouse_down(MouseButton::Left, |_, window, cx| {
-                        cx.stop_propagation();
-                        window.prevent_default();
-                    })
-                    .on_click(move |_, _, cx| match repeating {
-                        RepeatState::NotRepeating => cx
-                            .global::<GPUIPlaybackInterface>()
-                            .set_repeat(RepeatState::Repeating),
-                        RepeatState::Repeating => cx
-                            .global::<GPUIPlaybackInterface>()
-                            .set_repeat(RepeatState::RepeatingOne),
-                        RepeatState::RepeatingOne => cx
-                            .global::<GPUIPlaybackInterface>()
-                            .set_repeat(RepeatState::NotRepeating),
-                    })
-                    .child(
-                        icon(match repeating {
-                            RepeatState::NotRepeating | RepeatState::Repeating => REPEAT,
-                            RepeatState::RepeatingOne => REPEAT_ONCE,
-                        })
-                        .size(px(14.0))
-                        .when(
-                            repeating == RepeatState::Repeating
-                                || repeating == RepeatState::RepeatingOne,
-                            |this| this.text_color(theme.playback_button_toggled),
+                div().mr_auto().child(
+                    context("repeat-context")
+                        .with(
+                            div()
+                                .rounded(px(3.0))
+                                .w(px(28.0))
+                                .h(px(25.0))
+                                .mt(px(3.0))
+                                .ml(px(6.0))
+                                .border_color(theme.playback_button_border)
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .hover(|style| {
+                                    style.bg(theme.playback_button_hover).cursor_pointer()
+                                })
+                                .id("header-repeat-button")
+                                .active(|style| style.bg(theme.playback_button_active))
+                                .on_mouse_down(MouseButton::Left, |_, window, cx| {
+                                    cx.stop_propagation();
+                                    window.prevent_default();
+                                })
+                                .on_click(move |_, _, cx| match repeating {
+                                    RepeatState::NotRepeating => cx
+                                        .global::<GPUIPlaybackInterface>()
+                                        .set_repeat(RepeatState::Repeating),
+                                    RepeatState::Repeating => cx
+                                        .global::<GPUIPlaybackInterface>()
+                                        .set_repeat(RepeatState::RepeatingOne),
+                                    RepeatState::RepeatingOne => cx
+                                        .global::<GPUIPlaybackInterface>()
+                                        .set_repeat(RepeatState::NotRepeating),
+                                })
+                                .child(
+                                    icon(match repeating {
+                                        RepeatState::NotRepeating | RepeatState::Repeating => {
+                                            REPEAT
+                                        }
+                                        RepeatState::RepeatingOne => REPEAT_ONCE,
+                                    })
+                                    .size(px(14.0))
+                                    .when(
+                                        repeating == RepeatState::Repeating
+                                            || repeating == RepeatState::RepeatingOne,
+                                        |this| this.text_color(theme.playback_button_toggled),
+                                    ),
+                                ),
+                        )
+                        .child(
+                            div().bg(theme.elevated_background).child(
+                                menu()
+                                    .when(!always_repeat, |menu| {
+                                        menu.item(menu_item(
+                                            "repeat-not-repeat",
+                                            Some(REPEAT_OFF),
+                                            "Off",
+                                            move |_, _, cx| {
+                                                cx.global::<GPUIPlaybackInterface>()
+                                                    .set_repeat(RepeatState::NotRepeating);
+                                            },
+                                        ))
+                                    })
+                                    .item(menu_item(
+                                        "repeat-repeat",
+                                        Some(REPEAT),
+                                        "Repeat",
+                                        move |_, _, cx| {
+                                            cx.global::<GPUIPlaybackInterface>()
+                                                .set_repeat(RepeatState::Repeating);
+                                        },
+                                    ))
+                                    .item(menu_item(
+                                        "repeat-repeat-one",
+                                        Some(REPEAT_ONCE),
+                                        "Repeat One",
+                                        move |_, _, cx| {
+                                            cx.global::<GPUIPlaybackInterface>()
+                                                .set_repeat(RepeatState::RepeatingOne);
+                                        },
+                                    )),
+                            ),
                         ),
-                    ),
+                ),
             )
     }
 }
@@ -433,9 +486,9 @@ impl Render for Scrubber {
             .flex_grow()
             .flex()
             .flex_col()
-            .line_height(rems(1.0))
             .text_size(px(15.0))
             .font_weight(FontWeight::SEMIBOLD)
+            .relative()
             .child(
                 div()
                     .w_full()
@@ -444,7 +497,7 @@ impl Render for Scrubber {
                     .items_end()
                     .mt(px(6.0))
                     .mb(px(6.0))
-                    .child(div().mr(px(6.0)).child(format!(
+                    .child(div().mr(px(6.0)).line_height(rems(1.0)).child(format!(
                         "{:02}:{:02}",
                         position / 60,
                         position % 60
@@ -452,6 +505,7 @@ impl Render for Scrubber {
                     .when(window_width > px(900.0), |this| {
                         this.child(
                             div()
+                                .line_height(rems(1.0))
                                 .border_color(rgb(0x4b5563))
                                 .border_l(px(2.0))
                                 .pl(px(6.0))
@@ -459,9 +513,9 @@ impl Render for Scrubber {
                                 .child(format!("{:02}:{:02}", duration / 60, duration % 60)),
                         )
                     })
-                    .child(deferred(self.playback_section.clone()))
+                    .child(self.playback_section.clone())
                     .child(div().h(px(30.0)))
-                    .child(div().ml(auto()).child(format!(
+                    .child(div().ml(auto()).line_height(rems(1.0)).child(format!(
                         "-{:02}:{:02}",
                         remaining / 60,
                         remaining % 60
