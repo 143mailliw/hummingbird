@@ -109,6 +109,9 @@ pub struct PlaybackThread {
     repeat: RepeatState,
 }
 
+pub const LN_50: f64 = 3.91202300543_f64;
+pub const LINEAR_SCALING_COEFFICIENT: f64 = 0.295751527165_f64;
+
 impl PlaybackThread {
     /// Starts the playback thread and returns the created interface.
     pub fn start<T: PlaybackInterface>(
@@ -770,7 +773,17 @@ impl PlaybackThread {
     /// Sets the volume of the playback stream.
     fn set_volume(&mut self, volume: f64) {
         if let Some(stream) = self.stream.as_mut() {
-            stream.set_volume(volume).expect("failed to set volume");
+            let volume_scaled = if volume >= 0.99_f64 {
+                1_f64
+            } else if volume > 0.1 {
+                f64::exp(LN_50 * volume) / 50_f64
+            } else {
+                volume * LINEAR_SCALING_COEFFICIENT
+            };
+
+            stream
+                .set_volume(volume_scaled)
+                .expect("failed to set volume");
 
             self.events_tx
                 .send(PlaybackEvent::VolumeChanged(volume))
