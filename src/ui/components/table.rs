@@ -209,11 +209,16 @@ where
                     .child(SharedString::new_static(column_id.get_column_name()))
                     .when_some(sort_method.as_ref(), |this, method| {
                         this.when(method.column == column_id, |this| {
-                            this.child(if method.ascending {
-                                icon(CHEVRON_UP).size(px(14.0))
-                            } else {
-                                icon(CHEVRON_DOWN).size(px(14.0))
-                            })
+                            this.child(
+                                icon(if method.ascending {
+                                    CHEVRON_UP
+                                } else {
+                                    CHEVRON_DOWN
+                                })
+                                .size(px(14.0))
+                                .ml(px(4.0))
+                                .my_auto(),
+                            )
                         })
                     })
                     .id(i)

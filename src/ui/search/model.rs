@@ -12,7 +12,7 @@ use nucleo::{
     Config, Nucleo, Utf32String,
 };
 use prelude::FluentBuilder;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::{
     library::{
