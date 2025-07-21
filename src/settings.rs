@@ -1,3 +1,4 @@
+pub mod playback;
 pub mod scan;
 pub mod storage;
 
@@ -12,6 +13,8 @@ use tracing::{info, warn};
 pub struct Settings {
     #[serde(default)]
     pub scanning: scan::ScanSettings,
+    #[serde(default)]
+    pub playback: playback::PlaybackSettings,
 }
 
 pub fn create_settings(path: &PathBuf) -> Settings {
@@ -30,6 +33,7 @@ pub fn create_settings(path: &PathBuf) -> Settings {
 
 pub struct SettingsGlobal {
     pub model: Entity<Settings>,
+    #[allow(dead_code)]
     pub watcher: Option<Box<dyn Watcher>>,
 }
 

@@ -23,7 +23,7 @@ use crate::{
         lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
         MediaMetadataBroadcastService,
     },
-    settings::storage::StorageData,
+    settings::{storage::StorageData, SettingsGlobal},
     ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
 };
 
@@ -229,7 +229,15 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let current_track: Entity<Option<CurrentTrack>> =
         cx.new(|_| storage_data.current_track.clone());
     let shuffling: Entity<bool> = cx.new(|_| false);
-    let repeating: Entity<RepeatState> = cx.new(|_| RepeatState::NotRepeating);
+    let repeating: Entity<RepeatState> = cx.new(|cx| {
+        let settings = cx.global::<SettingsGlobal>().model.read(cx);
+
+        if settings.playback.always_repeat {
+            RepeatState::Repeating
+        } else {
+            RepeatState::NotRepeating
+        }
+    });
     let volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
     let prev_volume: Entity<f64> = cx.new(|_| DEFAULT_VOLUME);
 

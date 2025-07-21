@@ -307,6 +307,9 @@ pub async fn run() {
             let storage = Storage::new(directory.clone().join("app_data.json"));
             let storage_data = storage.load_or_default();
 
+            setup_theme(cx, directory.join("theme.json"));
+            setup_settings(cx, directory.join("settings.json"));
+
             build_models(
                 cx,
                 models::Queue {
@@ -319,12 +322,10 @@ pub async fn run() {
             input::bind_actions(cx);
             modal::bind_actions(cx);
 
-            setup_theme(cx, directory.join("theme.json"));
-            setup_settings(cx, directory.join("settings.json"));
-
             create_album_cache(cx);
 
             let settings = cx.global::<SettingsGlobal>().model.read(cx);
+            let playback_settings = settings.playback.clone();
             let mut scan_interface: ScanInterface =
                 ScanThread::start(pool.clone(), settings.scanning.clone());
             scan_interface.scan();
@@ -342,7 +343,8 @@ pub async fn run() {
             })
             .detach();
 
-            let mut playback_interface: GPUIPlaybackInterface = PlaybackThread::start(queue);
+            let mut playback_interface: GPUIPlaybackInterface =
+                PlaybackThread::start(queue, playback_settings);
             playback_interface.start_broadcast(cx);
 
             if let Some(track) = storage_data.current_track {

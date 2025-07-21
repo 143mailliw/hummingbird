@@ -32,6 +32,10 @@ Hummingbird can be configured with a `settings.json` file located in the followi
 {
   "scanning": {
     "paths": ["/home/me/Music", "/home/me/other"]
+  },
+  "playback": {
+    "always_repeat": true,
+    "prev_track_jump_first": true
   }
 }
 ```

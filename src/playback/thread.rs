@@ -12,8 +12,8 @@ use std::{
 use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
-use crate::devices::builtin::dummy::DummyDeviceProvider;
 use crate::{devices::builtin::cpal::CpalProvider, playback::events::RepeatState};
+use crate::{devices::builtin::dummy::DummyDeviceProvider, settings::playback::PlaybackSettings};
 // #[cfg(target_os = "linux")]
 // use crate::devices::builtin::pulse::PulseProvider;
 #[cfg(target_os = "windows")]
@@ -44,6 +44,9 @@ pub enum PlaybackState {
 }
 
 pub struct PlaybackThread {
+    /// The playback settings. Recieved on thread startup.
+    playback_settings: PlaybackSettings,
+
     /// The command receiver.
     commands_rx: Receiver<PlaybackCommand>,
 
@@ -108,7 +111,10 @@ pub struct PlaybackThread {
 
 impl PlaybackThread {
     /// Starts the playback thread and returns the created interface.
-    pub fn start<T: PlaybackInterface>(queue: Arc<RwLock<Vec<QueueItemData>>>) -> T {
+    pub fn start<T: PlaybackInterface>(
+        queue: Arc<RwLock<Vec<QueueItemData>>>,
+        settings: PlaybackSettings,
+    ) -> T {
         let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         let (events_tx, events_rx) = std::sync::mpsc::channel();
 
@@ -131,7 +137,12 @@ impl PlaybackThread {
                     queue_next: 0,
                     last_timestamp: u64::MAX,
                     pending_reset: false,
-                    repeat: RepeatState::NotRepeating,
+                    repeat: if settings.always_repeat {
+                        RepeatState::Repeating
+                    } else {
+                        RepeatState::NotRepeating
+                    },
+                    playback_settings: settings,
                 };
 
                 thread.run();
@@ -501,6 +512,14 @@ impl PlaybackThread {
 
     /// Skip to the previous track in the queue.
     fn previous(&mut self) {
+        if self.state == PlaybackState::Playing
+            && self.playback_settings.prev_track_jump_first
+            && self.last_timestamp > 5
+        {
+            self.seek(0_f64);
+            return;
+        }
+
         let queue = self.queue.read().expect("couldn't get the queue");
 
         if self.state == PlaybackState::Stopped && !queue.is_empty() {
@@ -762,7 +781,12 @@ impl PlaybackThread {
     /// Sets the repeat mode. The queue will loop infinitely when repeat mode is enabled. When repeat once mode is enabled If shuffle
     /// mode is also enabled, the queue will be reshuffled when looped.
     fn set_repeat(&mut self, state: RepeatState) {
-        self.repeat = state;
+        self.repeat = if state == RepeatState::NotRepeating && self.playback_settings.always_repeat
+        {
+            RepeatState::Repeating
+        } else {
+            state
+        };
 
         self.events_tx
             .send(PlaybackEvent::RepeatChanged(self.repeat))
