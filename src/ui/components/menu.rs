@@ -31,7 +31,6 @@ impl RenderOnce for CMenuItem {
                 .pt(px(5.0))
                 .pb(px(5.0))
                 .my(px(-1.0))
-                .occlude()
                 .min_w_full()
                 .bg(theme.menu_item)
                 .hover(|this| this.bg(theme.menu_item_hover))
