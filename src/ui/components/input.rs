@@ -76,6 +76,7 @@ type EnrichedInputHandler = Box<dyn Fn(EnrichedInputAction, &mut Window, &mut Ap
 
 pub struct TextInput {
     focus_handle: FocusHandle,
+    scroll_handle: ScrollHandle,
     content: SharedString,
     placeholder: SharedString,
     selected_range: Range<usize>,
@@ -462,7 +463,6 @@ struct TextElement {
 }
 
 struct PrepaintState {
-    line: Option<ShapedLine>,
     cursor: Option<PaintQuad>,
     selection: Option<PaintQuad>,
 }
@@ -476,7 +476,7 @@ impl IntoElement for TextElement {
 }
 
 impl Element for TextElement {
-    type RequestLayoutState = ();
+    type RequestLayoutState = Option<ShapedLine>;
 
     type PrepaintState = PrepaintState;
 
@@ -495,25 +495,8 @@ impl Element for TextElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
-        let mut style = Style::default();
-        style.size.width = relative(1.).into();
-        style.size.height = window.line_height().into();
-        (window.request_layout(style, [], cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _id: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _request_layout: &mut Self::RequestLayoutState,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> Self::PrepaintState {
         let input = self.input.read(cx);
         let content = input.content.clone();
-        let selected_range = input.selected_range.clone();
-        let cursor = input.cursor_offset();
         let style = window.text_style();
 
         let (display_text, text_color) = if content.is_empty() {
@@ -562,6 +545,27 @@ impl Element for TextElement {
             .text_system()
             .shape_line(display_text, font_size, &runs);
 
+        let mut size_style = Style::default();
+
+        size_style.size.width = line.width.into();
+        size_style.size.height = window.line_height().into();
+        (window.request_layout(size_style, [], cx), Some(line))
+    }
+
+    fn prepaint(
+        &mut self,
+        _id: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        request_layout: &mut Self::RequestLayoutState,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Self::PrepaintState {
+        let input = self.input.read(cx);
+        let selected_range = input.selected_range.clone();
+        let cursor = input.cursor_offset();
+        let line = request_layout.as_mut().unwrap();
+
         let theme = cx.global::<Theme>();
 
         let cursor_pos = line.x_for_index(cursor);
@@ -594,11 +598,7 @@ impl Element for TextElement {
                 None,
             )
         };
-        PrepaintState {
-            line: Some(line),
-            cursor,
-            selection,
-        }
+        PrepaintState { cursor, selection }
     }
 
     fn paint(
@@ -606,26 +606,46 @@ impl Element for TextElement {
         _id: Option<&GlobalElementId>,
         _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
-        _request_layout: &mut Self::RequestLayoutState,
+        request_layout: &mut Self::RequestLayoutState,
         prepaint: &mut Self::PrepaintState,
         window: &mut Window,
         cx: &mut App,
     ) {
         let focus_handle = self.input.read(cx).focus_handle.clone();
+        let cursor = prepaint.cursor.take();
+
         window.handle_input(
             &focus_handle,
             ElementInputHandler::new(bounds, self.input.clone()),
             cx,
         );
+
+        if focus_handle.is_focused(window) {
+            if let Some(cursor) = &cursor {
+                let mut origin = cursor.bounds.origin - bounds.origin;
+                let original_x = origin.x;
+                origin.y = px(0.0);
+                origin.x = -origin.x - cursor.bounds.size.width;
+                self.input.update(cx, |m, cx| {
+                    if original_x > m.scroll_handle.bounds().size.width {
+                        m.scroll_handle.set_offset(origin);
+                    } else {
+                        m.scroll_handle.set_offset(point(px(0.), px(0.)));
+                    }
+                })
+            }
+        }
+
         if let Some(selection) = prepaint.selection.take() {
             window.paint_quad(selection)
         }
-        let line = prepaint.line.take().unwrap();
+
+        let line = request_layout.take().unwrap();
         line.paint(bounds.origin, window.line_height(), window, cx)
             .unwrap();
 
         if focus_handle.is_focused(window) {
-            if let Some(cursor) = prepaint.cursor.take() {
+            if let Some(cursor) = cursor {
                 window.paint_quad(cursor);
             }
         }
@@ -655,6 +675,7 @@ impl TextInput {
             last_layout: None,
             last_bounds: None,
             is_selecting: false,
+            scroll_handle: ScrollHandle::new(),
             enriched_input_handler,
         })
     }
@@ -688,9 +709,18 @@ impl Render for TextInput {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .child(div().w_full().child(TextElement {
-                input: cx.entity().clone(),
-            }))
+            .child(
+                div()
+                    .id(("textinput", cx.entity_id()))
+                    .overflow_x_scroll()
+                    .track_scroll(&self.scroll_handle)
+                    .w_full()
+                    .pr(px(2.0))
+                    .pb(px(2.0))
+                    .child(TextElement {
+                        input: cx.entity().clone(),
+                    }),
+            )
     }
 }
 
