@@ -7,7 +7,6 @@ use crate::{
 };
 use gpui::*;
 use prelude::FluentBuilder;
-use tracing::info;
 
 use super::{
     components::slider::slider,
@@ -564,7 +563,6 @@ impl Render for SecondaryControls {
                         )
                         .on_scroll_wheel(move |ev, _, cx| {
                             let delta = ev.delta.pixel_delta(px(0.01666666)).y.0;
-                            info!("{}", delta);
                             cx.global::<GPUIPlaybackInterface>().set_volume(f64::clamp(
                                 volume + delta as f64,
                                 0_f64,
