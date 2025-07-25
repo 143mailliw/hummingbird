@@ -190,7 +190,7 @@ impl Render for ReleaseView {
                                     .line_height(rems(2.75))
                                     .overflow_x_hidden()
                                     .pb(px(10.0))
-                                    .min_w_0()
+                                    .w_full()
                                     .text_ellipsis()
                                     .child(self.album.title.clone()),
                             )
