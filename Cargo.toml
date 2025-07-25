@@ -16,7 +16,7 @@ async-lock = "3"
 bitflags = "2"
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
-cpal = "0.15"
+cpal = "0.16"
 dateparser = "0.2"
 directories = "6"
 globwalk = "0.9"
@@ -26,7 +26,7 @@ image = "0.25"
 indexmap = { version = "2", features = ["std", "serde"] }
 intx = "0.1"
 isahc = { version = "1", features = ["json"] }
-md5 = "0.7"
+md5 = "0.8"
 moka = { version = "0.12", features = ["future"] }
 notify = "8"
 nucleo = "0.5"
@@ -55,7 +55,7 @@ urlencoding = "2"
 dotenvy = "0.15"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.60", features = [
+windows = { version = "0.61", features = [
     "Media_Audio",
     "Media_Render",
     "Media_MediaProperties",
