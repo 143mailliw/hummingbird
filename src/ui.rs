@@ -1,3 +1,4 @@
+mod about;
 pub mod app;
 mod arguments;
 mod assets;

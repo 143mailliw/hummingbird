@@ -5,7 +5,7 @@ use prelude::FluentBuilder;
 
 use crate::ui::theme::Theme;
 
-type OnExitHandler = dyn Fn(&mut Window, &mut App);
+pub type OnExitHandler = dyn Fn(&mut Window, &mut App);
 
 #[derive(IntoElement)]
 pub struct Modal {

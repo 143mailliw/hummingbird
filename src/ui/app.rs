@@ -25,6 +25,7 @@ use crate::{
 };
 
 use super::{
+    about::about_dialog,
     arguments::parse_args_and_prepare,
     components::{input, modal},
     constants::APP_ROUNDING,
@@ -33,7 +34,7 @@ use super::{
     global_actions::register_actions,
     header::Header,
     library::Library,
-    models::{self, build_models, PlaybackInfo},
+    models::{self, build_models, Models, PlaybackInfo},
     queue::Queue,
     search::SearchView,
     theme::{setup_theme, Theme},
@@ -47,6 +48,7 @@ struct WindowShadow {
     pub header: Entity<Header>,
     pub search: Entity<SearchView>,
     pub show_queue: Entity<bool>,
+    pub show_about: Entity<bool>,
 }
 
 impl Render for WindowShadow {
@@ -60,6 +62,7 @@ impl Render for WindowShadow {
         window.set_client_inset(shadow_size);
 
         let queue = self.queue.clone();
+        let show_about = *self.show_about.clone().read(cx);
 
         let mut element = div()
             .id("window-backdrop")
@@ -193,7 +196,13 @@ impl Render for WindowShadow {
                             .when(*self.show_queue.read(cx), |this| this.child(queue)),
                     )
                     .child(self.controls.clone())
-                    .child(self.search.clone()),
+                    .child(self.search.clone())
+                    .when(show_about, |this| {
+                        this.child(about_dialog(&|_, cx| {
+                            let show_about = cx.global::<Models>().show_about.clone();
+                            show_about.write(cx, false);
+                        }))
+                    }),
             );
 
         let text_styles = element.text_style();
@@ -399,6 +408,7 @@ pub async fn run() {
                         .detach();
 
                         let show_queue = cx.new(|_| true);
+                        let show_about = cx.global::<Models>().show_about.clone();
 
                         WindowShadow {
                             controls: Controls::new(cx, show_queue.clone()),
@@ -407,6 +417,7 @@ pub async fn run() {
                             header: Header::new(cx),
                             search: SearchView::new(cx),
                             show_queue,
+                            show_about,
                         }
                     })
                 },

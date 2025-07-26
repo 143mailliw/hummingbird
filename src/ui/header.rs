@@ -80,7 +80,16 @@ impl Render for Header {
                     .pt(px(5.0))
                     .flex()
                     .when(cfg!(not(target_os = "macos")), |this| {
-                        this.child(div().child("Hummingbird").mr(px(8.0)))
+                        this.child(
+                            div()
+                                .id("name")
+                                .on_click(|_, _, cx| {
+                                    let show_about = cx.global::<Models>().show_about.clone();
+                                    show_about.write(cx, true);
+                                })
+                                .child("Hummingbird")
+                                .mr(px(8.0)),
+                        )
                     })
                     .child(self.scan_status.clone()),
             )

@@ -50,9 +50,9 @@ unicode-segmentation = "1"
 url = "2.5.4"
 urlencoding = "2"
 
-
 [build-dependencies]
 dotenvy = "0.15"
+vergen = "3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.61", features = [

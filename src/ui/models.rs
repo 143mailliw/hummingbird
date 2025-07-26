@@ -52,6 +52,7 @@ pub struct Models {
     pub mmbs: Entity<MMBSList>,
     pub lastfm: Entity<LastFMState>,
     pub switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
+    pub show_about: Entity<bool>,
 }
 
 impl Global for Models {}
@@ -123,6 +124,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let queue: Entity<Queue> = cx.new(move |_| queue);
     let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
     let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(AHashMap::new()));
+    let show_about: Entity<bool> = cx.new(|_| false);
     let lastfm: Entity<LastFMState> = cx.new(|cx| {
         let dirs = get_dirs();
         let directory = dirs.data_dir().to_path_buf();
@@ -219,6 +221,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         mmbs,
         lastfm,
         switcher_model,
+        show_about,
     });
 
     const DEFAULT_VOLUME: f64 = 1.0;

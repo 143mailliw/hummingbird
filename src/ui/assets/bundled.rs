@@ -6,6 +6,7 @@ use url::Url;
 #[folder = "./assets"]
 #[include = "fonts/*"]
 #[include = "icons/*"]
+#[include = "images/*"]
 #[exclude = "*.DS_Store"]
 #[exclude = "icons/LICENSE"]
 pub struct BundledAssets;

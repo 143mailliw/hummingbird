@@ -15,8 +15,10 @@ pub struct Theme {
     pub border_color: Rgba,
 
     pub album_art_background: Rgba,
+
     pub text: Rgba,
     pub text_secondary: Rgba,
+    pub text_link: Rgba,
 
     pub nav_button_hover: Rgba,
     pub nav_button_active: Rgba,
@@ -89,8 +91,10 @@ impl Default for Theme {
             border_color: rgb(0x272D37),
 
             album_art_background: rgb(0x4C5974),
+
             text: rgb(0xF4F5F6),
             text_secondary: rgb(0xBEC4CA),
+            text_link: rgb(0x5279D4),
 
             nav_button_hover: rgb(0x161A22),
             nav_button_active: rgb(0x0A0E12),

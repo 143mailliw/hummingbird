@@ -3,9 +3,12 @@ use tracing::{debug, info};
 
 use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
 
-use super::models::PlaybackInfo;
+use super::models::{Models, PlaybackInfo};
 
-actions!(hummingbird, [Quit, PlayPause, Next, Previous, Search]);
+actions!(
+    hummingbird,
+    [About, Quit, PlayPause, Next, Previous, Search]
+);
 
 actions!(hummingbird, [HideSelf, HideOthers, ShowAll]);
 
@@ -18,6 +21,7 @@ pub fn register_actions(cx: &mut App) {
     cx.on_action(hide_self);
     cx.on_action(hide_others);
     cx.on_action(show_all);
+    cx.on_action(about);
     debug!("actions: {:?}", cx.all_action_names());
     debug!("action available: {:?}", cx.is_action_available(&Quit));
     if cfg!(target_os = "macos") {
@@ -38,6 +42,8 @@ pub fn register_actions(cx: &mut App) {
         Menu {
             name: SharedString::from("Hummingbird"),
             items: vec![
+                MenuItem::action("About Hummingbird", About),
+                MenuItem::separator(),
                 MenuItem::submenu(Menu {
                     name: SharedString::from("Services"),
                     items: vec![],
@@ -102,4 +108,9 @@ fn hide_others(_: &HideOthers, cx: &mut App) {
 
 fn show_all(_: &ShowAll, cx: &mut App) {
     cx.unhide_other_apps();
+}
+
+fn about(_: &About, cx: &mut App) {
+    let show_about = cx.global::<Models>().show_about.clone();
+    show_about.write(cx, true);
 }
