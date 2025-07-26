@@ -28,7 +28,7 @@ impl RenderOnce for AboutDialog {
                 .p(px(20.0))
                 .pb(px(18.0))
                 .flex()
-                .child(img("!bundled:images/logo_big.png").w(px(66.0)).mr(px(20.0)))
+                .child(img("!bundled:images/logo.png").w(px(66.0)).mr(px(20.0)))
                 .child(
                     div()
                         .flex()
