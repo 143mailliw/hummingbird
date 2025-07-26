@@ -410,6 +410,11 @@ pub async fn run() {
                         let show_queue = cx.new(|_| true);
                         let show_about = cx.global::<Models>().show_about.clone();
 
+                        cx.observe(&show_about, |_, _, cx| {
+                            cx.notify();
+                        })
+                        .detach();
+
                         WindowShadow {
                             controls: Controls::new(cx, show_queue.clone()),
                             queue: Queue::new(cx, show_queue.clone()),
