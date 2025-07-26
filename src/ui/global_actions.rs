@@ -46,6 +46,7 @@ pub fn register_actions(cx: &mut App) {
                 MenuItem::action("Hide Hummingbird", HideSelf),
                 MenuItem::action("Hide Others", HideOthers),
                 MenuItem::action("Show All", ShowAll),
+                MenuItem::separator(),
                 MenuItem::action("Quit Hummingbird", Quit),
             ],
         },
