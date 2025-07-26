@@ -367,7 +367,6 @@ pub async fn run() {
                     window_min_size: Some(size(px(800.0), px(600.0))),
                     titlebar: Some(TitlebarOptions {
                         title: Some(SharedString::from("Hummingbird")),
-                        // TODO: fix this
                         appears_transparent: true,
                         traffic_light_position: Some(Point {
                             x: px(9.0),
@@ -378,6 +377,8 @@ pub async fn run() {
                     ..Default::default()
                 },
                 |window, cx| {
+                    window.set_window_title("Hummingbird");
+
                     cx.new(|cx| {
                         cx.observe_window_appearance(window, |_, _, cx| {
                             cx.refresh_windows();
