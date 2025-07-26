@@ -7,12 +7,17 @@ use super::models::PlaybackInfo;
 
 actions!(hummingbird, [Quit, PlayPause, Next, Previous, Search]);
 
+actions!(hummingbird, [HideSelf, HideOthers, ShowAll]);
+
 pub fn register_actions(cx: &mut App) {
     debug!("registering actions");
     cx.on_action(quit);
     cx.on_action(play_pause);
     cx.on_action(next);
     cx.on_action(previous);
+    cx.on_action(hide_self);
+    cx.on_action(hide_others);
+    cx.on_action(show_all);
     debug!("actions: {:?}", cx.all_action_names());
     debug!("action available: {:?}", cx.is_action_available(&Quit));
     if cfg!(target_os = "macos") {
@@ -20,6 +25,8 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("cmd-right", Next, None)]);
         cx.bind_keys([KeyBinding::new("cmd-left", Previous, None)]);
         cx.bind_keys([KeyBinding::new("cmd-f", Search, None)]);
+        cx.bind_keys([KeyBinding::new("cmd-h", HideSelf, None)]);
+        cx.bind_keys([KeyBinding::new("cmd-alt-h", HideOthers, None)]);
     } else {
         cx.bind_keys([KeyBinding::new("ctrl-w", Quit, None)]);
         cx.bind_keys([KeyBinding::new("ctrl-right", Next, None)]);
@@ -27,10 +34,30 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("ctrl-f", Search, None)]);
     }
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
-    cx.set_menus(vec![Menu {
-        name: SharedString::from("Hummingbird"),
-        items: vec![MenuItem::action("Quit", Quit)],
-    }]);
+    cx.set_menus(vec![
+        Menu {
+            name: SharedString::from("Hummingbird"),
+            items: vec![
+                MenuItem::submenu(Menu {
+                    name: SharedString::from("Services"),
+                    items: vec![],
+                }),
+                MenuItem::separator(),
+                MenuItem::action("Hide Hummingbird", HideSelf),
+                MenuItem::action("Hide Others", HideOthers),
+                MenuItem::action("Show All", ShowAll),
+                MenuItem::action("Quit Hummingbird", Quit),
+            ],
+        },
+        Menu {
+            name: SharedString::from("View"),
+            items: vec![],
+        },
+        Menu {
+            name: SharedString::from("Window"),
+            items: vec![],
+        },
+    ]);
 }
 
 fn quit(_: &Quit, cx: &mut App) {
@@ -62,4 +89,16 @@ fn next(_: &Next, cx: &mut App) {
 fn previous(_: &Previous, cx: &mut App) {
     let interface = cx.global::<GPUIPlaybackInterface>();
     interface.previous();
+}
+
+fn hide_self(_: &HideSelf, cx: &mut App) {
+    cx.hide();
+}
+
+fn hide_others(_: &HideOthers, cx: &mut App) {
+    cx.hide_other_apps();
+}
+
+fn show_all(_: &ShowAll, cx: &mut App) {
+    cx.unhide_other_apps();
 }
