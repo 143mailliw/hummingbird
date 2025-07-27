@@ -3,6 +3,9 @@ name = "hummingbird"
 version = "0.1.0"
 edition = "2021"
 description = "Music Player"
+license = "Apache-2.0"
+readme = "README.md"
+categories = ["multimedia::audio"]
 
 [features]
 runtime_shaders = ["gpui/runtime_shaders"]
