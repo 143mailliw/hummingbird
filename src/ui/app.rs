@@ -378,7 +378,7 @@ pub async fn run() {
                         title: Some(SharedString::from("Hummingbird")),
                         appears_transparent: true,
                         traffic_light_position: Some(Point {
-                            x: px(11.0),
+                            x: px(12.0),
                             y: px(11.0),
                         }),
                     }),

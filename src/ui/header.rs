@@ -71,13 +71,13 @@ impl Render for Header {
                     }),
             })
             .when(cfg!(target_os = "macos"), |this| {
-                this.child(div().w(px(64.0)))
+                this.child(div().w(px(72.0)))
             })
             .child(
                 div()
                     .pl(px(12.0))
-                    .pb(px(9.0))
-                    .pt(px(6.0))
+                    .pb(px(8.0))
+                    .pt(px(7.0))
                     .flex()
                     .when(cfg!(not(target_os = "macos")), |this| {
                         this.child(
