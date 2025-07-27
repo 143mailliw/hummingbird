@@ -40,8 +40,8 @@ impl Render for Header {
             .flex()
             .w_full()
             .text_sm()
-            .min_h(px(33.0))
-            .max_h(px(33.0))
+            .min_h(px(37.0))
+            .max_h(px(37.0))
             .bg(theme.background_secondary)
             .text_sm()
             .border_b_1()
@@ -76,8 +76,8 @@ impl Render for Header {
             .child(
                 div()
                     .pl(px(12.0))
-                    .pb(px(6.0))
-                    .pt(px(5.0))
+                    .pb(px(9.0))
+                    .pt(px(6.0))
                     .flex()
                     .when(cfg!(not(target_os = "macos")), |this| {
                         this.child(
@@ -199,8 +199,8 @@ impl RenderOnce for WindowButton {
 
         div()
             .flex()
-            .w(px(32.0))
-            .h(px(33.0))
+            .w(px(36.0))
+            .h(px(37.0))
             .pb(px(1.0))
             .items_center()
             .justify_center()
