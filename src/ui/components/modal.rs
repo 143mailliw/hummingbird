@@ -3,7 +3,10 @@ use std::rc::Rc;
 use gpui::*;
 use prelude::FluentBuilder;
 
-use crate::ui::theme::Theme;
+use crate::ui::{
+    constants::{APP_ROUNDING, APP_SHADOW_SIZE},
+    theme::Theme,
+};
 
 pub type OnExitHandler = dyn Fn(&mut Window, &mut App);
 
@@ -41,8 +44,30 @@ impl ParentElement for Modal {
 
 impl RenderOnce for Modal {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let decorations = window.window_decorations();
         let theme = cx.global::<Theme>();
-        let size = window.viewport_size();
+        let mut size = window.viewport_size();
+
+        let rounding = APP_ROUNDING;
+        let shadow_size = APP_SHADOW_SIZE;
+
+        match decorations {
+            Decorations::Server => (),
+            Decorations::Client { tiling } => {
+                if !(tiling.top) {
+                    size = size - gpui::size(px(0.0), shadow_size);
+                }
+                if !(tiling.bottom) {
+                    size = size - gpui::size(px(0.0), shadow_size);
+                }
+                if !(tiling.left) {
+                    size = size - gpui::size(shadow_size, px(0.0));
+                }
+                if !(tiling.right) {
+                    size = size - gpui::size(shadow_size, px(0.0));
+                }
+            }
+        }
 
         anchored().position(point(px(0.0), px(0.0))).child(deferred(
             div()
@@ -51,6 +76,24 @@ impl RenderOnce for Modal {
                 .h(size.height)
                 .bg(theme.modal_overlay_bg)
                 .id("modal-bg")
+                .map(|div| match decorations {
+                    Decorations::Server => div,
+                    Decorations::Client { tiling } => div
+                        .when(!(tiling.top || tiling.right), |div| {
+                            div.rounded_tr(rounding)
+                        })
+                        .when(!(tiling.top || tiling.left), |div| div.rounded_tl(rounding))
+                        .when(!(tiling.bottom || tiling.right), |div| {
+                            div.rounded_br(rounding)
+                        })
+                        .when(!(tiling.bottom || tiling.left), |div| {
+                            div.rounded_bl(rounding)
+                        })
+                        .when(!tiling.top, |div| div.mt(shadow_size))
+                        .when(!tiling.bottom, |div| div.mb(shadow_size))
+                        .when(!tiling.left, |div| div.ml(shadow_size))
+                        .when(!tiling.right, |div| div.mr(shadow_size)),
+                })
                 .when_some(self.on_exit, |this, on_exit| {
                     let on_exit_clone = Rc::clone(&on_exit);
                     this.on_any_mouse_down(move |_, window, cx| {

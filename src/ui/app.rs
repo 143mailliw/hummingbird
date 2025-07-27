@@ -21,7 +21,7 @@ use crate::{
         storage::{Storage, StorageData},
         SettingsGlobal,
     },
-    ui::assets::HummingbirdAssetSource,
+    ui::{assets::HummingbirdAssetSource, constants::APP_SHADOW_SIZE},
 };
 
 use super::{
@@ -57,7 +57,7 @@ impl Render for WindowShadow {
 
         let decorations = window.window_decorations();
         let rounding = APP_ROUNDING;
-        let shadow_size = px(10.0);
+        let shadow_size = APP_SHADOW_SIZE;
         let border_size = px(1.0);
         window.set_client_inset(shadow_size);
 
