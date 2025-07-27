@@ -93,6 +93,7 @@ where
                     let id = row_data.as_ref().unwrap().get_table_id();
                     on_select(cx, &id)
                 })
+                .cursor_pointer()
                 .hover(|this| this.bg(theme.nav_button_hover))
                 .active(|this| this.bg(theme.nav_button_active))
             });

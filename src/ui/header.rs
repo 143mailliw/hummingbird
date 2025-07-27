@@ -83,6 +83,7 @@ impl Render for Header {
                         this.child(
                             div()
                                 .id("hummingbird-name")
+                                .cursor_pointer()
                                 .on_mouse_down(MouseButton::Left, |_, window, cx| {
                                     window.prevent_default();
                                     cx.stop_propagation();
@@ -199,6 +200,7 @@ impl RenderOnce for WindowButton {
             .pb(px(1.0))
             .items_center()
             .justify_center()
+            .cursor_pointer()
             .id(match self {
                 WindowButton::Close => "close",
                 WindowButton::Minimize => "minimize",

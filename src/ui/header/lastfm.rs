@@ -51,6 +51,7 @@ impl Render for LastFM {
             .px(px(12.0))
             .pb(px(8.0))
             .pt(px(7.0))
+            .cursor_pointer()
             .text_color(theme.text_secondary)
             .bg(theme.window_button)
             .id("lastfm-button")
