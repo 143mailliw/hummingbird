@@ -139,20 +139,15 @@ impl Render for ScanStatus {
             .flex()
             .text_sm()
             .child(
-                div()
-                    .mr(px(8.0))
-                    .pt(px(4.0))
-                    .text_size(px(9.0))
-                    .h_full()
-                    .child(
-                        icon(match status {
-                            ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => {
-                                FOLDER_CHECK
-                            }
-                            _ => FOLDER_SEARCH,
-                        })
-                        .size(px(14.0)),
-                    ),
+                div().mr(px(8.0)).pt(px(4.5)).h_full().child(
+                    icon(match status {
+                        ScanEvent::ScanCompleteIdle | ScanEvent::ScanCompleteWatching => {
+                            FOLDER_CHECK
+                        }
+                        _ => FOLDER_SEARCH,
+                    })
+                    .size(px(14.0)),
+                ),
             )
             .text_color(theme.text_secondary)
             .child(match status {
