@@ -16,6 +16,7 @@ use crate::{
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
+    services::controllers::make_cl,
     settings::{
         setup_settings,
         storage::{Storage, StorageData},
@@ -365,6 +366,8 @@ pub async fn run() {
 
             parse_args_and_prepare(cx, &playback_interface);
             cx.set_global(playback_interface);
+
+            make_cl(cx);
 
             cx.activate(true);
 
