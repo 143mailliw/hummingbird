@@ -1,17 +1,12 @@
-use std::{io::Cursor, path::Path, ptr::NonNull, sync::Arc};
+use std::{path::Path, ptr::NonNull, sync::Arc};
 
 use async_lock::Mutex;
 use async_trait::async_trait;
-use block2::{Block, RcBlock};
-use objc2::{
-    class, msg_send,
-    rc::Retained,
-    runtime::{Ivar, ProtocolObject},
-    AnyThread,
-};
+use block2::RcBlock;
+use objc2::{rc::Retained, runtime::ProtocolObject, AnyThread};
 use objc2_app_kit::NSImage;
 use objc2_core_foundation::CGSize;
-use objc2_foundation::{ns_string, NSData, NSMutableDictionary, NSNumber, NSString};
+use objc2_foundation::{NSData, NSMutableDictionary, NSNumber, NSString};
 use objc2_media_player::{
     MPChangePlaybackPositionCommandEvent, MPMediaItemArtwork, MPMediaItemPropertyAlbumTitle,
     MPMediaItemPropertyArtist, MPMediaItemPropertyArtwork, MPMediaItemPropertyPlaybackDuration,
@@ -19,14 +14,11 @@ use objc2_media_player::{
     MPNowPlayingPlaybackState, MPRemoteCommandCenter, MPRemoteCommandEvent,
     MPRemoteCommandHandlerStatus,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 use crate::{
     media::metadata::Metadata,
-    playback::{
-        events::{PlaybackCommand, RepeatState},
-        thread::PlaybackState,
-    },
+    playback::{events::RepeatState, thread::PlaybackState},
 };
 
 use super::{ControllerBridge, InitPlaybackController, PlaybackController};
@@ -37,7 +29,7 @@ pub struct MacMediaPlayerController {
 
 impl MacMediaPlayerController {
     unsafe fn new_file(&mut self, path: &Path) {
-        info!("New file: {:?}", path);
+        debug!("New file: {:?}", path);
 
         let file_name = path
             .file_name()
@@ -65,19 +57,19 @@ impl MacMediaPlayerController {
         }
 
         if let Some(title) = &metadata.name {
-            info!("Setting title: {}", title);
+            debug!("Setting title: {}", title);
             let ns = NSString::from_str(title);
             now_playing.setObject_forKey(&ns, ProtocolObject::from_ref(MPMediaItemPropertyTitle));
         }
 
         if let Some(artist) = &metadata.artist {
-            info!("Setting artist: {}", artist);
+            debug!("Setting artist: {}", artist);
             let ns = NSString::from_str(artist);
             now_playing.setObject_forKey(&ns, ProtocolObject::from_ref(MPMediaItemPropertyArtist));
         }
 
         if let Some(album_title) = &metadata.album {
-            info!("Setting album title: {}", album_title);
+            debug!("Setting album title: {}", album_title);
             let ns = NSString::from_str(album_title);
             now_playing
                 .setObject_forKey(&ns, ProtocolObject::from_ref(MPMediaItemPropertyAlbumTitle));
@@ -123,7 +115,7 @@ impl MacMediaPlayerController {
     }
 
     unsafe fn new_album_art(&mut self, art: &[u8]) {
-        info!("Received album art");
+        debug!("Received album art");
         // get the image's dimensions, we'll need them to load the image into NP
         let Ok(size) = imagesize::blob_size(art) else {
             return;
@@ -165,7 +157,7 @@ impl MacMediaPlayerController {
     }
 
     unsafe fn new_playback_state(&mut self, state: PlaybackState) {
-        info!("Setting playback state: {:?}", state);
+        debug!("Setting playback state: {:?}", state);
         let media_center = MPNowPlayingInfoCenter::defaultCenter();
         media_center.setPlaybackState(match state {
             PlaybackState::Stopped => MPNowPlayingPlaybackState::Stopped,
@@ -246,18 +238,14 @@ impl PlaybackController for MacMediaPlayerController {
     async fn duration_changed(&mut self, new_duration: u64) {
         unsafe { self.new_duration(new_duration) }
     }
-    async fn volume_changed(&mut self, new_volume: f64) {
-        ()
-    }
+    async fn volume_changed(&mut self, _new_volume: f64) {}
     async fn metadata_changed(&mut self, metadata: &Metadata) {
         unsafe { self.new_metadata(metadata) }
     }
     async fn album_art_changed(&mut self, album_art: &[u8]) {
         unsafe { self.new_album_art(album_art) }
     }
-    async fn repeat_state_changed(&mut self, repeat_state: RepeatState) {
-        ()
-    }
+    async fn repeat_state_changed(&mut self, _repeat_state: RepeatState) {}
     async fn playback_state_changed(&mut self, playback_state: PlaybackState) {
         unsafe { self.new_playback_state(playback_state) }
     }

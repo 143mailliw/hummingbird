@@ -42,6 +42,7 @@ pub struct ControllerBridge {
     playback_thread: Sender<PlaybackCommand>,
 }
 
+#[allow(dead_code)]
 impl ControllerBridge {
     pub fn new(playback_thread: Sender<PlaybackCommand>) -> Self {
         Self { playback_thread }
@@ -110,6 +111,8 @@ impl ControllerBridge {
 
 pub type ControllerList = AHashMap<String, Arc<Mutex<dyn PlaybackController>>>;
 
+// has to be held in memory
+#[allow(dead_code)]
 pub struct CLHolder(pub Entity<ControllerList>);
 
 impl Global for CLHolder {}
@@ -244,9 +247,7 @@ pub fn make_cl(cx: &mut App) {
         #[cfg(target_os = "macos")]
         {
             let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
-            let bridge = ControllerBridge {
-                playback_thread: sender,
-            };
+            let bridge = ControllerBridge::new(sender);
             let macos_pc = macos::MacMediaPlayerController::init(bridge);
 
             list.insert("macos".to_string(), macos_pc);
