@@ -275,6 +275,7 @@ impl PlaybackThread {
             match command {
                 PlaybackCommand::Play => self.play(),
                 PlaybackCommand::Pause => self.pause(),
+                PlaybackCommand::TogglePlayPause => self.toggle_play_pause(),
                 PlaybackCommand::Open(path) => self.open(&path),
                 PlaybackCommand::Queue(v) => self.queue(v),
                 PlaybackCommand::QueueList(v) => self.queue_list(v),
@@ -804,6 +805,15 @@ impl PlaybackThread {
         self.events_tx
             .send(PlaybackEvent::RepeatChanged(self.repeat))
             .expect("unable to send event");
+    }
+
+    /// Toggles between play/pause.
+    fn toggle_play_pause(&mut self) {
+        match self.state {
+            PlaybackState::Playing => self.pause(),
+            PlaybackState::Paused => self.play(),
+            _ => {}
+        }
     }
 
     /// Recreates the playback stream with the given channels if any are provided, otherwise uses

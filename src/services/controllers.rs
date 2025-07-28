@@ -60,6 +60,12 @@ impl ControllerBridge {
             .expect("could not send tx (from ControllerBridge)");
     }
 
+    pub fn toggle_play_pause(&self) {
+        self.playback_thread
+            .send(PlaybackCommand::TogglePlayPause)
+            .expect("could not send tx (from ControllerBridge)");
+    }
+
     pub fn stop(&self) {
         self.playback_thread
             .send(PlaybackCommand::Stop)

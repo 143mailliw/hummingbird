@@ -191,6 +191,17 @@ impl MacMediaPlayerController {
         cmd.setEnabled(true);
         cmd.addTargetWithHandler(&pause_handler);
 
+        // Toggle Play/Pause
+        let toggle_bridge = self.bridge.clone();
+        let toggle_handler = RcBlock::new(move |_| {
+            toggle_bridge.toggle_play_pause();
+            MPRemoteCommandHandlerStatus::Success
+        });
+
+        let cmd = command_center.togglePlayPauseCommand();
+        cmd.setEnabled(true);
+        cmd.addTargetWithHandler(&toggle_handler);
+
         // Previous Track
         let prev_bridge = self.bridge.clone();
         let prev_handler = RcBlock::new(move |_| {

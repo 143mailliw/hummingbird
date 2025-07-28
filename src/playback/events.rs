@@ -22,6 +22,8 @@ pub enum PlaybackCommand {
     Play,
     /// Requests that the playback thread pause playback.
     Pause,
+    /// Requests that, if the playback thread is playing, it pauses, and vise/versa.
+    TogglePlayPause,
     /// Requests that the playback thread open the specified file for immediate playback.
     Open(PathBuf),
     /// Requests that the playback thread queue the specified file for playback after the current
