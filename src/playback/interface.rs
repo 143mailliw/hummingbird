@@ -152,6 +152,10 @@ impl GPUIPlaybackInterface {
             .expect("could not send tx");
     }
 
+    pub fn get_sender(&self) -> Sender<PlaybackCommand> {
+        self.commands_tx.clone()
+    }
+
     /// Starts the broadcast loop that will read events from the playback thread and update data
     /// models accordingly. This function should be called once, and will panic if called more than
     /// once.

@@ -1,5 +1,6 @@
-use std::{io::Cursor, path::Path, ptr::NonNull};
+use std::{io::Cursor, path::Path, ptr::NonNull, sync::Arc};
 
+use async_lock::Mutex;
 use async_trait::async_trait;
 use block2::{Block, RcBlock};
 use objc2::{class, msg_send, rc::Retained, runtime::ProtocolObject, AnyThread};
@@ -9,8 +10,9 @@ use objc2_foundation::{ns_string, NSData, NSMutableDictionary, NSNumber, NSStrin
 use objc2_media_player::{
     MPMediaItemArtwork, MPMediaItemPropertyAlbumTitle, MPMediaItemPropertyArtist,
     MPMediaItemPropertyArtwork, MPMediaItemPropertyPlaybackDuration, MPMediaItemPropertyTitle,
-    MPNowPlayingInfoCenter, MPNowPlayingInfoPropertyElapsedPlaybackTime,
+    MPNowPlayingInfoCenter, MPNowPlayingInfoPropertyElapsedPlaybackTime, MPNowPlayingPlaybackState,
 };
+use tracing::{debug, info};
 
 use crate::{
     media::metadata::Metadata,
@@ -28,6 +30,8 @@ pub struct MacMediaPlayerController {
 
 impl MacMediaPlayerController {
     unsafe fn new_file(&mut self, path: &Path) {
+        info!("New file: {:?}", path);
+
         let file_name = path
             .file_name()
             .expect("files should have file names")
@@ -54,16 +58,19 @@ impl MacMediaPlayerController {
         }
 
         if let Some(title) = &metadata.name {
+            info!("Setting title: {}", title);
             let ns = NSString::from_str(title);
             now_playing.setObject_forKey(&ns, ProtocolObject::from_ref(MPMediaItemPropertyTitle));
         }
 
         if let Some(artist) = &metadata.artist {
+            info!("Setting artist: {}", artist);
             let ns = NSString::from_str(artist);
             now_playing.setObject_forKey(&ns, ProtocolObject::from_ref(MPMediaItemPropertyArtist));
         }
 
         if let Some(album_title) = &metadata.album {
+            info!("Setting album title: {}", album_title);
             let ns = NSString::from_str(album_title);
             now_playing
                 .setObject_forKey(&ns, ProtocolObject::from_ref(MPMediaItemPropertyAlbumTitle));
@@ -145,6 +152,16 @@ impl MacMediaPlayerController {
             ProtocolObject::from_ref(MPMediaItemPropertyArtwork),
         );
     }
+
+    unsafe fn new_playback_state(&mut self, state: PlaybackState) {
+        info!("Setting playback state: {:?}", state);
+        let media_center = MPNowPlayingInfoCenter::defaultCenter();
+        media_center.setPlaybackState(match state {
+            PlaybackState::Stopped => MPNowPlayingPlaybackState::Stopped,
+            PlaybackState::Playing => MPNowPlayingPlaybackState::Playing,
+            PlaybackState::Paused => MPNowPlayingPlaybackState::Paused,
+        });
+    }
 }
 
 #[async_trait]
@@ -161,14 +178,14 @@ impl PlaybackController for MacMediaPlayerController {
     async fn metadata_changed(&mut self, metadata: &Metadata) {
         unsafe { self.new_metadata(metadata) }
     }
-    async fn album_art_changed(&mut self, album_art: &Box<[u8]>) {
+    async fn album_art_changed(&mut self, album_art: &[u8]) {
         unsafe { self.new_album_art(album_art) }
     }
     async fn repeat_state_changed(&mut self, repeat_state: RepeatState) {
         ()
     }
     async fn playback_state_changed(&mut self, playback_state: PlaybackState) {
-        ()
+        unsafe { self.new_playback_state(playback_state) }
     }
     async fn new_file(&mut self, path: &Path) {
         unsafe { self.new_file(path) }
@@ -176,7 +193,7 @@ impl PlaybackController for MacMediaPlayerController {
 }
 
 impl InitPlaybackController for MacMediaPlayerController {
-    async fn init(bridge: ControllerBridge) -> Box<dyn PlaybackController> {
-        Box::new(MacMediaPlayerController { bridge })
+    fn init(bridge: ControllerBridge) -> Arc<Mutex<dyn PlaybackController>> {
+        Arc::new(Mutex::new(MacMediaPlayerController { bridge }))
     }
 }
