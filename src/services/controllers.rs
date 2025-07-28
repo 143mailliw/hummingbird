@@ -1,4 +1,7 @@
-use std::sync::mpsc::Sender;
+#[cfg(target_os = "macos")]
+mod macos;
+
+use std::{path::Path, sync::mpsc::Sender};
 
 use async_trait::async_trait;
 
@@ -10,15 +13,20 @@ use crate::{
     },
 };
 
+pub trait InitPlaybackController {
+    async fn init(bridge: ControllerBridge) -> Box<dyn PlaybackController>;
+}
+
 #[async_trait]
 pub trait PlaybackController {
     async fn position_changed(&mut self, new_position: u64);
     async fn duration_changed(&mut self, new_duration: u64);
     async fn volume_changed(&mut self, new_volume: f64);
-    async fn metadata_changed(&mut self, metadata: Metadata);
-    async fn album_art_changed(&mut self, album_art: Box<[u8]>);
+    async fn metadata_changed(&mut self, metadata: &Metadata);
+    async fn album_art_changed(&mut self, album_art: &Box<[u8]>);
     async fn repeat_state_changed(&mut self, repeat_state: RepeatState);
     async fn playback_state_changed(&mut self, playback_state: PlaybackState);
+    async fn new_file(&mut self, path: &Path);
 }
 
 pub struct ControllerBridge {
