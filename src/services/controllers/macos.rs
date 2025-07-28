@@ -263,6 +263,7 @@ impl PlaybackController for MacMediaPlayerController {
     async fn new_file(&mut self, path: &Path) {
         unsafe { self.new_file(path) }
     }
+    async fn shuffle_state_changed(&mut self, _shuffling: bool) {}
 }
 
 impl InitPlaybackController for MacMediaPlayerController {

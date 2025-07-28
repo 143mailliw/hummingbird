@@ -2675,6 +2675,7 @@ dependencies = [
  "isahc",
  "md5",
  "moka",
+ "mpris-server",
  "notify",
  "nucleo",
  "objc2",
@@ -2704,6 +2705,7 @@ dependencies = [
  "vergen",
  "windows 0.61.3",
  "windows-result 0.3.4",
+ "zbus",
 ]
 
 [[package]]
@@ -3585,6 +3587,19 @@ dependencies = [
  "tagptr",
  "thiserror 1.0.69",
  "uuid",
+]
+
+[[package]]
+name = "mpris-server"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "392ce2be7224867869df37e473f28871ab0ff725c0014f1b196ba56a38aea9a8"
+dependencies = [
+ "async-channel 2.5.0",
+ "futures-channel",
+ "serde",
+ "trait-variant",
+ "zbus",
 ]
 
 [[package]]
@@ -6572,6 +6587,17 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trait-variant"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70977707304198400eb4835a78f6a9f928bf41bba420deb8fdb175cd965d77a7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
