@@ -3,16 +3,23 @@ use std::{io::Cursor, path::Path, ptr::NonNull, sync::Arc};
 use async_lock::Mutex;
 use async_trait::async_trait;
 use block2::{Block, RcBlock};
-use objc2::{class, msg_send, rc::Retained, runtime::ProtocolObject, AnyThread};
+use objc2::{
+    class, msg_send,
+    rc::Retained,
+    runtime::{Ivar, ProtocolObject},
+    AnyThread,
+};
 use objc2_app_kit::NSImage;
 use objc2_core_foundation::CGSize;
 use objc2_foundation::{ns_string, NSData, NSMutableDictionary, NSNumber, NSString};
 use objc2_media_player::{
-    MPMediaItemArtwork, MPMediaItemPropertyAlbumTitle, MPMediaItemPropertyArtist,
-    MPMediaItemPropertyArtwork, MPMediaItemPropertyPlaybackDuration, MPMediaItemPropertyTitle,
-    MPNowPlayingInfoCenter, MPNowPlayingInfoPropertyElapsedPlaybackTime, MPNowPlayingPlaybackState,
+    MPChangePlaybackPositionCommandEvent, MPMediaItemArtwork, MPMediaItemPropertyAlbumTitle,
+    MPMediaItemPropertyArtist, MPMediaItemPropertyArtwork, MPMediaItemPropertyPlaybackDuration,
+    MPMediaItemPropertyTitle, MPNowPlayingInfoCenter, MPNowPlayingInfoPropertyElapsedPlaybackTime,
+    MPNowPlayingPlaybackState, MPRemoteCommandCenter, MPRemoteCommandEvent,
+    MPRemoteCommandHandlerStatus,
 };
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use crate::{
     media::metadata::Metadata,
@@ -116,6 +123,7 @@ impl MacMediaPlayerController {
     }
 
     unsafe fn new_album_art(&mut self, art: &[u8]) {
+        info!("Received album art");
         // get the image's dimensions, we'll need them to load the image into NP
         let Ok(size) = imagesize::blob_size(art) else {
             return;
@@ -123,6 +131,7 @@ impl MacMediaPlayerController {
 
         let data = NSData::with_bytes(art);
         let Some(image) = NSImage::initWithData(NSImage::alloc(), &data) else {
+            error!("Failed to create NSImage from album art");
             return;
         };
         // there's a good chance this leaks memory
@@ -151,6 +160,8 @@ impl MacMediaPlayerController {
             &artwork,
             ProtocolObject::from_ref(MPMediaItemPropertyArtwork),
         );
+
+        media_center.setNowPlayingInfo(Some(&*now_playing));
     }
 
     unsafe fn new_playback_state(&mut self, state: PlaybackState) {
@@ -161,6 +172,69 @@ impl MacMediaPlayerController {
             PlaybackState::Playing => MPNowPlayingPlaybackState::Playing,
             PlaybackState::Paused => MPNowPlayingPlaybackState::Paused,
         });
+    }
+
+    unsafe fn attach_command_handlers(&self) {
+        let command_center = MPRemoteCommandCenter::sharedCommandCenter();
+
+        // Play
+        let play_bridge = self.bridge.clone();
+        let play_handler = RcBlock::new(move |_| {
+            play_bridge.play();
+            MPRemoteCommandHandlerStatus::Success
+        });
+
+        let cmd = command_center.playCommand();
+        cmd.setEnabled(true);
+        cmd.addTargetWithHandler(&play_handler);
+
+        // Pause
+        let pause_bridge = self.bridge.clone();
+        let pause_handler = RcBlock::new(move |_| {
+            pause_bridge.pause();
+            MPRemoteCommandHandlerStatus::Success
+        });
+
+        let cmd = command_center.pauseCommand();
+        cmd.setEnabled(true);
+        cmd.addTargetWithHandler(&pause_handler);
+
+        // Previous Track
+        let prev_bridge = self.bridge.clone();
+        let prev_handler = RcBlock::new(move |_| {
+            prev_bridge.previous();
+            MPRemoteCommandHandlerStatus::Success
+        });
+
+        let cmd = command_center.previousTrackCommand();
+        cmd.setEnabled(true);
+        cmd.addTargetWithHandler(&prev_handler);
+
+        // Next Track
+        let next_bridge = self.bridge.clone();
+        let next_handler = RcBlock::new(move |_| {
+            next_bridge.next();
+            MPRemoteCommandHandlerStatus::Success
+        });
+
+        let cmd = command_center.nextTrackCommand();
+        cmd.setEnabled(true);
+        cmd.addTargetWithHandler(&next_handler);
+
+        // Seek
+        let seek_bridge = self.bridge.clone();
+        let seek_handler = RcBlock::new(move |mut event: NonNull<MPRemoteCommandEvent>| {
+            if let Some(ev) = Retained::retain(event.as_mut()) {
+                let ev: Retained<MPChangePlaybackPositionCommandEvent> =
+                    Retained::cast_unchecked(ev);
+                seek_bridge.seek(ev.positionTime());
+            }
+            MPRemoteCommandHandlerStatus::Success
+        });
+
+        let cmd = command_center.changePlaybackPositionCommand();
+        cmd.setEnabled(true);
+        cmd.addTargetWithHandler(&seek_handler);
     }
 }
 
@@ -194,6 +268,8 @@ impl PlaybackController for MacMediaPlayerController {
 
 impl InitPlaybackController for MacMediaPlayerController {
     fn init(bridge: ControllerBridge) -> Arc<Mutex<dyn PlaybackController>> {
-        Arc::new(Mutex::new(MacMediaPlayerController { bridge }))
+        let mmpc = MacMediaPlayerController { bridge };
+        unsafe { mmpc.attach_command_handlers() };
+        Arc::new(Mutex::new(mmpc))
     }
 }

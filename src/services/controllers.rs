@@ -37,6 +37,7 @@ pub trait PlaybackController {
     async fn new_file(&mut self, path: &Path);
 }
 
+#[derive(Clone)]
 pub struct ControllerBridge {
     playback_thread: Sender<PlaybackCommand>,
 }
