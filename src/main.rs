@@ -1,5 +1,8 @@
 // On Windows do NOT show a console window when opening the app
-#![cfg_attr(all(not(test), target_os = "windows"), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(test), not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 
 use services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET};
 use smol_macros::main;
