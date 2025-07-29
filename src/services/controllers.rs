@@ -349,9 +349,12 @@ pub fn make_cl(cx: &mut App, window: &mut Window) {
 
         #[cfg(target_os = "macos")]
         {
-            let macos_pc = macos::MacMediaPlayerController::init(bridge, rwh);
-
-            list.insert("macos".to_string(), macos_pc);
+            if let Ok(macos_pc) = macos::MacMediaPlayerController::init(bridge, rwh) {
+                list.insert("macos".to_string(), macos_pc);
+            } else {
+                error!("Failed to initialize MacMediaPlayerController!");
+                warn!("Desktop integration will be unavailable.");
+            }
         }
 
         #[cfg(target_os = "linux")]
