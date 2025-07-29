@@ -21,8 +21,9 @@ where
     if current < last {
         // we are at the start of a new render cycle
         // prune views that are no longer in the bounds (current..last)
+        // don't prune the first view so this still works with uniform_list
         for (idx, _) in views_model.read(cx).iter() {
-            if *idx < current || *idx >= (last + 1) {
+            if (*idx < current || *idx >= (last + 1)) && *idx != 0_usize {
                 to_remove.push(*idx);
             }
         }

@@ -155,7 +155,6 @@ impl Render for QueueItem {
 pub struct Queue {
     views_model: Entity<AHashMap<usize, Entity<QueueItem>>>,
     render_counter: Entity<usize>,
-    state: ListState,
     shuffling: Entity<bool>,
     show_queue: Entity<bool>,
 }
@@ -167,43 +166,9 @@ impl Queue {
             let render_counter = cx.new(|_| 0);
             let items = cx.global::<Models>().queue.clone();
 
-            cx.observe(&items, move |this: &mut Queue, m, cx| {
+            cx.observe(&items, move |this: &mut Queue, _, cx| {
                 this.views_model = cx.new(|_| AHashMap::new());
                 this.render_counter = cx.new(|_| 0);
-
-                let items = m.read(cx).clone();
-                let views_model = this.views_model.clone();
-                let render_counter = this.render_counter.clone();
-
-                let length = items.data.read().expect("couldn't read queue").len();
-
-                let current_top = this.state.logical_scroll_top();
-
-                this.state =
-                    ListState::new(length, ListAlignment::Top, px(200.0), move |idx, _, cx| {
-                        let item = items
-                            .data
-                            .read()
-                            .expect("couldn't read queue")
-                            .get(idx)
-                            .cloned();
-                        prune_views(&views_model, &render_counter, idx, cx);
-
-                        // if was_removed {
-                        //     cx.global::<GPUIDataInterface>().evict_cache();
-                        // }
-
-                        div()
-                            .child(create_or_retrieve_view(
-                                &views_model,
-                                idx,
-                                move |cx| QueueItem::new(cx, item, idx),
-                                cx,
-                            ))
-                            .into_any_element()
-                    });
-
-                this.state.scroll_to(current_top);
 
                 cx.notify();
             })
@@ -219,9 +184,6 @@ impl Queue {
             Self {
                 views_model,
                 render_counter,
-                state: ListState::new(0, ListAlignment::Top, px(200.0), move |_, _, _| {
-                    div().into_any_element()
-                }),
                 shuffling,
                 show_queue,
             }
@@ -232,7 +194,17 @@ impl Queue {
 impl Render for Queue {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let queue = cx
+            .global::<Models>()
+            .queue
+            .clone()
+            .read(cx)
+            .data
+            .read()
+            .expect("could not read queue");
         let shuffling = self.shuffling.read(cx);
+        let views_model = self.views_model.clone();
+        let render_counter = self.render_counter.clone();
 
         div()
             // .absolute()
@@ -335,6 +307,47 @@ impl Render for Queue {
                             }),
                     ),
             )
-            .child(list(self.state.clone()).w_full().h_full().flex().flex_col())
+            .child(
+                uniform_list("queue", queue.len(), move |range, _, cx| {
+                    let start = range.start;
+                    let is_templ_render = range.start == 0 && range.end == 1;
+
+                    let queue = cx
+                        .global::<Models>()
+                        .queue
+                        .clone()
+                        .read(cx)
+                        .data
+                        .read()
+                        .expect("could not read queue");
+
+                    let items = queue[range].to_vec();
+
+                    drop(queue);
+
+                    items
+                        .into_iter()
+                        .enumerate()
+                        .map(|(idx, item)| {
+                            let idx = idx + start;
+
+                            if !is_templ_render {
+                                prune_views(&views_model, &render_counter, idx, cx);
+                            }
+
+                            div().child(create_or_retrieve_view(
+                                &views_model,
+                                idx,
+                                move |cx| QueueItem::new(cx, Some(item), idx),
+                                cx,
+                            ))
+                        })
+                        .collect()
+                })
+                .w_full()
+                .h_full()
+                .flex()
+                .flex_col(),
+            )
     }
 }
