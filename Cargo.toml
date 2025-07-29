@@ -67,6 +67,7 @@ windows = { version = "0.61", features = [
     "Devices_Enumeration",
     "Foundation_Collections",
     "Storage_Streams",
+    "Storage_Search",
     "Win32_System_WinRT",
     "Win32_System_Com",
 ] }
