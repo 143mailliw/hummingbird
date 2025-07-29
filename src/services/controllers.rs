@@ -356,9 +356,12 @@ pub fn make_cl(cx: &mut App, window: &mut Window) {
 
         #[cfg(target_os = "linux")]
         {
-            let mpris_pc = mpris::MprisController::init(bridge, rwh);
-
-            list.insert("mpris".to_string(), mpris_pc);
+            if let Ok(mpris_pc) = mpris::MprisController::init(bridge, rwh) {
+                list.insert("mpris".to_string(), mpris_pc);
+            } else {
+                error!("Failed to initialize MprisController!");
+                warn!("Desktop integration will be unavailable.");
+            };
         }
 
         #[cfg(target_os = "windows")]
