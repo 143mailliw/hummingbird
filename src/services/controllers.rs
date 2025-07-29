@@ -2,6 +2,8 @@
 mod macos;
 #[cfg(target_os = "linux")]
 mod mpris;
+#[cfg(target_os = "windows")]
+mod windows;
 
 use std::{
     path::Path,
@@ -11,19 +13,24 @@ use std::{
 use ahash::AHashMap;
 use async_lock::Mutex;
 use async_trait::async_trait;
-use gpui::{App, AppContext, Entity, Global};
+use gpui::{App, AppContext, Entity, Global, Window};
+use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 use crate::{
     media::metadata::Metadata,
     playback::{
         events::{PlaybackCommand, RepeatState},
+        interface::GPUIPlaybackInterface,
         thread::PlaybackState,
     },
     ui::models::{Models, PlaybackInfo},
 };
 
 pub trait InitPlaybackController {
-    fn init(bridge: ControllerBridge) -> Arc<Mutex<dyn PlaybackController>>;
+    fn init(
+        bridge: ControllerBridge,
+        handle: Option<RawWindowHandle>,
+    ) -> Arc<Mutex<dyn PlaybackController>>;
 }
 
 #[async_trait]
@@ -125,7 +132,11 @@ pub struct CLHolder(pub Entity<ControllerList>);
 
 impl Global for CLHolder {}
 
-pub fn make_cl(cx: &mut App) {
+pub fn make_cl(cx: &mut App, window: &mut Window) {
+    let rwh = HasWindowHandle::window_handle(window)
+        .ok()
+        .map(|v| v.as_raw());
+
     // cloning actually is neccesary because of the async move closure in pc_mutex
     #[allow(clippy::unnecessary_to_owned)]
     let cl = cx.new(|cx| {
@@ -266,26 +277,28 @@ pub fn make_cl(cx: &mut App) {
 
         let mut list = ControllerList::new();
 
+        let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
+        let bridge = ControllerBridge::new(sender);
+
         #[cfg(target_os = "macos")]
         {
-            use crate::playback::interface::GPUIPlaybackInterface;
-
-            let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
-            let bridge = ControllerBridge::new(sender);
-            let macos_pc = macos::MacMediaPlayerController::init(bridge);
+            let macos_pc = macos::MacMediaPlayerController::init(bridge, rwh);
 
             list.insert("macos".to_string(), macos_pc);
         }
 
         #[cfg(target_os = "linux")]
         {
-            use crate::playback::interface::GPUIPlaybackInterface;
-
-            let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
-            let bridge = ControllerBridge::new(sender);
-            let mpris_pc = mpris::MprisController::init(bridge);
+            let mpris_pc = mpris::MprisController::init(bridge, rwh);
 
             list.insert("mpris".to_string(), mpris_pc);
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            let windows_pc = windows::WindowsController::init(bridge, rwh);
+
+            list.insert("windows".to_string(), windows_pc);
         }
 
         list

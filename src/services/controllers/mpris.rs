@@ -9,6 +9,7 @@ use mpris_server::{
     LoopStatus, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface, Server,
     Signal, Time, Volume,
 };
+use raw_window_handle::RawWindowHandle;
 use zbus::fdo;
 
 use crate::{
@@ -320,7 +321,10 @@ pub struct MprisController {
 }
 
 impl InitPlaybackController for MprisController {
-    fn init(bridge: ControllerBridge) -> Arc<Mutex<dyn PlaybackController>> {
+    fn init(
+        bridge: ControllerBridge,
+        handle: Option<RawWindowHandle>,
+    ) -> Arc<Mutex<dyn PlaybackController>> {
         let data = Arc::new(RwLock::new(MprisControllerData {
             last_mdata: None,
             last_file: None,

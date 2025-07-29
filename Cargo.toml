@@ -52,6 +52,7 @@ tracing-subscriber = "0.3"
 unicode-segmentation = "1"
 url = "2.5.4"
 urlencoding = "2"
+raw-window-handle = "0.6"
 
 [build-dependencies]
 dotenvy = "0.15"
@@ -59,15 +60,18 @@ vergen = "3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.61", features = [
+    "Media",
     "Media_Audio",
     "Media_Render",
     "Media_MediaProperties",
     "Devices_Enumeration",
     "Foundation_Collections",
+    "Storage_Streams",
     "Win32_System_WinRT",
     "Win32_System_Com",
 ] }
 windows-result = "0.3"
+windows-future = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

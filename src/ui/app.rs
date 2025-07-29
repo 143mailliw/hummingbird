@@ -367,8 +367,6 @@ pub async fn run() {
             parse_args_and_prepare(cx, &playback_interface);
             cx.set_global(playback_interface);
 
-            make_cl(cx);
-
             cx.activate(true);
 
             cx.open_window(
@@ -390,6 +388,8 @@ pub async fn run() {
                 },
                 |window, cx| {
                     window.set_window_title("Hummingbird");
+
+                    make_cl(cx, window);
 
                     cx.new(|cx| {
                         cx.observe_window_appearance(window, |_, _, cx| {

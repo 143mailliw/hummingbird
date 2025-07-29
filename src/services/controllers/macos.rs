@@ -14,6 +14,7 @@ use objc2_media_player::{
     MPNowPlayingPlaybackState, MPRemoteCommandCenter, MPRemoteCommandEvent,
     MPRemoteCommandHandlerStatus,
 };
+use raw_window_handle::RawWindowHandle;
 use tracing::{debug, error};
 
 use crate::{
@@ -267,7 +268,10 @@ impl PlaybackController for MacMediaPlayerController {
 }
 
 impl InitPlaybackController for MacMediaPlayerController {
-    fn init(bridge: ControllerBridge) -> Arc<Mutex<dyn PlaybackController>> {
+    fn init(
+        bridge: ControllerBridge,
+        handle: Option<RawWindowHandle>,
+    ) -> Arc<Mutex<dyn PlaybackController>> {
         let mmpc = MacMediaPlayerController { bridge };
         unsafe { mmpc.attach_command_handlers() };
         Arc::new(Mutex::new(mmpc))
