@@ -244,36 +244,63 @@ impl MacMediaPlayerController {
 
 #[async_trait]
 impl PlaybackController for MacMediaPlayerController {
-    async fn position_changed(&mut self, new_position: u64) {
-        unsafe { self.new_position(new_position) }
+    async fn position_changed(&mut self, new_position: u64) -> anyhow::Result<()> {
+        unsafe {
+            self.new_position(new_position);
+            Ok(())
+        }
     }
-    async fn duration_changed(&mut self, new_duration: u64) {
-        unsafe { self.new_duration(new_duration) }
+    async fn duration_changed(&mut self, new_duration: u64) -> anyhow::Result<()> {
+        unsafe {
+            self.new_duration(new_duration);
+            Ok(())
+        }
     }
-    async fn volume_changed(&mut self, _new_volume: f64) {}
-    async fn metadata_changed(&mut self, metadata: &Metadata) {
-        unsafe { self.new_metadata(metadata) }
+    async fn volume_changed(&mut self, _new_volume: f64) -> anyhow::Result<()> {
+        Ok(())
     }
-    async fn album_art_changed(&mut self, album_art: &[u8]) {
-        unsafe { self.new_album_art(album_art) }
+    async fn metadata_changed(&mut self, metadata: &Metadata) -> anyhow::Result<()> {
+        unsafe {
+            self.new_metadata(metadata);
+            Ok(())
+        }
     }
-    async fn repeat_state_changed(&mut self, _repeat_state: RepeatState) {}
-    async fn playback_state_changed(&mut self, playback_state: PlaybackState) {
-        unsafe { self.new_playback_state(playback_state) }
+    async fn album_art_changed(&mut self, album_art: &[u8]) -> anyhow::Result<()> {
+        unsafe {
+            self.new_album_art(album_art);
+            Ok(())
+        }
     }
-    async fn new_file(&mut self, path: &Path) {
-        unsafe { self.new_file(path) }
+    async fn repeat_state_changed(&mut self, _repeat_state: RepeatState) -> anyhow::Result<()> {
+        Ok(())
     }
-    async fn shuffle_state_changed(&mut self, _shuffling: bool) {}
+    async fn playback_state_changed(
+        &mut self,
+        playback_state: PlaybackState,
+    ) -> anyhow::Result<()> {
+        unsafe {
+            self.new_playback_state(playback_state);
+            Ok(())
+        }
+    }
+    async fn new_file(&mut self, path: &Path) -> anyhow::Result<()> {
+        unsafe {
+            self.new_file(path);
+            Ok(())
+        }
+    }
+    async fn shuffle_state_changed(&mut self, _shuffling: bool) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 impl InitPlaybackController for MacMediaPlayerController {
     fn init(
         bridge: ControllerBridge,
-        handle: Option<RawWindowHandle>,
-    ) -> Arc<Mutex<dyn PlaybackController>> {
+        _handle: Option<RawWindowHandle>,
+    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>> {
         let mmpc = MacMediaPlayerController { bridge };
         unsafe { mmpc.attach_command_handlers() };
-        Arc::new(Mutex::new(mmpc))
+        Ok(Arc::new(Mutex::new(mmpc)))
     }
 }

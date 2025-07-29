@@ -323,8 +323,8 @@ pub struct MprisController {
 impl InitPlaybackController for MprisController {
     fn init(
         bridge: ControllerBridge,
-        handle: Option<RawWindowHandle>,
-    ) -> Arc<Mutex<dyn PlaybackController>> {
+        _handle: Option<RawWindowHandle>,
+    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>> {
         let data = Arc::new(RwLock::new(MprisControllerData {
             last_mdata: None,
             last_file: None,
@@ -342,17 +342,15 @@ impl InitPlaybackController for MprisController {
             data: server_data,
         };
 
-        let Ok(server) = smol::block_on(Server::new("org.mailliw.hummingbird", server)) else {
-            panic!("Failed to start MPRIS server");
-        };
+        let server = smol::block_on(Server::new("org.mailliw.hummingbird", server))?;
 
-        Arc::new(Mutex::new(MprisController { data, server }))
+        Ok(Arc::new(Mutex::new(MprisController { data, server })))
     }
 }
 
 #[async_trait]
 impl PlaybackController for MprisController {
-    async fn position_changed(&mut self, new_position: u64) {
+    async fn position_changed(&mut self, new_position: u64) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         let original_position = data.last_position;
 
@@ -361,95 +359,106 @@ impl PlaybackController for MprisController {
         if let Some(original_position) = original_position {
             let position_diff = new_position as i64 - original_position as i64;
             if position_diff != 1 {
-                // cant really do anything with these errors
-                _ = self
-                    .server
+                self.server
                     .emit(Signal::Seeked {
                         position: Time::from_secs(new_position as i64),
                     })
-                    .await;
+                    .await?;
             }
         }
+
+        Ok(())
     }
 
-    async fn duration_changed(&mut self, new_duration: u64) {
+    async fn duration_changed(&mut self, new_duration: u64) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_duration = Some(new_duration);
         drop(data);
 
-        _ = self
-            .server
+        self.server
             .properties_changed([Property::Metadata(
                 self.server.imp().metadata_int().await.unwrap(),
             )])
-            .await;
+            .await?;
+
+        Ok(())
     }
 
-    async fn volume_changed(&mut self, new_volume: f64) {
+    async fn volume_changed(&mut self, new_volume: f64) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_volume = Some(new_volume);
 
-        _ = self
-            .server
+        self.server
             .properties_changed([Property::Volume(new_volume)])
-            .await;
+            .await?;
+
+        Ok(())
     }
 
-    async fn metadata_changed(&mut self, metadata: &Metadata) {
+    async fn metadata_changed(&mut self, metadata: &Metadata) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_mdata = Some(metadata.clone());
         drop(data);
 
-        _ = self
-            .server
+        self.server
             .properties_changed([Property::Metadata(
                 self.server.imp().metadata_int().await.unwrap(),
             )])
-            .await;
+            .await?;
+
+        Ok(())
     }
 
-    async fn album_art_changed(&mut self, _album_art: &[u8]) {}
+    async fn album_art_changed(&mut self, _album_art: &[u8]) -> anyhow::Result<()> {
+        Ok(())
+    }
 
-    async fn repeat_state_changed(&mut self, repeat_state: RepeatState) {
+    async fn repeat_state_changed(&mut self, repeat_state: RepeatState) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_repeat_state = Some(repeat_state);
         drop(data);
 
-        _ = self
-            .server
+        self.server
             .properties_changed([Property::LoopStatus(
                 self.server.imp().loop_status_int().await.unwrap(),
             )])
-            .await;
+            .await?;
+
+        Ok(())
     }
 
-    async fn playback_state_changed(&mut self, playback_state: PlaybackState) {
+    async fn playback_state_changed(
+        &mut self,
+        playback_state: PlaybackState,
+    ) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_playback_state = Some(playback_state);
         drop(data);
 
-        _ = self
-            .server
+        self.server
             .properties_changed([
                 Property::PlaybackStatus(self.server.imp().playback_status_int().await.unwrap()),
                 Property::CanPause(self.server.imp().can_pause_int().await.unwrap()),
                 Property::CanPlay(self.server.imp().can_play_int().await.unwrap()),
                 Property::CanSeek(self.server.imp().can_seek_int().await.unwrap()),
             ])
-            .await;
+            .await?;
+
+        Ok(())
     }
 
-    async fn shuffle_state_changed(&mut self, shuffling: bool) {
+    async fn shuffle_state_changed(&mut self, shuffling: bool) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_shuffle = shuffling;
 
-        _ = self
-            .server
+        self.server
             .properties_changed([Property::Shuffle(shuffling)])
-            .await;
+            .await?;
+
+        Ok(())
     }
 
-    async fn new_file(&mut self, path: &Path) {
+    async fn new_file(&mut self, path: &Path) -> anyhow::Result<()> {
         let mut data = self.data.write().await;
         data.last_file = Some(path.to_path_buf());
         data.last_position = None;
@@ -457,8 +466,7 @@ impl PlaybackController for MprisController {
         data.last_mdata = None;
         drop(data);
 
-        _ = self
-            .server
+        self.server
             .properties_changed([
                 Property::PlaybackStatus(self.server.imp().playback_status_int().await.unwrap()),
                 Property::CanPause(self.server.imp().can_pause_int().await.unwrap()),
@@ -466,6 +474,8 @@ impl PlaybackController for MprisController {
                 Property::CanSeek(self.server.imp().can_seek_int().await.unwrap()),
                 Property::Metadata(self.server.imp().metadata_int().await.unwrap()),
             ])
-            .await;
+            .await?;
+
+        Ok(())
     }
 }

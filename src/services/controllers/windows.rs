@@ -32,42 +32,32 @@ pub struct WindowsController {
 }
 
 impl WindowsController {
-    pub fn connect_events(&mut self) {
-        self.controls
-            .SetIsEnabled(true)
-            .expect("could not enable SMTC");
-        self.controls
-            .SetIsNextEnabled(true)
-            .expect("could not enable SMTC");
-        self.controls
-            .SetIsPreviousEnabled(true)
-            .expect("could not enable SMTC");
-        self.controls
-            .SetIsPlayEnabled(true)
-            .expect("could not enable SMTC");
-        self.controls
-            .SetIsPauseEnabled(true)
-            .expect("could not enable SMTC");
+    pub fn connect_events(&mut self) -> anyhow::Result<()> {
+        self.controls.SetIsEnabled(true)?;
+        self.controls.SetIsNextEnabled(true)?;
+        self.controls.SetIsPreviousEnabled(true)?;
+        self.controls.SetIsPlayEnabled(true)?;
+        self.controls.SetIsPauseEnabled(true)?;
 
         let bridge = self.bridge.clone();
-        self.controls
-            .ButtonPressed(&TypedEventHandler::<
-                SystemMediaTransportControls,
-                SystemMediaTransportControlsButtonPressedEventArgs,
-            >::new(move |_, args| {
-                let event = args.as_ref().unwrap().Button().unwrap();
+        self.controls.ButtonPressed(&TypedEventHandler::<
+            SystemMediaTransportControls,
+            SystemMediaTransportControlsButtonPressedEventArgs,
+        >::new(move |_, args| {
+            let event = args.as_ref().unwrap().Button().unwrap();
 
-                match event {
-                    SystemMediaTransportControlsButton::Play => bridge.play(),
-                    SystemMediaTransportControlsButton::Pause => bridge.pause(),
-                    SystemMediaTransportControlsButton::Next => bridge.next(),
-                    SystemMediaTransportControlsButton::Previous => bridge.previous(),
-                    _ => (),
-                }
+            match event {
+                SystemMediaTransportControlsButton::Play => bridge.play(),
+                SystemMediaTransportControlsButton::Pause => bridge.pause(),
+                SystemMediaTransportControlsButton::Next => bridge.next(),
+                SystemMediaTransportControlsButton::Previous => bridge.previous(),
+                _ => (),
+            }
 
-                Ok(())
-            }))
-            .expect("could not register button handler");
+            Ok(())
+        }))?;
+
+        Ok(())
     }
 }
 
@@ -75,12 +65,11 @@ impl InitPlaybackController for WindowsController {
     fn init(
         bridge: ControllerBridge,
         handle: Option<RawWindowHandle>,
-    ) -> Arc<Mutex<dyn PlaybackController>> {
+    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>> {
         let interop: ISystemMediaTransportControlsInterop = windows::core::factory::<
             SystemMediaTransportControls,
             ISystemMediaTransportControlsInterop,
-        >()
-        .expect("failed to create SMTC factory");
+        >()?;
 
         let hwnd = match handle {
             Some(RawWindowHandle::Win32(handle)) => handle,
@@ -92,8 +81,8 @@ impl InitPlaybackController for WindowsController {
             interop.GetForWindow(HWND(pointer)).unwrap()
         };
 
-        let display = controls.DisplayUpdater().unwrap();
-        let timeline = SystemMediaTransportControlsTimelineProperties::new().unwrap();
+        let display = controls.DisplayUpdater()?;
+        let timeline = SystemMediaTransportControlsTimelineProperties::new()?;
 
         let mut controller = WindowsController {
             controls,
@@ -102,60 +91,48 @@ impl InitPlaybackController for WindowsController {
             bridge,
         };
 
-        controller.connect_events();
+        controller.connect_events()?;
 
-        Arc::new(Mutex::new(controller))
+        Ok(Arc::new(Mutex::new(controller)))
     }
 }
 
 #[async_trait]
 impl PlaybackController for WindowsController {
-    async fn position_changed(&mut self, new_position: u64) {
+    async fn position_changed(&mut self, new_position: u64) -> anyhow::Result<()> {
         self.timeline
-            .SetPosition(Duration::from_secs(new_position).into())
-            .expect("could not set_position");
-        self.controls
-            .UpdateTimelineProperties(&self.timeline)
-            .expect("could not update timeline");
+            .SetPosition(Duration::from_secs(new_position).into())?;
+        self.controls.UpdateTimelineProperties(&self.timeline)?;
+
+        Ok(())
     }
-    async fn duration_changed(&mut self, new_duration: u64) {
+    async fn duration_changed(&mut self, new_duration: u64) -> anyhow::Result<()> {
+        self.timeline.SetStartTime(Duration::from_secs(0).into())?;
         self.timeline
-            .SetStartTime(Duration::from_secs(0).into())
-            .expect("could not set start time");
+            .SetMinSeekTime(Duration::from_secs(0).into())?;
         self.timeline
-            .SetMinSeekTime(Duration::from_secs(0).into())
-            .expect("could not set min seek time");
+            .SetMaxSeekTime(Duration::from_secs(new_duration).into())?;
         self.timeline
-            .SetMaxSeekTime(Duration::from_secs(new_duration).into())
-            .expect("could not set max seek time");
-        self.timeline
-            .SetEndTime(Duration::from_secs(new_duration).into())
-            .expect("could not set duration");
-        self.timeline
-            .SetPosition(Duration::from_secs(0).into())
-            .expect("could not set position");
-        self.controls
-            .UpdateTimelineProperties(&self.timeline)
-            .expect("could not update timeline");
+            .SetEndTime(Duration::from_secs(new_duration).into())?;
+        self.timeline.SetPosition(Duration::from_secs(0).into())?;
+        self.controls.UpdateTimelineProperties(&self.timeline)?;
+
+        Ok(())
     }
-    async fn volume_changed(&mut self, _new_volume: f64) {}
-    async fn metadata_changed(&mut self, metadata: &Metadata) {
+
+    async fn volume_changed(&mut self, _new_volume: f64) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn metadata_changed(&mut self, metadata: &Metadata) -> anyhow::Result<()> {
         if let Some(title) = metadata.name.clone() {
             let string = HSTRING::from(title);
-            self.display
-                .MusicProperties()
-                .unwrap()
-                .SetTitle(&string)
-                .expect("could not set title");
+            self.display.MusicProperties().unwrap().SetTitle(&string)?;
         }
 
         if let Some(artist) = metadata.artist.clone() {
             let string = HSTRING::from(artist);
-            self.display
-                .MusicProperties()
-                .unwrap()
-                .SetArtist(&string)
-                .expect("could not set artist");
+            self.display.MusicProperties().unwrap().SetArtist(&string)?;
         }
 
         if let Some(album) = metadata.album.clone() {
@@ -163,89 +140,87 @@ impl PlaybackController for WindowsController {
             self.display
                 .MusicProperties()
                 .unwrap()
-                .SetAlbumTitle(&string)
-                .expect("could not set album");
+                .SetAlbumTitle(&string)?;
         }
 
         if let Some(track_number) = metadata.track_current {
             self.display
                 .MusicProperties()
                 .unwrap()
-                .SetTrackNumber(track_number as u32)
-                .expect("could not set track number");
+                .SetTrackNumber(track_number as u32)?;
         }
 
         if let Some(track_max) = metadata.track_max {
             self.display
                 .MusicProperties()
                 .unwrap()
-                .SetAlbumTrackCount(track_max as u32)
-                .expect("could not set track number");
+                .SetAlbumTrackCount(track_max as u32)?;
         }
 
-        self.display.Update().expect("could not update");
+        self.display.Update()?;
+
+        Ok(())
     }
-    async fn album_art_changed(&mut self, album_art: &[u8]) {
+
+    async fn album_art_changed(&mut self, album_art: &[u8]) -> anyhow::Result<()> {
         let stream = InMemoryRandomAccessStream::new().expect("could not create RAS");
         let writer = DataWriter::CreateDataWriter(&stream).unwrap();
 
-        writer
-            .WriteBytes(album_art)
-            .expect("could not start writing operation");
+        writer.WriteBytes(album_art)?;
 
         writer
             .StoreAsync()
             .expect("could not start store operation")
-            .await
-            .expect("could not complete store operation");
+            .await?;
 
-        writer
-            .DetachStream()
-            .expect("could not detach writer from stream");
+        writer.DetachStream()?;
+        let reference = RandomAccessStreamReference::CreateFromStream(&stream)?;
 
-        let reference = RandomAccessStreamReference::CreateFromStream(&stream)
-            .expect("could not create stream reference");
+        self.display.SetThumbnail(&reference)?;
+        self.display.Update()?;
 
-        self.display
-            .SetThumbnail(&reference)
-            .expect("could not set thumbnail reference");
-
-        self.display.Update().expect("could not update");
+        Ok(())
     }
-    async fn repeat_state_changed(&mut self, repeat_state: RepeatState) {
-        self.controls
-            .SetAutoRepeatMode(match repeat_state {
-                RepeatState::NotRepeating => MediaPlaybackAutoRepeatMode::None,
-                RepeatState::Repeating => MediaPlaybackAutoRepeatMode::List,
-                RepeatState::RepeatingOne => MediaPlaybackAutoRepeatMode::Track,
-            })
-            .expect("could not set auto repeat mode");
+
+    async fn repeat_state_changed(&mut self, repeat_state: RepeatState) -> anyhow::Result<()> {
+        self.controls.SetAutoRepeatMode(match repeat_state {
+            RepeatState::NotRepeating => MediaPlaybackAutoRepeatMode::None,
+            RepeatState::Repeating => MediaPlaybackAutoRepeatMode::List,
+            RepeatState::RepeatingOne => MediaPlaybackAutoRepeatMode::Track,
+        })?;
+
+        Ok(())
     }
-    async fn playback_state_changed(&mut self, playback_state: PlaybackState) {
+
+    async fn playback_state_changed(
+        &mut self,
+        playback_state: PlaybackState,
+    ) -> anyhow::Result<()> {
         let playback_state = match playback_state {
             PlaybackState::Stopped => MediaPlaybackStatus::Stopped,
             PlaybackState::Playing => MediaPlaybackStatus::Playing,
             PlaybackState::Paused => MediaPlaybackStatus::Paused,
         };
 
-        self.controls
-            .SetPlaybackStatus(playback_state)
-            .expect("could not set playback status");
+        self.controls.SetPlaybackStatus(playback_state)?;
+
+        Ok(())
     }
-    async fn shuffle_state_changed(&mut self, shuffling: bool) {
-        self.controls
-            .SetShuffleEnabled(shuffling)
-            .expect("could not set shuffle status");
+    async fn shuffle_state_changed(&mut self, shuffling: bool) -> anyhow::Result<()> {
+        self.controls.SetShuffleEnabled(shuffling)?;
+
+        Ok(())
     }
-    async fn new_file(&mut self, path: &Path) {
-        self.display.ClearAll().expect("could not clear display");
-        self.display.SetType(MediaPlaybackType::Music).unwrap();
+    async fn new_file(&mut self, path: &Path) -> anyhow::Result<()> {
+        self.display.ClearAll()?;
+        self.display.SetType(MediaPlaybackType::Music)?;
         let title_string = HSTRING::from(path.file_name().unwrap().to_str().unwrap());
         self.display
             .MusicProperties()
             .unwrap()
-            .SetTitle(&title_string)
-            .expect("could not set initial title");
-        self.display.Update().expect("could not update display");
+            .SetTitle(&title_string)?;
+        self.display.Update()?;
+
+        Ok(())
     }
 }
