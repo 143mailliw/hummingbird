@@ -8,12 +8,13 @@ design standard.
 
 # Features
 - Fully native application with no web component
-- FLAC, MP3, OGG and WAV playback
+- FLAC, MP3, OGG (Vorbis), AAC and WAV playback
 - Linux, macOS and Windows support
 - SQLite-backed library
 - Theming with hot reload
 - Scrobbling (last.fm) support
 - Fuzzy-find album search (press Ctrl + F)
+- Desktop integration
 
 ## Planned Features
 - WASM Extension support:
@@ -22,9 +23,8 @@ design standard.
   - Metadata services
 - Playlists
 - Advanced search
-- AAC and Opus support
+- Opus support
 - ReplayGain
-- Desktop integration
 - Lyrics support
 - Improved library management
 
