@@ -36,7 +36,8 @@ where
     columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
     views: Entity<RowMap<T, C>>,
     render_counter: Entity<usize>,
-    list_state: ListState,
+    // list_state: ListState,
+    items: Option<Arc<Vec<T::Identifier>>>,
     sort_method: Entity<Option<TableSort<C>>>,
     on_select: Option<OnSelectHandler<T, C>>,
 }
@@ -64,23 +65,40 @@ where
             let render_counter = cx.new(|_| 0);
             let sort_method = cx.new(|_| None);
 
-            let list_state = Self::make_list_state(
-                cx,
-                views.clone(),
-                render_counter.clone(),
-                &sort_method,
-                columns.clone(),
-                on_select.clone(),
-            );
+            let items = T::get_rows(cx, None).ok().map(Arc::new);
 
-            cx.observe(&sort_method, |this, _, cx| {
-                this.regenerate_list_state(cx);
+            // let list_state = Self::make_list_state(
+            //     cx,
+            //     views.clone(),
+            //     render_counter.clone(),
+            //     &sort_method,
+            //     columns.clone(),
+            //     on_select.clone(),
+            // );
+
+            cx.observe(&sort_method, |this: &mut Table<T, C>, sort, cx| {
+                let sort_method = *sort.read(cx);
+                let items = T::get_rows(cx, sort_method).ok().map(Arc::new);
+
+                this.views = cx.new(|_| AHashMap::new());
+                this.render_counter = cx.new(|_| 0);
+                this.items = items;
+
                 cx.notify();
             })
             .detach();
 
             cx.subscribe(&cx.entity(), |this, _, event, cx| match event {
-                TableEvent::NewRows => this.regenerate_list_state(cx),
+                TableEvent::NewRows => {
+                    let sort_method = *this.sort_method.read(cx);
+                    let items = T::get_rows(cx, sort_method).ok().map(Arc::new);
+
+                    this.views = cx.new(|_| AHashMap::new());
+                    this.render_counter = cx.new(|_| 0);
+                    this.items = items;
+
+                    cx.notify();
+                }
             })
             .detach();
 
@@ -88,70 +106,52 @@ where
                 columns,
                 views,
                 render_counter,
-                list_state,
+                // list_state,
+                items,
                 sort_method,
                 on_select,
             }
         })
     }
 
-    fn regenerate_list_state(&mut self, cx: &mut Context<'_, Self>) {
-        let curr_scroll = self.list_state.logical_scroll_top();
-        self.views = cx.new(|_| AHashMap::new());
-        self.render_counter = cx.new(|_| 0);
+    // fn make_list_state(
+    //     cx: &mut Context<'_, Self>,
+    //     views: Entity<RowMap<T, C>>,
+    //     render_counter: Entity<usize>,
+    //     sort_method_entity: &Entity<Option<TableSort<C>>>,
+    //     columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
+    //     handler: Option<OnSelectHandler<T, C>>,
+    // ) -> ListState {
+    //     let sort_method = *sort_method_entity.read(cx);
+    //     let Ok(rows) = T::get_rows(cx, sort_method) else {
+    //         warn!("Failed to get rows");
+    //         return ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
+    //             div().into_any_element()
+    //         });
+    //     };
 
-        self.list_state = Self::make_list_state(
-            cx,
-            self.views.clone(),
-            self.render_counter.clone(),
-            &self.sort_method,
-            self.columns.clone(),
-            self.on_select.clone(),
-        );
+    //     let idents_rc = Rc::new(rows);
 
-        self.list_state.scroll_to(curr_scroll);
+    //     ListState::new(
+    //         idents_rc.len(),
+    //         ListAlignment::Top,
+    //         px(300.0),
+    //         move |idx, _, cx| {
+    //             let idents_rc = idents_rc.clone();
 
-        cx.notify();
-    }
-
-    fn make_list_state(
-        cx: &mut Context<'_, Self>,
-        views: Entity<RowMap<T, C>>,
-        render_counter: Entity<usize>,
-        sort_method_entity: &Entity<Option<TableSort<C>>>,
-        columns: Entity<Arc<IndexMap<C, f32, FxBuildHasher>>>,
-        handler: Option<OnSelectHandler<T, C>>,
-    ) -> ListState {
-        let sort_method = *sort_method_entity.read(cx);
-        let Ok(rows) = T::get_rows(cx, sort_method) else {
-            warn!("Failed to get rows");
-            return ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
-                div().into_any_element()
-            });
-        };
-
-        let idents_rc = Rc::new(rows);
-
-        ListState::new(
-            idents_rc.len(),
-            ListAlignment::Top,
-            px(300.0),
-            move |idx, _, cx| {
-                let idents_rc = idents_rc.clone();
-
-                prune_views(&views, &render_counter, idx, cx);
-                div()
-                    .w_full()
-                    .child(create_or_retrieve_view(
-                        &views,
-                        idx,
-                        |cx| TableItem::new(cx, idents_rc[idx].clone(), &columns, handler.clone()),
-                        cx,
-                    ))
-                    .into_any_element()
-            },
-        )
-    }
+    //             prune_views(&views, &render_counter, idx, cx);
+    //             div()
+    //                 .w_full()
+    //                 .child(create_or_retrieve_view(
+    //                     &views,
+    //                     idx,
+    //                     |cx| TableItem::new(cx, idents_rc[idx].clone(), &columns, handler.clone()),
+    //                     cx,
+    //                 ))
+    //                 .into_any_element()
+    //         },
+    //     )
+    // }
 }
 
 impl<T, C> Render for Table<T, C>
@@ -163,6 +163,11 @@ where
         let mut header = div().w_full().flex();
         let theme = cx.global::<Theme>();
         let sort_method = self.sort_method.read(cx);
+        let items = self.items.clone();
+        let views_model = self.views.clone();
+        let render_counter = self.render_counter.clone();
+        let columns = self.columns.clone();
+        let handler = self.on_select.clone();
 
         if T::has_images() {
             header = header.child(
@@ -263,6 +268,44 @@ where
                     .child(T::get_table_name()),
             )
             .child(header)
-            .child(list(self.list_state.clone()).w_full().h_full())
+            .when_some(items, |this, items| {
+                this.child(
+                    uniform_list("table-list", items.len(), move |range, _, cx| {
+                        let start = range.start;
+                        let is_templ_render = range.start == 0 && range.end == 1;
+
+                        items[range]
+                            .iter()
+                            .enumerate()
+                            .map(|(idx, item)| {
+                                let idx = idx + start;
+
+                                if !is_templ_render {
+                                    prune_views(&views_model, &render_counter, idx, cx);
+                                }
+
+                                div()
+                                    .w_full()
+                                    .child(create_or_retrieve_view(
+                                        &views_model,
+                                        idx,
+                                        |cx| {
+                                            TableItem::new(
+                                                cx,
+                                                item.clone(),
+                                                &columns,
+                                                handler.clone(),
+                                            )
+                                        },
+                                        cx,
+                                    ))
+                                    .into_any_element()
+                            })
+                            .collect()
+                    })
+                    .w_full()
+                    .h_full(),
+                )
+            })
     }
 }
