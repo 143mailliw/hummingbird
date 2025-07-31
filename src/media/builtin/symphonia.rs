@@ -1,6 +1,7 @@
 use std::{ffi::OsStr, fs::File};
 
 use intx::{I24, U24};
+use regex::Regex;
 use symphonia::{
     core::{
         audio::{AudioBufferRef, Signal},
@@ -45,6 +46,8 @@ pub struct SymphoniaProvider {
 
 impl SymphoniaProvider {
     fn break_metadata(&mut self, tags: &[Tag]) {
+        let id3_position_in_set_regex = Regex::new(r"(\d+)/(\d+)").unwrap();
+
         for tag in tags {
             match tag.std_key {
                 Some(StandardTagKey::TrackTitle) => {
@@ -89,13 +92,24 @@ impl SymphoniaProvider {
                     self.current_metadata.date =
                         Some(dateparser::parse(&tag.value.to_string()).ok()).flatten();
                 }
-                Some(StandardTagKey::TrackNumber) => {
-                    self.current_metadata.track_current = match &tag.value {
-                        Value::String(v) => v.clone().parse().ok(),
-                        Value::UnsignedInt(v) => Some(*v),
-                        _ => None,
+                Some(StandardTagKey::TrackNumber) => match &tag.value {
+                    Value::String(v) => {
+                        if let Some(captures) = id3_position_in_set_regex.captures(v) {
+                            if let Some(track) = captures.get(1) {
+                                self.current_metadata.track_current = track.as_str().parse().ok();
+                            }
+                            if let Some(total) = captures.get(2) {
+                                self.current_metadata.track_max = total.as_str().parse().ok();
+                            }
+                        } else {
+                            self.current_metadata.track_current = v.clone().parse().ok();
+                        }
                     }
-                }
+                    Value::UnsignedInt(v) => {
+                        self.current_metadata.track_current = Some(*v);
+                    }
+                    _ => (),
+                },
                 Some(StandardTagKey::TrackTotal) => {
                     self.current_metadata.track_max = match &tag.value {
                         Value::String(v) => v.clone().parse().ok(),
@@ -103,13 +117,24 @@ impl SymphoniaProvider {
                         _ => None,
                     }
                 }
-                Some(StandardTagKey::DiscNumber) => {
-                    self.current_metadata.disc_current = match &tag.value {
-                        Value::String(v) => v.clone().parse().ok(),
-                        Value::UnsignedInt(v) => Some(*v),
-                        _ => None,
+                Some(StandardTagKey::DiscNumber) => match &tag.value {
+                    Value::String(v) => {
+                        if let Some(captures) = id3_position_in_set_regex.captures(v) {
+                            if let Some(disc) = captures.get(1) {
+                                self.current_metadata.disc_current = disc.as_str().parse().ok();
+                            }
+                            if let Some(total) = captures.get(2) {
+                                self.current_metadata.disc_max = total.as_str().parse().ok();
+                            }
+                        } else {
+                            self.current_metadata.disc_current = v.clone().parse().ok();
+                        }
                     }
-                }
+                    Value::UnsignedInt(v) => {
+                        self.current_metadata.disc_current = Some(*v);
+                    }
+                    _ => (),
+                },
                 Some(StandardTagKey::DiscTotal) => {
                     self.current_metadata.disc_max = match &tag.value {
                         Value::String(v) => v.clone().parse().ok(),
