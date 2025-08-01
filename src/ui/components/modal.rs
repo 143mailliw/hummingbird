@@ -71,6 +71,7 @@ impl RenderOnce for Modal {
 
         anchored().position(point(px(0.0), px(0.0))).child(deferred(
             div()
+                .occlude()
                 .flex()
                 .w(size.width)
                 .h(size.height)
