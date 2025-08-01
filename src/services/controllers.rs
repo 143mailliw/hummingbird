@@ -5,12 +5,10 @@ mod mpris;
 #[cfg(target_os = "windows")]
 mod windows;
 
-use std::{
-    path::Path,
-    sync::{mpsc::Sender, Arc},
-};
+use std::{path::Path, sync::Arc};
 
 use ahash::AHashMap;
+use async_channel::Sender;
 use async_lock::Mutex;
 use async_trait::async_trait;
 use gpui::{App, AppContext, Entity, Global, Window};
@@ -107,69 +105,124 @@ impl ControllerBridge {
     }
 
     pub fn play(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::Play)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Play)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn pause(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::Pause)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Pause)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn toggle_play_pause(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::TogglePlayPause)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::TogglePlayPause)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn stop(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::Stop)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Stop)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn next(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::Next)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Next)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn previous(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::Previous)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Previous)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn jump(&self, index: usize) {
-        self.playback_thread
-            .send(PlaybackCommand::Jump(index))
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Jump(index))
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn seek(&self, position: f64) {
-        self.playback_thread
-            .send(PlaybackCommand::Seek(position))
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::Seek(position))
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn set_volume(&self, volume: f64) {
-        self.playback_thread
-            .send(PlaybackCommand::SetVolume(volume))
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::SetVolume(volume))
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn toggle_shuffle(&self) {
-        self.playback_thread
-            .send(PlaybackCommand::ToggleShuffle)
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::ToggleShuffle)
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 
     pub fn set_repeat(&self, repeat: RepeatState) {
-        self.playback_thread
-            .send(PlaybackCommand::SetRepeat(repeat))
-            .expect("could not send tx (from ControllerBridge)");
+        let playback_thread = self.playback_thread.clone();
+        smol::spawn(async move {
+            playback_thread
+                .send(PlaybackCommand::SetRepeat(repeat))
+                .await
+                .expect("could not send tx (from ControllerBridge)");
+        })
+        .detach();
     }
 }
 
