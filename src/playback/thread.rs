@@ -116,8 +116,9 @@ impl PlaybackThread {
         queue: Arc<RwLock<Vec<QueueItemData>>>,
         settings: PlaybackSettings,
     ) -> T {
-        let (commands_tx, commands_rx) = async_channel::bounded(10);
-        let (events_tx, events_rx) = async_channel::bounded(50);
+        // TODO: use the refresh rate for the bounds
+        let (commands_tx, commands_rx) = async_channel::unbounded();
+        let (events_tx, events_rx) = async_channel::unbounded();
 
         std::thread::Builder::new()
             .name("playback".to_string())
