@@ -4,7 +4,7 @@ use intx::{I24, U24};
 use regex::Regex;
 use symphonia::{
     core::{
-        audio::{AudioBufferRef, Signal},
+        audio::{AudioBufferRef, Channels, Signal},
         codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL},
         errors::Error,
         formats::{FormatOptions, FormatReader, SeekMode, SeekTo},
@@ -572,8 +572,16 @@ impl MediaProvider for SymphoniaProvider {
             .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
             .ok_or(ChannelRetrievalError::NothingToPlay)?;
 
+        // HACK: if the channel count isn't in the codec parameters pretend that it's stereo
+        // this "fixes" m4a container files but obviously poorly
+        //
+        // upstream issue: https://github.com/pdeljanov/Symphonia/issues/289
         Ok(ChannelSpec::Count(
-            track.codec_params.channels.unwrap().count() as u16,
+            track
+                .codec_params
+                .channels
+                .map(Channels::count)
+                .unwrap_or(2) as u16,
         ))
     }
 }
