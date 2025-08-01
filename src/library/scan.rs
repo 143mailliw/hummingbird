@@ -2,11 +2,11 @@ use std::{
     fs::{self, File},
     io::{BufReader, Cursor, Write},
     path::{Path, PathBuf},
-    sync::mpsc,
-    time::{Duration, SystemTime},
+    time::SystemTime,
 };
 
 use ahash::AHashMap;
+use async_channel::{Receiver, Sender};
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, DynamicImage, EncodableLayout};
@@ -40,14 +40,14 @@ enum ScanCommand {
 }
 
 pub struct ScanInterface {
-    events_rx: Option<mpsc::Receiver<ScanEvent>>,
-    command_tx: mpsc::Sender<ScanCommand>,
+    events_rx: Option<Receiver<ScanEvent>>,
+    command_tx: Sender<ScanCommand>,
 }
 
 impl ScanInterface {
     pub(self) fn new(
-        events_rx: Option<mpsc::Receiver<ScanEvent>>,
-        command_tx: mpsc::Sender<ScanCommand>,
+        events_rx: Option<Receiver<ScanEvent>>,
+        command_tx: Sender<ScanCommand>,
     ) -> Self {
         ScanInterface {
             events_rx,
@@ -56,15 +56,25 @@ impl ScanInterface {
     }
 
     pub fn scan(&self) {
-        self.command_tx
-            .send(ScanCommand::Scan)
-            .expect("could not send tx");
+        let command_tx = self.command_tx.clone();
+        smol::spawn(async move {
+            command_tx
+                .send(ScanCommand::Scan)
+                .await
+                .expect("could not send tx");
+        })
+        .detach();
     }
 
     pub fn stop(&self) {
-        self.command_tx
-            .send(ScanCommand::Stop)
-            .expect("could not send tx");
+        let command_tx = self.command_tx.clone();
+        smol::spawn(async move {
+            command_tx
+                .send(ScanCommand::Stop)
+                .await
+                .expect("could not send tx");
+        })
+        .detach();
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -77,7 +87,7 @@ impl ScanInterface {
             return;
         };
         cx.spawn(async move |cx| loop {
-            while let Ok(event) = events_rx.try_recv() {
+            while let Ok(event) = events_rx.recv().await {
                 state_model
                     .update(cx, |m, cx| {
                         *m = event;
@@ -85,10 +95,6 @@ impl ScanInterface {
                     })
                     .expect("failed to update scan state model");
             }
-
-            cx.background_executor()
-                .timer(Duration::from_millis(10))
-                .await;
         })
         .detach();
     }
@@ -105,8 +111,8 @@ pub enum ScanState {
 }
 
 pub struct ScanThread {
-    event_tx: mpsc::Sender<ScanEvent>,
-    command_rx: mpsc::Receiver<ScanCommand>,
+    event_tx: Sender<ScanEvent>,
+    command_rx: Receiver<ScanCommand>,
     pool: SqlitePool,
     scan_settings: ScanSettings,
     visited: Vec<PathBuf>,
@@ -179,8 +185,8 @@ fn scan_path_for_album_art(path: &Path) -> Option<Box<[u8]>> {
 
 impl ScanThread {
     pub fn start(pool: SqlitePool, settings: ScanSettings) -> ScanInterface {
-        let (commands_tx, commands_rx) = std::sync::mpsc::channel();
-        let (events_tx, events_rx) = std::sync::mpsc::channel();
+        let (commands_tx, commands_rx) = async_channel::bounded(10);
+        let (events_tx, events_rx) = async_channel::unbounded();
 
         std::thread::Builder::new()
             .name("scanner".to_string())
@@ -267,9 +273,15 @@ impl ScanThread {
                         self.scan_state = ScanState::Cleanup;
                         self.scanned = 0;
                         self.discovered_total = 0;
-                        self.event_tx
-                            .send(ScanEvent::Cleaning)
-                            .expect("could not send scan started event");
+
+                        let event_tx = self.event_tx.clone();
+                        smol::spawn(async move {
+                            event_tx
+                                .send(ScanEvent::Cleaning)
+                                .await
+                                .expect("could not send scan started event");
+                        })
+                        .detach();
                     }
                 }
                 ScanCommand::Stop => {
@@ -346,9 +358,15 @@ impl ScanThread {
                 self.discovered_total += 1;
 
                 if self.discovered_total % 20 == 0 {
-                    self.event_tx
-                        .send(ScanEvent::DiscoverProgress(self.discovered_total))
-                        .expect("could not send discovered event");
+                    let event_tx = self.event_tx.clone();
+                    let discovered_total = self.discovered_total;
+                    smol::spawn(async move {
+                        event_tx
+                            .send(ScanEvent::DiscoverProgress(discovered_total))
+                            .await
+                            .expect("could not send discovered event");
+                    })
+                    .detach();
                 }
             }
         }
@@ -613,7 +631,11 @@ impl ScanThread {
             info!("Scan complete, writing scan record and stopping");
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
-            self.event_tx.send(ScanEvent::ScanCompleteIdle).unwrap();
+            let event_tx = self.event_tx.clone();
+            smol::spawn(async move {
+                event_tx.send(ScanEvent::ScanCompleteIdle).await.unwrap();
+            })
+            .detach();
             return;
         }
 
@@ -633,12 +655,15 @@ impl ScanThread {
             self.scanned += 1;
 
             if self.scanned % 5 == 0 {
-                self.event_tx
-                    .send(ScanEvent::ScanProgress {
-                        current: self.scanned,
-                        total: self.discovered_total,
-                    })
-                    .unwrap();
+                let event_tx = self.event_tx.clone();
+                let scan_progress = ScanEvent::ScanProgress {
+                    current: self.scanned,
+                    total: self.discovered_total,
+                };
+                smol::spawn(async move {
+                    event_tx.send(scan_progress).await.unwrap();
+                })
+                .detach();
             }
         } else {
             warn!("Could not read metadata for file: {:?}", path);
