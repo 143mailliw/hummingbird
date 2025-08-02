@@ -31,10 +31,6 @@ design standard.
 # Usage
 Hummingbird hasn't yet seen a full release, but it's already usable.
 
-> [!WARNING]
-> Windows support isn't tested frequently, as I don't use Windows reguarly.
-> If you're on Windows and encounter a bug, please open an issue.
-
 The latest commit is built using Github Actions and uploaded to the
 [latest](https://github.com/143mailliw/hummingbird/releases/tag/latest) tag
 automatically. The macOS binary is signed and notarized, and should work on
