@@ -10,7 +10,7 @@ use tracing::debug;
 
 use crate::ui::app::Pool;
 
-use super::types::{Album, Artist, Track};
+use super::types::{Album, Artist, PrimitiveTrack, Track};
 
 pub async fn create_pool(path: impl AsRef<Path>) -> Result<SqlitePool, sqlx::Error> {
     debug!("Creating database pool at {:?}", path.as_ref());
@@ -191,6 +191,22 @@ pub async fn list_albums_search(
     Ok(albums)
 }
 
+pub async fn list_prim_tracks_in_album(
+    pool: &SqlitePool,
+    album_id: i64,
+) -> Result<Arc<Vec<PrimitiveTrack>>, sqlx::Error> {
+    let query = include_str!("../../queries/library/find_prim_tracks_in_album.sql");
+
+    let tracks = Arc::new(
+        sqlx::query_as::<_, PrimitiveTrack>(query)
+            .bind(album_id)
+            .fetch_all(pool)
+            .await?,
+    );
+
+    Ok(tracks)
+}
+
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error>;
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Arc<Vec<Track>>, sqlx::Error>;
@@ -203,6 +219,10 @@ pub trait LibraryAccess {
     fn get_artist_by_id(&self, artist_id: i64) -> Result<Arc<Artist>, sqlx::Error>;
     fn get_track_by_id(&self, track_id: i64) -> Result<Arc<Track>, sqlx::Error>;
     fn list_albums_search(&self) -> Result<Vec<(u32, String, String)>, sqlx::Error>;
+    fn list_prim_tracks_in_album(
+        &self,
+        album_id: i64,
+    ) -> Result<Arc<Vec<PrimitiveTrack>>, sqlx::Error>;
 }
 
 impl LibraryAccess for App {
@@ -245,5 +265,13 @@ impl LibraryAccess for App {
     fn list_albums_search(&self) -> Result<Vec<(u32, String, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(list_albums_search(&pool.0))
+    }
+
+    fn list_prim_tracks_in_album(
+        &self,
+        album_id: i64,
+    ) -> Result<Arc<Vec<PrimitiveTrack>>, sqlx::Error> {
+        let pool: &Pool = self.global();
+        block_on(list_prim_tracks_in_album(&pool.0, album_id))
     }
 }

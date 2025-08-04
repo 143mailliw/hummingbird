@@ -6,7 +6,7 @@ use prelude::FluentBuilder;
 use crate::{
     library::{
         db::{AlbumMethod, LibraryAccess},
-        types::{Album, Artist, Track},
+        types::{Album, Artist, PrimitiveTrack, Track},
     },
     playback::{
         interface::{replace_queue, GPUIPlaybackInterface},
@@ -30,8 +30,8 @@ use super::track_listing::ArtistNameVisibility;
 pub struct ReleaseView {
     album: Arc<Album>,
     artist: Option<Arc<Artist>>,
-    tracks: Arc<Vec<Track>>,
-    track_listing: TrackListing,
+    tracks: Arc<Vec<PrimitiveTrack>>,
+    track_listing: Entity<TrackListing>,
     release_info: Option<SharedString>,
     img_path: SharedString,
     image_cache: Entity<RetainAllImageCache>,
@@ -46,7 +46,7 @@ impl ReleaseView {
                 .get_album_by_id(album_id, AlbumMethod::FullQuality)
                 .expect("Failed to retrieve album");
             let tracks = cx
-                .list_tracks_in_album(album_id)
+                .list_prim_tracks_in_album(album_id)
                 .expect("Failed to retrieve tracks");
             let artist = cx.get_artist_by_id(album.artist_id).ok();
 
@@ -55,7 +55,14 @@ impl ReleaseView {
             })
             .detach();
 
+            let mut style = StyleRefinement::default();
+
+            style.size.width = Some(relative(1.0).into());
+            style.size.height = Some(relative(1.0).into());
+
             let track_listing = TrackListing::new(
+                cx,
+                style,
                 tracks.clone(),
                 ArtistNameVisibility::OnlyIfDifferent(artist.as_ref().and_then(|v| v.name.clone())),
             );
@@ -209,8 +216,7 @@ impl Render for ReleaseView {
                                                 this.on_click(cx.listener(
                                                     |this: &mut ReleaseView, _, _, cx| {
                                                         let queue_items = this
-                                                            .track_listing
-                                                            .tracks()
+                                                            .tracks
                                                             .iter()
                                                             .map(|track| {
                                                                 QueueItemData::new(
@@ -256,8 +262,7 @@ impl Render for ReleaseView {
                                             .on_click(cx.listener(
                                                 |this: &mut ReleaseView, _, _, cx| {
                                                     let queue_items = this
-                                                        .track_listing
-                                                        .tracks()
+                                                        .tracks
                                                         .iter()
                                                         .map(|track| {
                                                             QueueItemData::new(
@@ -283,8 +288,7 @@ impl Render for ReleaseView {
                                             .on_click(cx.listener(
                                                 |this: &mut ReleaseView, _, _, cx| {
                                                     let queue_items = this
-                                                        .track_listing
-                                                        .tracks()
+                                                        .tracks
                                                         .iter()
                                                         .map(|track| {
                                                             QueueItemData::new(
@@ -313,14 +317,7 @@ impl Render for ReleaseView {
                             ),
                     ),
             )
-            .child(
-                list(self.track_listing.track_list_state().clone())
-                    .w_full()
-                    .flex()
-                    .h_full()
-                    .flex_col()
-                    .mx_auto(),
-            )
+            .child(self.track_listing.clone())
             .when(
                 self.release_info.is_some()
                     || self.album.release_date.is_some()

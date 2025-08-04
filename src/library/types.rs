@@ -230,3 +230,16 @@ pub struct Track {
     pub location: PathBuf,
     pub artist_names: Option<DBString>,
 }
+
+#[derive(sqlx::FromRow, Clone)]
+pub struct PrimitiveTrack {
+    pub id: i64,
+    #[sqlx(default)]
+    pub track_number: Option<i32>,
+    #[sqlx(default)]
+    pub disc_number: Option<i32>,
+    #[sqlx(default)]
+    pub album_id: Option<i64>,
+    #[sqlx(try_from = "String")]
+    pub location: PathBuf,
+}

@@ -16,8 +16,7 @@ pub enum ArtistNameVisibility {
 
 #[derive(Clone)]
 pub struct TrackListing {
-    // TODO: replace this with Arc<Vec<i64>>, memoize TrackItem, fetch on load instead of before
-    tracks: Arc<Vec<Track>>,
+    tracks: Arc<Vec<PrimitiveTrack>>,
     track_list_state: ListState,
 }
 

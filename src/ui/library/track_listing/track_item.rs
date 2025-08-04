@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use gpui::prelude::{FluentBuilder, *};
-use gpui::{div, px, App, FontWeight, IntoElement, RenderOnce, Window};
+use gpui::{div, px, App, Entity, FontWeight, IntoElement, RenderOnce, Window};
 
 use crate::ui::components::icons::{PLAY, PLUS};
 use crate::{
@@ -20,36 +22,51 @@ use crate::{
 
 use super::ArtistNameVisibility;
 
-#[derive(IntoElement)]
 pub struct TrackItem {
-    pub track: Track,
+    pub track: Arc<Track>,
     pub is_start: bool,
     pub artist_name_visibility: ArtistNameVisibility,
 }
 
-impl RenderOnce for TrackItem {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+impl TrackItem {
+    pub fn new(
+        cx: &mut App,
+        track: Arc<Track>,
+        is_start: bool,
+        anv: ArtistNameVisibility,
+    ) -> Entity<TrackItem> {
+        cx.new(|cx| TrackItem {
+            track,
+            is_start,
+            artist_name_visibility: anv,
+        })
+    }
+}
+
+impl Render for TrackItem {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let current_track = cx.global::<PlaybackInfo>().current_track.read(cx).clone();
+        let track = self.track.clone();
 
-        let track_location = self.track.location.clone();
-        let track_location_2 = self.track.location.clone();
-        let track_id = self.track.id;
-        let album_id = self.track.album_id;
+        let track_location = track.location.clone();
+        let track_location_2 = track.location.clone();
+        let track_id = track.id;
+        let album_id = track.album_id;
 
         let show_artist_name = self.artist_name_visibility != ArtistNameVisibility::Never
             && self.artist_name_visibility
-                != ArtistNameVisibility::OnlyIfDifferent(self.track.artist_names.clone());
+                != ArtistNameVisibility::OnlyIfDifferent(track.artist_names.clone());
 
-        context(("context", self.track.id as usize))
+        context(("context", track.id as usize))
             .with(
                 div()
                     .flex()
                     .flex_col()
                     .w_full()
-                    .id(self.track.id as usize)
+                    .id(track.id as usize)
                     .on_click({
-                        let track = self.track.clone();
+                        let track = track.clone();
                         move |_, _, cx| play_from_track(cx, &track)
                     })
                     .when(self.is_start, |this| {
@@ -64,7 +81,7 @@ impl RenderOnce for TrackItem {
                                 .border_color(theme.border_color)
                                 .mt(px(24.0))
                                 .pb(px(6.0))
-                                .when_some(self.track.disc_number, |this, num| {
+                                .when_some(track.disc_number, |this, num| {
                                     this.child(format!("DISC {num}"))
                                 }),
                         )
@@ -74,7 +91,7 @@ impl RenderOnce for TrackItem {
                             .flex()
                             .flex_row()
                             .border_b_1()
-                            .id(("track", self.track.id as u64))
+                            .id(("track", track.id as u64))
                             .w_full()
                             .border_color(theme.border_color)
                             .cursor_pointer()
@@ -82,8 +99,8 @@ impl RenderOnce for TrackItem {
                             .py(px(6.0))
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
-                            .when_some(current_track, |this, track| {
-                                this.bg(if track == self.track.location {
+                            .when_some(current_track, |this, curr_track| {
+                                this.bg(if curr_track == track.location {
                                     theme.queue_item_current
                                 } else {
                                     theme.background_primary
@@ -91,17 +108,17 @@ impl RenderOnce for TrackItem {
                             })
                             .max_w_full()
                             .child(
-                                div().w(px(62.0)).flex_shrink_0().child(format!(
-                                    "{}",
-                                    self.track.track_number.unwrap_or_default()
-                                )),
+                                div()
+                                    .w(px(62.0))
+                                    .flex_shrink_0()
+                                    .child(format!("{}", track.track_number.unwrap_or_default())),
                             )
                             .child(
                                 div()
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .overflow_x_hidden()
                                     .text_ellipsis()
-                                    .child(self.track.title.clone()),
+                                    .child(track.title.clone()),
                             )
                             .child(
                                 div()
@@ -114,16 +131,15 @@ impl RenderOnce for TrackItem {
                                     .flex_shrink()
                                     .ml_auto()
                                     .when(show_artist_name, |this| {
-                                        this.when_some(
-                                            self.track.artist_names.clone(),
-                                            |this, v| this.child(v.0),
-                                        )
+                                        this.when_some(track.artist_names.clone(), |this, v| {
+                                            this.child(v.0)
+                                        })
                                     }),
                             )
                             .child(div().ml(px(12.0)).flex_shrink_0().child(format!(
                                 "{}:{:02}",
-                                self.track.duration / 60,
-                                self.track.duration % 60
+                                track.duration / 60,
+                                track.duration % 60
                             ))),
                     ),
             )
@@ -158,7 +174,7 @@ impl RenderOnce for TrackItem {
                             "track_play_from_here",
                             None::<&str>,
                             "Play from here",
-                            move |_, _, cx| play_from_track(cx, &self.track),
+                            move |_, _, cx| play_from_track(cx, &track),
                         ))
                         .item(menu_item(
                             "track_add_to_queue",
