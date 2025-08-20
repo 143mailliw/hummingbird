@@ -255,6 +255,8 @@ where
             .image_cache(hummingbird_cache((T::get_table_name(), 0_usize), 100))
             .id(T::get_table_name())
             .overflow_x_scroll()
+            .flex()
+            .flex_col()
             .w_full()
             .h_full()
             .child(
