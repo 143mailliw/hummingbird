@@ -2,7 +2,7 @@ mod track_item;
 
 use std::sync::Arc;
 
-use gpui::{px, IntoElement, ListAlignment, ListState};
+use gpui::{px, App, IntoElement, ListAlignment, ListState, Window};
 
 use crate::library::types::{DBString, Track};
 use track_item::TrackItem;
@@ -22,29 +22,8 @@ pub struct TrackListing {
 }
 
 impl TrackListing {
-    pub fn new(tracks: Arc<Vec<Track>>, artist_name_visibility: ArtistNameVisibility) -> Self {
-        let tracks_clone = tracks.clone();
-        let state = ListState::new(
-            tracks.len(),
-            ListAlignment::Top,
-            px(25.0),
-            move |idx, _, _| {
-                TrackItem {
-                    track: tracks_clone[idx].clone(),
-                    is_start: if idx > 0 {
-                        if let Some(track) = tracks_clone.get(idx - 1) {
-                            track.disc_number != tracks_clone[idx].disc_number
-                        } else {
-                            tracks_clone[idx].disc_number >= Some(0)
-                        }
-                    } else {
-                        true
-                    },
-                    artist_name_visibility: artist_name_visibility.clone(),
-                }
-                .into_any_element()
-            },
-        );
+    pub fn new(tracks: Arc<Vec<Track>>, _artist_name_visibility: ArtistNameVisibility) -> Self {
+        let state = ListState::new(tracks.len(), ListAlignment::Top, px(25.0));
 
         Self {
             tracks,
@@ -58,5 +37,28 @@ impl TrackListing {
 
     pub fn track_list_state(&self) -> &ListState {
         &self.track_list_state
+    }
+
+    pub fn make_render_fn(
+        &self,
+        artist_name_visibility: ArtistNameVisibility,
+    ) -> impl Fn(usize, &mut Window, &mut App) -> gpui::AnyElement + Clone {
+        let tracks = self.tracks.clone();
+        move |idx, _, _| {
+            TrackItem {
+                track: tracks[idx].clone(),
+                is_start: if idx > 0 {
+                    if let Some(track) = tracks.get(idx - 1) {
+                        track.disc_number != tracks[idx].disc_number
+                    } else {
+                        tracks[idx].disc_number >= Some(0)
+                    }
+                } else {
+                    true
+                },
+                artist_name_visibility: artist_name_visibility.clone(),
+            }
+            .into_any_element()
+        }
     }
 }

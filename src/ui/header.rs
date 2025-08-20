@@ -55,7 +55,7 @@ impl Render for Header {
                     }
                 })
                 .on_click(|ev, window, _| {
-                    if ev.down.click_count == 2 {
+                    if ev.click_count() == 2 {
                         window.zoom_window();
                     }
                 })

@@ -1,4 +1,4 @@
-use vergen::{generate_cargo_keys, ConstantsFlags};
+use vergen_git2::{Emitter, Git2Builder};
 
 fn main() {
     println!("cargo:rerun-if-changed=.env",);
@@ -11,6 +11,11 @@ fn main() {
         }
     }
 
-    let flags = ConstantsFlags::empty().union(ConstantsFlags::SHA_SHORT);
-    generate_cargo_keys(flags).expect("Unable to generate the cargo keys!");
+    let flags = Git2Builder::default().sha(true).build().unwrap();
+
+    Emitter::default()
+        .add_instructions(&flags)
+        .unwrap()
+        .emit()
+        .unwrap();
 }

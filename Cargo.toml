@@ -57,7 +57,7 @@ regex = "1"
 
 [build-dependencies]
 dotenvy = "0.15"
-vergen = "3"
+vergen-git2 = { version = "1" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.61", features = [

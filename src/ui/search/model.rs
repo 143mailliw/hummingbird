@@ -1,6 +1,5 @@
 use std::{
     ops::{AddAssign, Deref, SubAssign},
-    rc::Rc,
     sync::{mpsc::channel, Arc},
     time::Duration,
 };
@@ -176,11 +175,7 @@ impl SearchModel {
                 views_model: views_model.clone(),
                 render_counter: render_counter.clone(),
                 list_state: Self::make_list_state(
-                    cx.weak_entity(),
                     None,
-                    views_model,
-                    render_counter,
-                    current_selection.clone(),
                 ),
                 last_match: Vec::new(),
                 current_selection,
@@ -223,11 +218,7 @@ impl SearchModel {
         self.render_counter = cx.new(|_| 0);
 
         self.list_state = SearchModel::make_list_state(
-            cx.weak_entity(),
             Some(album_ids),
-            self.views_model.clone(),
-            self.render_counter.clone(),
-            self.current_selection.clone(),
         );
 
         self.list_state.scroll_to(curr_scroll);
@@ -236,24 +227,39 @@ impl SearchModel {
     }
 
     fn make_list_state(
-        weak_self: WeakEntity<Self>,
-        album_ids: Option<Vec<(u32, String, String)>>,
-        views_model: Entity<AHashMap<usize, Entity<AlbumSearchResult>>>,
-        render_counter: Entity<usize>,
-        current_selection: Entity<usize>,
+        album_ids: Option<Vec<(u32, String, String)>>
     ) -> ListState {
         match album_ids {
-            Some(album_ids) => {
-                let album_ids_copy = Rc::new(album_ids.clone());
-                let weak_self_copy = weak_self.clone();
+            Some(album_ids) => ListState::new(album_ids.len(), ListAlignment::Top, px(300.0)),
+            None => ListState::new(0, ListAlignment::Top, px(64.0)),
+        }
+    }
+}
 
-                ListState::new(
-                    album_ids.len(),
-                    ListAlignment::Top,
-                    px(300.0),
-                    move |idx, _, cx| {
-                        let album_ids = album_ids_copy.clone();
-                        let weak_self = weak_self_copy.clone();
+impl EventEmitter<String> for SearchModel {}
+impl EventEmitter<ViewSwitchMessage> for SearchModel {}
+impl EventEmitter<EnrichedInputAction> for SearchModel {}
+
+impl Render for SearchModel {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let last_match = self.last_match.clone();
+        let views_model = self.views_model.clone();
+        let render_counter = self.render_counter.clone();
+        let current_selection = self.current_selection.clone();
+        let weak_self = cx.weak_entity();
+
+        div()
+            .w_full()
+            .h_full()
+            .image_cache(hummingbird_cache("search-model-cache", 50))
+            .id("search-model")
+            .flex()
+            .p(px(4.0))
+            .child(
+                list(self.list_state.clone(), move |idx, _, cx| {
+                    if !last_match.is_empty() {
+                        let album_ids = last_match.clone();
+                        let weak_self = weak_self.clone();
                         let selection_clone = current_selection.clone();
 
                         prune_views(&views_model, &render_counter, idx, cx);
@@ -275,36 +281,15 @@ impl SearchModel {
                                 cx,
                             ))
                             .into_any_element()
-                    },
-                )
-            }
-            None => ListState::new(0, ListAlignment::Top, px(64.0), move |_, _, _| {
-                div().into_any_element()
-            }),
-        }
-    }
-}
-
-impl EventEmitter<String> for SearchModel {}
-impl EventEmitter<ViewSwitchMessage> for SearchModel {}
-impl EventEmitter<EnrichedInputAction> for SearchModel {}
-
-impl Render for SearchModel {
-    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
-        div()
-            .w_full()
-            .h_full()
-            .image_cache(hummingbird_cache("search-model-cache", 50))
-            .id("search-model")
-            .flex()
-            .p(px(4.0))
-            .child(
-                list(self.list_state.clone())
-                    .flex()
-                    .flex_row()
-                    .gap(px(5.0))
-                    .w_full()
-                    .h_full(),
+                    } else {
+                        div().into_any_element()
+                    }
+                })
+                .flex()
+                .flex_row()
+                .gap(px(5.0))
+                .w_full()
+                .h_full(),
             )
     }
 }

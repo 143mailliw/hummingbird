@@ -19,13 +19,11 @@ use crate::{
             icons::{icon, CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE},
         },
         global_actions::PlayPause,
-        library::track_listing::TrackListing,
+        library::track_listing::{ArtistNameVisibility, TrackListing},
         models::PlaybackInfo,
         theme::Theme,
     },
 };
-
-use super::track_listing::ArtistNameVisibility;
 
 pub struct ReleaseView {
     album: Arc<Album>,
@@ -313,14 +311,21 @@ impl Render for ReleaseView {
                             ),
                     ),
             )
-            .child(
-                list(self.track_listing.track_list_state().clone())
+            .child({
+                let artist_name_visibility = if let Some(artist) = &self.artist {
+                    ArtistNameVisibility::OnlyIfDifferent(artist.name.clone())
+                } else {
+                    ArtistNameVisibility::Always
+                };
+                let render_fn = self.track_listing.make_render_fn(artist_name_visibility);
+
+                list(self.track_listing.track_list_state().clone(), render_fn)
                     .w_full()
                     .flex()
                     .h_full()
                     .flex_col()
-                    .mx_auto(),
-            )
+                    .mx_auto()
+            })
             .when(
                 self.release_info.is_some()
                     || self.album.release_date.is_some()
