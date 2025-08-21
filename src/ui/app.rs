@@ -383,6 +383,7 @@ pub async fn run() {
                             y: px(11.0),
                         }),
                     }),
+                    app_id: Some("org.mailliw.hummingbird".to_string()),
                     kind: WindowKind::Normal,
                     ..Default::default()
                 },
