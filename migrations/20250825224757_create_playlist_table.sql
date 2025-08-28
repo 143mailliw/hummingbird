@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS playlist (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    type INTEGER NOT NULL CHECK(type IN (0, 1)) DEFAULT 0 -- 0: User, 1: System (e.g. Liked Tracks)
+)

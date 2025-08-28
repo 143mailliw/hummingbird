@@ -302,8 +302,12 @@ pub async fn run() {
     }
     let file = directory.join("library.db");
 
-    let Ok(pool) = create_pool(file).await else {
-        panic!("fatal: unable to create database pool");
+    let pool_result = create_pool(file).await;
+    let Ok(pool) = pool_result else {
+        panic!(
+            "fatal: unable to create database pool: {:?}",
+            pool_result.unwrap_err()
+        );
     };
 
     Application::new()
