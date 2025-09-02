@@ -2,7 +2,7 @@ mod track_item;
 
 use std::sync::Arc;
 
-use gpui::{px, App, IntoElement, ListAlignment, ListState, Window};
+use gpui::{px, App, IntoElement, ListAlignment, ListState, Pixels, Window};
 
 use crate::library::types::{DBString, Track};
 use track_item::TrackItem;
@@ -22,8 +22,12 @@ pub struct TrackListing {
 }
 
 impl TrackListing {
-    pub fn new(tracks: Arc<Vec<Track>>, _artist_name_visibility: ArtistNameVisibility) -> Self {
-        let state = ListState::new(tracks.len(), ListAlignment::Top, px(25.0));
+    pub fn new(
+        tracks: Arc<Vec<Track>>,
+        overdraw: Pixels,
+        _artist_name_visibility: ArtistNameVisibility,
+    ) -> Self {
+        let state = ListState::new(tracks.len(), ListAlignment::Top, overdraw);
 
         Self {
             tracks,

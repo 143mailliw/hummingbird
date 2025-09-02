@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{f32, sync::Arc};
 
 use gpui::*;
 use prelude::FluentBuilder;
@@ -55,6 +55,7 @@ impl ReleaseView {
 
             let track_listing = TrackListing::new(
                 tracks.clone(),
+                px(f32::INFINITY), // render the whole thing
                 ArtistNameVisibility::OnlyIfDifferent(artist.as_ref().and_then(|v| v.name.clone())),
             );
 
@@ -112,15 +113,14 @@ impl Render for ReleaseView {
             });
 
         div()
-            .mt(px(24.0))
+            .id("release-view")
+            .overflow_y_scroll()
+            .pt(px(24.0))
             .w_full()
             .flex_shrink()
             .overflow_x_hidden()
-            .h_full()
             .max_w(px(1000.0))
             .mx_auto()
-            .flex()
-            .flex_col()
             .child(
                 div()
                     .flex_shrink()
@@ -322,9 +322,10 @@ impl Render for ReleaseView {
                 list(self.track_listing.track_list_state().clone(), render_fn)
                     .w_full()
                     .flex()
-                    .h_full()
                     .flex_col()
                     .mx_auto()
+                    .max_h_full()
+                    .with_sizing_behavior(ListSizingBehavior::Infer)
             })
             .when(
                 self.release_info.is_some()
