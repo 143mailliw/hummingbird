@@ -2,7 +2,7 @@ mod track_item;
 
 use std::sync::Arc;
 
-use gpui::{px, App, IntoElement, ListAlignment, ListState, Pixels, Window};
+use gpui::{App, IntoElement, ListAlignment, ListState, Pixels, Window};
 
 use crate::library::types::{DBString, Track};
 use track_item::TrackItem;
