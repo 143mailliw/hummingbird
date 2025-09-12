@@ -71,10 +71,17 @@ async fn read_metadata(path: String, cache: &mut AlbumCache) -> anyhow::Result<Q
             debug!("read_metadata cache hit for {}", hash);
             Some(image.clone())
         } else {
-            let image = decode_image(v, true)?;
-            debug!("read_metadata cache miss for {}", hash);
-            cache_lock.insert(hash, image.clone()).await;
-            Some(image)
+            let image = decode_image(v, true);
+            if let Ok(image) = image {
+                debug!("read_metadata cache miss for {}", hash);
+                cache_lock.insert(hash, image.clone()).await;
+                Some(image)
+            } else if let Err(err) = image {
+                error!("Failed to read image for metadata: {}", err);
+                None
+            } else {
+                unreachable!()
+            }
         }
     } else {
         None
@@ -114,6 +121,12 @@ impl Decode for App {
 
             let Ok(image) = decode_task else {
                 error!("Failed to decode image - {:?}", decode_task);
+                entity
+                    .update(cx, |m, cx| {
+                        *m = None;
+                        cx.notify();
+                    })
+                    .expect("Failed to update entity");
                 return;
             };
 
