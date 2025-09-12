@@ -13,10 +13,12 @@ struct Args {
     files: Option<Vec<PathBuf>>,
 }
 
-pub fn parse_args_and_prepare(cx: &mut App, interface: &GPUIPlaybackInterface) {
+/// Parses the arguments provided by the user and handles them. Returns true if files were provided
+/// for playback as command line arguments.
+pub fn parse_args_and_prepare(cx: &mut App, interface: &GPUIPlaybackInterface) -> bool {
     let args = Args::parse();
 
-    if let Some(files) = args.files {
+    if let Some(files) = &args.files {
         info!("Queueing files found in arguments: {:?}", files);
 
         interface.queue_list(
@@ -26,4 +28,6 @@ pub fn parse_args_and_prepare(cx: &mut App, interface: &GPUIPlaybackInterface) {
                 .collect(),
         );
     }
+
+    args.files.is_some()
 }

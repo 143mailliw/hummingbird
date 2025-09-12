@@ -363,14 +363,14 @@ pub async fn run() {
                 PlaybackThread::start(queue, playback_settings);
             playback_interface.start_broadcast(cx);
 
-            if let Some(track) = storage_data.current_track {
-                // open current track,
-                playback_interface.open(track.get_path().clone());
-                // but stop it immediately
-                playback_interface.pause();
+            if !parse_args_and_prepare(cx, &playback_interface) {
+                if let Some(track) = storage_data.current_track {
+                    // open current track,
+                    playback_interface.open(track.get_path().clone());
+                    // but stop it immediately
+                    playback_interface.pause();
+                }
             }
-
-            parse_args_and_prepare(cx, &playback_interface);
             cx.set_global(playback_interface);
 
             cx.activate(true);
