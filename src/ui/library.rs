@@ -6,11 +6,14 @@ use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
 
+use crate::ui::library::sidebar::Sidebar;
+
 use super::models::Models;
 
 mod album_view;
 mod navigation;
 mod release_view;
+mod sidebar;
 mod track_listing;
 
 #[derive(Clone)]
@@ -107,13 +110,35 @@ impl Render for Library {
             .w_full()
             .h_full()
             .flex()
-            .flex_col()
             .flex_shrink()
-            .overflow_x_hidden()
-            .child(self.navigation_view.clone())
-            .child(match &self.view {
-                LibraryView::Album(album_view) => album_view.clone().into_any_element(),
-                LibraryView::Release(release_view) => release_view.clone().into_any_element(),
-            })
+            .max_w_full()
+            .max_h_full()
+            .overflow_hidden()
+            .child(
+                div()
+                    .ml_auto()
+                    .flex()
+                    .flex_shrink_0()
+                    .ml_auto()
+                    .child(Sidebar {}),
+            )
+            .child(
+                div()
+                    .w_full()
+                    .max_w(px(1000.0))
+                    .h_full()
+                    .flex()
+                    .flex_col()
+                    .flex_shrink()
+                    .mr_auto()
+                    .overflow_hidden()
+                    .child(self.navigation_view.clone())
+                    .child(match &self.view {
+                        LibraryView::Album(album_view) => album_view.clone().into_any_element(),
+                        LibraryView::Release(release_view) => {
+                            release_view.clone().into_any_element()
+                        }
+                    }),
+            )
     }
 }

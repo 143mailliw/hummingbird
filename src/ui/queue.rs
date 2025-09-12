@@ -87,6 +87,7 @@ impl Render for QueueItem {
                 .w_full()
                 .id(ElementId::View(cx.entity_id()))
                 .flex()
+                .flex_shrink_0()
                 .overflow_x_hidden()
                 .gap(px(11.0))
                 .h(px(59.0))
@@ -221,47 +222,30 @@ impl Render for Queue {
             .flex()
             .flex_col()
             .child(
-                div()
-                    .flex()
-                    .border_b_1()
-                    .border_color(theme.border_color)
-                    .child(
+                div().flex().child(
+                    div().flex().w_full().child(
                         div()
                             .flex()
-                            .w_full()
-                            .child(
-                                div()
-                                    .ml(px(12.0))
-                                    .pt(px(5.0))
-                                    .flex()
-                                    .font_weight(FontWeight::BOLD)
-                                    .child(div().text_sm().child("Queue")),
-                            )
-                            .child(
-                                div()
-                                    .flex()
-                                    .id("back")
-                                    .pr(px(12.0))
-                                    .pl(px(12.0))
-                                    .py(px(8.0))
-                                    .ml_auto()
-                                    .text_sm()
-                                    .border_l_1()
-                                    .border_color(theme.border_color)
-                                    .hover(|this| this.bg(theme.nav_button_hover))
-                                    .active(|this| this.bg(theme.nav_button_active))
-                                    .cursor_pointer()
-                                    .child(icon(CROSS).size(px(16.0)))
-                                    .on_click(cx.listener(|this: &mut Self, _, _, cx| {
-                                        this.show_queue.update(cx, |v, _| *v = !(*v))
-                                    })),
-                            ),
+                            .id("back")
+                            .pr(px(12.0))
+                            .pl(px(12.0))
+                            .py(px(8.0))
+                            .ml_auto()
+                            .text_sm()
+                            .hover(|this| this.bg(theme.nav_button_hover))
+                            .active(|this| this.bg(theme.nav_button_active))
+                            .cursor_pointer()
+                            .child(icon(CROSS).size(px(16.0)))
+                            .on_click(cx.listener(|this: &mut Self, _, _, cx| {
+                                this.show_queue.update(cx, |v, _| *v = !(*v))
+                            })),
                     ),
+                ),
             )
             .child(
                 div()
                     .w_full()
-                    .pt(px(24.0))
+                    .pt(px(16.0))
                     .pb(px(12.0))
                     .px(px(12.0))
                     .flex()

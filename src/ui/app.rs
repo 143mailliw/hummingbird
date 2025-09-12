@@ -69,6 +69,7 @@ impl Render for WindowShadow {
             .id("window-backdrop")
             .key_context("app")
             .bg(transparent_black())
+            .flex()
             .map(|div| match decorations {
                 Decorations::Server => div,
                 Decorations::Client { tiling, .. } => div
@@ -183,13 +184,14 @@ impl Render for WindowShadow {
                     .size_full()
                     .flex()
                     .flex_col()
+                    .max_w_full()
+                    .max_h_full()
                     .child(self.header.clone())
                     .child(
                         div()
                             .w_full()
                             .h_full()
                             .flex()
-                            .relative()
                             .max_w_full()
                             .max_h_full()
                             .overflow_hidden()

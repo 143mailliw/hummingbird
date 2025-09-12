@@ -62,58 +62,51 @@ impl Render for NavigationView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
-        div()
-            .flex()
-            .border_b_1()
-            .border_color(theme.border_color)
-            .child(
-                div()
-                    .flex()
-                    .w_full()
-                    .max_w(px(1000.0))
-                    .mx_auto()
-                    .px(px(12.0))
-                    .child(
-                        div()
-                            .flex()
-                            .id("back")
-                            .px(px(12.0))
-                            .py(px(8.0))
-                            .mr(px(12.0))
-                            .text_sm()
-                            .border_r_1()
-                            .border_color(theme.border_color)
-                            .hover(|this| this.bg(theme.nav_button_hover))
-                            .active(|this| this.bg(theme.nav_button_active))
-                            .cursor_pointer()
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.view_switcher_model.update(cx, |_, cx| {
-                                    cx.emit(ViewSwitchMessage::Back);
-                                })
-                            }))
-                            .child(icon(ARROW_LEFT).size(px(16.0))),
-                    )
-                    .child(
-                        div()
-                            .pt(px(5.0))
-                            .flex()
-                            .child(div().text_sm().child(match self.current_message {
-                                ViewSwitchMessage::Albums => "Albums",
-                                ViewSwitchMessage::Release(_) => "Release",
-                                ViewSwitchMessage::Back => {
-                                    panic!("back should not be in VecDeque<ViewSwitchMessage>")
-                                }
-                            }))
-                            .when_some(self.description.clone(), |this, description| {
-                                this.child(
-                                    div()
-                                        .ml(px(8.0))
-                                        .font_weight(FontWeight::BOLD)
-                                        .text_sm()
-                                        .child(description),
-                                )
-                            }),
-                    ),
-            )
+        div().flex().child(
+            div()
+                .flex()
+                .w_full()
+                .max_w(px(1000.0))
+                .mr_auto()
+                .px(px(0.0))
+                .child(
+                    div()
+                        .flex()
+                        .id("back")
+                        .px(px(12.0))
+                        .py(px(8.0))
+                        .mr(px(6.0))
+                        .text_sm()
+                        .hover(|this| this.bg(theme.nav_button_hover))
+                        .active(|this| this.bg(theme.nav_button_active))
+                        .cursor_pointer()
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.view_switcher_model.update(cx, |_, cx| {
+                                cx.emit(ViewSwitchMessage::Back);
+                            })
+                        }))
+                        .child(icon(ARROW_LEFT).size(px(16.0))),
+                ), // .child(
+                   //     div()
+                   //         .pt(px(5.0))
+                   //         .flex()
+                   //         .child(div().text_sm().child(match self.current_message {
+                   //             ViewSwitchMessage::Albums => "Albums",
+                   //             ViewSwitchMessage::Release(_) => "Release",
+                   //             ViewSwitchMessage::Back => {
+                   //                 panic!("back should not be in VecDeque<ViewSwitchMessage>")
+                   //             }
+                   //         }))
+                   //         .when_some(self.description.clone(), |this, description| {
+                   //             this.child(
+                   //                 div()
+                   //                     .ml(px(8.0))
+                   //                     .font_weight(FontWeight::BOLD)
+                   //                     .text_sm()
+                   //                     .child(description),
+                   //             )
+                   //         }),
+                   // ),
+        )
     }
 }
