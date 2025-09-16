@@ -90,7 +90,7 @@ impl MprisControllerServer {
     async fn position_int(&self) -> fdo::Result<Time> {
         let data = self.data.read().await;
         Ok(data
-            .last_duration
+            .last_position
             .map(|v| Time::from_secs(v as i64))
             .unwrap_or_default())
     }
@@ -259,8 +259,7 @@ impl PlayerInterface for MprisControllerServer {
     }
 
     async fn can_control(&self) -> fdo::Result<bool> {
-        let data = self.data.read().await;
-        Ok(data.last_playback_state != Some(PlaybackState::Stopped) && data.last_file.is_some())
+        Ok(true)
     }
 
     async fn metadata(&self) -> fdo::Result<mpris_server::Metadata> {
