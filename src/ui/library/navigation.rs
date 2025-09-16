@@ -1,15 +1,11 @@
 use std::collections::VecDeque;
 
 use gpui::*;
-use prelude::FluentBuilder;
 use tracing::debug;
 
 use crate::{
     library::db::{AlbumMethod, LibraryAccess},
-    ui::{
-        components::icons::{icon, ARROW_LEFT},
-        theme::Theme,
-    },
+    ui::components::{icons::ARROW_LEFT, nav_button::nav_button},
 };
 
 use super::ViewSwitchMessage;
@@ -60,8 +56,6 @@ impl NavigationView {
 
 impl Render for NavigationView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.global::<Theme>();
-
         div().flex().child(
             div()
                 .flex()
@@ -71,24 +65,11 @@ impl Render for NavigationView {
                 .pl(px(10.0))
                 .pt(px(10.0))
                 .child(
-                    div()
-                        .flex()
-                        .id("back")
-                        .size(px(28.0))
-                        .flex()
-                        .justify_center()
-                        .items_center()
-                        .rounded_sm()
-                        .text_sm()
-                        .hover(|this| this.bg(theme.nav_button_hover))
-                        .active(|this| this.bg(theme.nav_button_active))
-                        .cursor_pointer()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.view_switcher_model.update(cx, |_, cx| {
-                                cx.emit(ViewSwitchMessage::Back);
-                            })
-                        }))
-                        .child(icon(ARROW_LEFT).size(px(16.0))),
+                    nav_button("back", ARROW_LEFT).on_click(cx.listener(|this, _, _, cx| {
+                        this.view_switcher_model.update(cx, |_, cx| {
+                            cx.emit(ViewSwitchMessage::Back);
+                        })
+                    })),
                 ), // .child(
                    //     div()
                    //         .pt(px(5.0))

@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
 use gpui::{
-    div, px, App, AppContext, Context, Entity, FontWeight, InteractiveElement, IntoElement,
-    ParentElement, Render, StatefulInteractiveElement, Styled, Window,
+    div, px, App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window,
 };
 
 use crate::{
     library::{db::LibraryAccess, types::TrackStats},
     ui::{
         components::{
-            icons::{icon, DISC},
+            icons::DISC,
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },
         library::sidebar::playlists::PlaylistList,

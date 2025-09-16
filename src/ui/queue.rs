@@ -3,7 +3,10 @@ use crate::{
         interface::GPUIPlaybackInterface,
         queue::{DataSource, QueueItemData},
     },
-    ui::components::icons::{icon, CROSS, SHUFFLE, TRASH},
+    ui::components::{
+        icons::{icon, CROSS, SHUFFLE, TRASH},
+        nav_button::nav_button,
+    },
 };
 use ahash::AHashMap;
 use gpui::*;
@@ -224,22 +227,10 @@ impl Render for Queue {
             .child(
                 div().flex().child(
                     div().flex().w_full().child(
-                        div()
-                            .flex()
+                        nav_button("close", CROSS)
                             .mt(px(9.0))
                             .mr(px(9.0))
-                            .id("close")
-                            .size(px(28.0))
-                            .flex()
-                            .justify_center()
-                            .items_center()
-                            .rounded_sm()
                             .ml_auto()
-                            .text_sm()
-                            .hover(|this| this.bg(theme.nav_button_hover))
-                            .active(|this| this.bg(theme.nav_button_active))
-                            .cursor_pointer()
-                            .child(icon(CROSS).size(px(16.0)))
                             .on_click(cx.listener(|this: &mut Self, _, _, cx| {
                                 this.show_queue.update(cx, |v, _| *v = !(*v))
                             })),
