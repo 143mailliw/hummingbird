@@ -9,7 +9,7 @@ use sqlx::{
 use tracing::debug;
 
 use crate::{
-    library::types::{Playlist, PlaylistItem, PlaylistWithCount},
+    library::types::{Playlist, PlaylistItem, PlaylistWithCount, TrackStats},
     ui::app::Pool,
 };
 
@@ -337,6 +337,14 @@ pub async fn get_playlist_item(
     Ok(item)
 }
 
+pub async fn get_track_stats(pool: &SqlitePool) -> Result<Arc<TrackStats>, sqlx::Error> {
+    let query = include_str!("../../queries/track_stats.sql");
+
+    let stats: TrackStats = sqlx::query_as(query).fetch_one(pool).await?;
+
+    Ok(Arc::new(stats))
+}
+
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error>;
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Arc<Vec<Track>>, sqlx::Error>;
@@ -362,6 +370,7 @@ pub trait LibraryAccess {
     fn move_playlist_item(&self, item_id: i64, new_position: i64) -> Result<(), sqlx::Error>;
     fn remove_playlist_item(&self, item_id: i64) -> Result<(), sqlx::Error>;
     fn get_playlist_item(&self, item_id: i64) -> Result<PlaylistItem, sqlx::Error>;
+    fn get_track_stats(&self) -> Result<Arc<TrackStats>, sqlx::Error>;
 }
 
 impl LibraryAccess for App {
@@ -457,5 +466,10 @@ impl LibraryAccess for App {
     fn get_playlist_item(&self, item_id: i64) -> Result<PlaylistItem, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(get_playlist_item(&pool.0, item_id))
+    }
+
+    fn get_track_stats(&self) -> Result<Arc<TrackStats>, sqlx::Error> {
+        let pool: &Pool = self.global();
+        block_on(get_track_stats(&pool.0))
     }
 }

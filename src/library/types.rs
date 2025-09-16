@@ -265,3 +265,9 @@ pub struct PlaylistItem {
     pub created_at: DateTime<Utc>,
     pub position: i64,
 }
+
+#[derive(sqlx::FromRow, Clone)]
+pub struct TrackStats {
+    pub track_count: i64,
+    pub total_duration: i64,
+}
