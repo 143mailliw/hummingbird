@@ -1,16 +1,19 @@
 use std::sync::Arc;
 
 use gpui::{
-    div, px, App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window,
+    div, px, App, AppContext, Context, Entity, IntoElement, ParentElement, Render,
+    StatefulInteractiveElement, Styled, Window,
 };
 
 use crate::{
     library::{db::LibraryAccess, types::TrackStats},
     ui::{
         components::{
-            icons::DISC,
+            icons::{DISC, SEARCH, SIDEBAR, SIDEBAR_INACTIVE},
+            nav_button::nav_button,
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },
+        global_actions::Search,
         library::sidebar::playlists::PlaylistList,
         theme::Theme,
     },
@@ -39,19 +42,25 @@ impl Render for Sidebar {
         let stats_hours = stats_minutes / 60;
 
         sidebar()
-            .id("sidebar")
+            .id("main-sidebar")
             .max_h_full()
-            .py(px(12.0))
+            .pt(px(10.0))
+            .pb(px(12.0))
             .pl(px(12.0))
             .pr(px(11.0))
             .border_r_1()
             .border_color(theme.border_color)
             .child(
-                sidebar_item("main-sidebar")
-                    .icon(DISC)
-                    .child("Albums")
-                    .active(),
+                div()
+                    .flex()
+                    .mb(px(10.0))
+                    .mx(px(-5.0))
+                    .child(nav_button("search", SEARCH).on_click(|_, window, cx| {
+                        window.dispatch_action(Box::new(Search), cx);
+                    }))
+                    .child(nav_button("sidebar-toggle", SIDEBAR_INACTIVE).ml_auto()),
             )
+            .child(sidebar_item("albums").icon(DISC).child("Albums").active())
             .child(sidebar_separator())
             .child(self.playlists.clone())
             .child(
