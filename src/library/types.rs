@@ -231,7 +231,7 @@ pub struct Track {
     pub artist_names: Option<DBString>,
 }
 
-#[derive(sqlx::Type, Clone)]
+#[derive(sqlx::Type, Clone, Copy, Debug, PartialEq)]
 #[repr(i32)]
 pub enum PlaylistType {
     User = 0,

@@ -22,3 +22,6 @@ pub const VOLUME_OFF: &str = "!bundled:icons/volume-off.svg";
 pub const MENU: &str = "!bundled:icons/menu-2.svg";
 pub const CHEVRON_UP: &str = "!bundled:icons/chevron-up.svg";
 pub const CHEVRON_DOWN: &str = "!bundled:icons/chevron-down.svg";
+pub const DISC: &str = "!bundled:icons/disc.svg";
+pub const PLAYLIST: &str = "!bundled:icons/playlist.svg";
+pub const STAR: &str = "!bundled:icons/star.svg";

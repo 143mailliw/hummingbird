@@ -66,7 +66,7 @@ impl Render for AlbumView {
             .w_full()
             .h_full()
             .max_w(px(1000.0))
-            .pt(px(16.0))
+            .pt(px(10.0))
             .pb(px(0.0))
             .child(self.table.clone())
     }

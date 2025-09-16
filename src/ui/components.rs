@@ -4,6 +4,7 @@ pub mod icons;
 pub mod input;
 pub mod menu;
 pub mod modal;
+pub mod sidebar;
 pub mod slider;
 pub mod styling;
 pub mod table;

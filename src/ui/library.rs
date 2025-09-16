@@ -25,6 +25,7 @@ enum LibraryView {
 pub struct Library {
     view: LibraryView,
     navigation_view: Entity<NavigationView>,
+    sidebar: Entity<Sidebar>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -98,6 +99,7 @@ impl Library {
 
             Library {
                 navigation_view: NavigationView::new(cx, switcher_model.clone()),
+                sidebar: Sidebar::new(cx),
                 view,
             }
         })
@@ -116,11 +118,10 @@ impl Render for Library {
             .overflow_hidden()
             .child(
                 div()
-                    .ml_auto()
+                    .mr_auto()
                     .flex()
                     .flex_shrink_0()
-                    .ml_auto()
-                    .child(Sidebar {}),
+                    .child(self.sidebar.clone()),
             )
             .child(
                 div()

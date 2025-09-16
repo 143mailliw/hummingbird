@@ -101,10 +101,10 @@ where
         if T::has_images() {
             row = row.child(
                 div()
-                    .w(px(41.0))
+                    .w(px(47.0))
                     .h(px(36.0))
                     .text_sm()
-                    .pl(px(5.0))
+                    .pl(px(11.0))
                     .flex_shrink_0()
                     .text_ellipsis()
                     //.border_r_1()
@@ -143,7 +143,7 @@ where
                         div.h(px(30.0))
                             .px(px(10.0))
                             .py(px(2.0))
-                            .when(i == 0, |div| div.pl(px(15.0)))
+                            .when(i == 0, |div| div.pl(px(21.0)))
                     })
                     .when(monospace, |div| div.font_family("Roboto Mono"))
                     .text_sm()
