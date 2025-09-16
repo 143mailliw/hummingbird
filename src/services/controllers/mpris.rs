@@ -5,11 +5,13 @@ use std::{
 
 use async_lock::{Mutex, RwLock};
 use async_trait::async_trait;
+use base64::{prelude::BASE64_STANDARD, Engine};
 use mpris_server::{
     LoopStatus, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface, Server,
     Signal, Time, Volume,
 };
 use raw_window_handle::RawWindowHandle;
+use tracing::debug;
 use zbus::fdo;
 
 use crate::{
@@ -22,6 +24,7 @@ pub struct MprisControllerData {
     last_mdata: Option<Metadata>,
     last_file: Option<PathBuf>,
     // last_album_art: Box<[u8]>, // TODO: we're supposed to put this in a file somewhere
+    last_album_art: Option<String>,
     last_playback_state: Option<PlaybackState>,
     last_repeat_state: Option<RepeatState>,
     last_position: Option<u64>,
@@ -66,6 +69,7 @@ impl MprisControllerServer {
             mpris_data.set_track_number(metadata.track_current.map(|v| v as i32));
             mpris_data.set_disc_number(metadata.disc_current.map(|v| v as i32));
             mpris_data.set_length(data.last_duration.map(|v| Time::from_secs(v as i64)));
+            mpris_data.set_art_url(data.last_album_art.clone());
 
             Ok(mpris_data)
         } else {
@@ -334,6 +338,7 @@ impl InitPlaybackController for MprisController {
             last_duration: None,
             last_volume: None,
             last_shuffle: false,
+            last_album_art: None,
         }));
 
         let server_data = data.clone();
@@ -409,7 +414,23 @@ impl PlaybackController for MprisController {
         Ok(())
     }
 
-    async fn album_art_changed(&mut self, _album_art: &[u8]) -> anyhow::Result<()> {
+    async fn album_art_changed(&mut self, album_art: &[u8]) -> anyhow::Result<()> {
+        let mut data = self.data.write().await;
+
+        let b64 = BASE64_STANDARD.encode(album_art);
+        let url = format!("data:image/jpeg;base64,{}", b64);
+
+        debug!("Album art changed to {}", url);
+
+        data.last_album_art = Some(url);
+        drop(data);
+
+        self.server
+            .properties_changed([Property::Metadata(
+                self.server.imp().metadata_int().await.unwrap(),
+            )])
+            .await?;
+
         Ok(())
     }
 
@@ -464,6 +485,7 @@ impl PlaybackController for MprisController {
         data.last_position = None;
         data.last_duration = None;
         data.last_mdata = None;
+        data.last_album_art = None;
         drop(data);
 
         self.server

@@ -54,6 +54,7 @@ url = "2.5.4"
 urlencoding = "2"
 raw-window-handle = "0.6"
 regex = "1"
+base64 = "0.22"
 
 [build-dependencies]
 dotenvy = "0.15"

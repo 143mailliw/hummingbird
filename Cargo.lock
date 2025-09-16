@@ -2854,6 +2854,7 @@ dependencies = [
  "async-channel 2.5.0",
  "async-lock 3.4.1",
  "async-trait",
+ "base64",
  "bitflags 2.9.4",
  "block2",
  "chrono",
