@@ -881,6 +881,12 @@ impl PlaybackThread {
                     .send(PlaybackEvent::QueueUpdated)
                     .await
                     .expect("unable to send event");
+                if index != 0 {
+                    events_tx
+                        .send(PlaybackEvent::QueuePositionChanged(index))
+                        .await
+                        .expect("unable to send event");
+                }
             })
             .detach();
         } else {
