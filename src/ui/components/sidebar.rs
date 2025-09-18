@@ -100,8 +100,8 @@ impl RenderOnce for SidebarItem {
             .line_height(px(18.0))
             .gap(px(6.0))
             .font_weight(FontWeight::SEMIBOLD)
-            .hover(|this| this.bg(theme.background_tertiary))
-            .active(|this| this.bg(theme.background_secondary))
+            .hover(|this| this.bg(theme.nav_button_hover))
+            .active(|this| this.bg(theme.nav_button_active))
             .when_none(&self.icon, |this| this.child(div().size(px(18.0))))
             .when_some(self.icon, |this, used_icon| {
                 this.child(icon(used_icon).size(px(18.0)))
