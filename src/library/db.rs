@@ -198,16 +198,17 @@ pub async fn add_playlist_item(
     pool: &SqlitePool,
     playlist_id: i64,
     track_id: i64,
-) -> Result<(), sqlx::Error> {
+) -> Result<i64, sqlx::Error> {
     let query = include_str!("../../queries/playlist/add_track.sql");
 
-    sqlx::query(query)
+    let id = sqlx::query(query)
         .bind(playlist_id)
         .bind(track_id)
         .execute(pool)
-        .await?;
+        .await?
+        .last_insert_rowid();
 
-    Ok(())
+    Ok(id)
 }
 
 pub async fn create_playlist(pool: &SqlitePool, name: &str) -> Result<i64, sqlx::Error> {
@@ -345,6 +346,22 @@ pub async fn get_track_stats(pool: &SqlitePool) -> Result<Arc<TrackStats>, sqlx:
     Ok(Arc::new(stats))
 }
 
+pub async fn playlist_has_track(
+    pool: &SqlitePool,
+    playlist_id: i64,
+    track_id: i64,
+) -> Result<Option<i64>, sqlx::Error> {
+    let query = include_str!("../../queries/playlist/playlist_has_track.sql");
+
+    let has_track: Option<i64> = sqlx::query_scalar(query)
+        .bind(playlist_id)
+        .bind(track_id)
+        .fetch_optional(pool)
+        .await?;
+
+    Ok(has_track)
+}
+
 pub trait LibraryAccess {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error>;
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Arc<Vec<Track>>, sqlx::Error>;
@@ -357,7 +374,7 @@ pub trait LibraryAccess {
     fn get_artist_by_id(&self, artist_id: i64) -> Result<Arc<Artist>, sqlx::Error>;
     fn get_track_by_id(&self, track_id: i64) -> Result<Arc<Track>, sqlx::Error>;
     fn list_albums_search(&self) -> Result<Vec<(u32, String, String)>, sqlx::Error>;
-    fn add_playlist_item(&self, playlist_id: i64, track_id: i64) -> Result<(), sqlx::Error>;
+    fn add_playlist_item(&self, playlist_id: i64, track_id: i64) -> Result<i64, sqlx::Error>;
     fn create_playlist(&self, name: &str) -> Result<i64, sqlx::Error>;
     fn delete_playlist(&self, playlist_id: i64) -> Result<(), sqlx::Error>;
     fn get_all_playlists(&self) -> Result<Arc<Vec<PlaylistWithCount>>, sqlx::Error>;
@@ -371,6 +388,11 @@ pub trait LibraryAccess {
     fn remove_playlist_item(&self, item_id: i64) -> Result<(), sqlx::Error>;
     fn get_playlist_item(&self, item_id: i64) -> Result<PlaylistItem, sqlx::Error>;
     fn get_track_stats(&self) -> Result<Arc<TrackStats>, sqlx::Error>;
+    fn playlist_has_track(
+        &self,
+        playlist_id: i64,
+        track_id: i64,
+    ) -> Result<Option<i64>, sqlx::Error>;
 }
 
 impl LibraryAccess for App {
@@ -415,7 +437,7 @@ impl LibraryAccess for App {
         block_on(list_albums_search(&pool.0))
     }
 
-    fn add_playlist_item(&self, playlist_id: i64, track_id: i64) -> Result<(), sqlx::Error> {
+    fn add_playlist_item(&self, playlist_id: i64, track_id: i64) -> Result<i64, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(add_playlist_item(&pool.0, playlist_id, track_id))
     }
@@ -471,5 +493,14 @@ impl LibraryAccess for App {
     fn get_track_stats(&self) -> Result<Arc<TrackStats>, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(get_track_stats(&pool.0))
+    }
+
+    fn playlist_has_track(
+        &self,
+        playlist_id: i64,
+        track_id: i64,
+    ) -> Result<Option<i64>, sqlx::Error> {
+        let pool: &Pool = self.global();
+        block_on(playlist_has_track(&pool.0, playlist_id, track_id))
     }
 }

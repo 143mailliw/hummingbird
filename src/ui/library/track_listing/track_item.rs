@@ -1,7 +1,7 @@
 use gpui::prelude::{FluentBuilder, *};
-use gpui::{div, px, App, FontWeight, IntoElement, RenderOnce, Window};
+use gpui::{div, px, App, Entity, FontWeight, IntoElement, SharedString, Window};
 
-use crate::ui::components::icons::{PLAY, PLUS};
+use crate::ui::components::icons::{icon, PLAY, PLUS, STAR, STAR_FILLED};
 use crate::{
     library::{db::LibraryAccess, types::Track},
     playback::{
@@ -20,15 +20,33 @@ use crate::{
 
 use super::ArtistNameVisibility;
 
-#[derive(IntoElement)]
 pub struct TrackItem {
     pub track: Track,
     pub is_start: bool,
     pub artist_name_visibility: ArtistNameVisibility,
+    pub is_liked: Option<i64>,
+    pub hover_group: SharedString,
 }
 
-impl RenderOnce for TrackItem {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+impl TrackItem {
+    pub fn new(
+        cx: &mut App,
+        track: Track,
+        is_start: bool,
+        anv: ArtistNameVisibility,
+    ) -> Entity<Self> {
+        cx.new(|cx| Self {
+            hover_group: format!("track-{}", track.id).into(),
+            is_liked: cx.playlist_has_track(1, track.id).unwrap_or_default(),
+            track,
+            is_start,
+            artist_name_visibility: anv,
+        })
+    }
+}
+
+impl Render for TrackItem {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let current_track = cx.global::<PlaybackInfo>().current_track.read(cx).clone();
 
@@ -40,6 +58,8 @@ impl RenderOnce for TrackItem {
         let show_artist_name = self.artist_name_visibility != ArtistNameVisibility::Never
             && self.artist_name_visibility
                 != ArtistNameVisibility::OnlyIfDifferent(self.track.artist_names.clone());
+
+        let track = self.track.clone();
 
         context(("context", self.track.id as usize))
             .with(
@@ -80,6 +100,7 @@ impl RenderOnce for TrackItem {
                             .cursor_pointer()
                             .px(px(18.0))
                             .py(px(6.0))
+                            .group(self.hover_group.clone())
                             .hover(|this| this.bg(theme.nav_button_hover))
                             .active(|this| this.bg(theme.nav_button_active))
                             .when_some(current_track, |this, track| {
@@ -120,7 +141,46 @@ impl RenderOnce for TrackItem {
                                         )
                                     }),
                             )
-                            .child(div().ml(px(12.0)).flex_shrink_0().child(format!(
+                            .child(
+                                div()
+                                    .id("like")
+                                    .ml(px(8.0))
+                                    .my_auto()
+                                    .rounded_sm()
+                                    .p(px(4.0))
+                                    .child(
+                                        icon(if self.is_liked.is_some() {
+                                            STAR_FILLED
+                                        } else {
+                                            STAR
+                                        })
+                                        .size(px(14.0))
+                                        .text_color(theme.text_secondary),
+                                    )
+                                    .invisible()
+                                    .group(self.hover_group.clone())
+                                    .group_hover(self.hover_group.clone(), |this| this.visible())
+                                    .hover(|this| this.bg(theme.button_secondary_hover))
+                                    .active(|this| this.bg(theme.button_secondary_active))
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        cx.stop_propagation();
+
+                                        if let Some(id) = this.is_liked {
+                                            cx.remove_playlist_item(id)
+                                                .expect("could not unlike song");
+
+                                            this.is_liked = None;
+                                        } else {
+                                            this.is_liked = Some(
+                                                cx.add_playlist_item(1, track_id)
+                                                    .expect("could not like song"),
+                                            );
+                                        }
+
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(div().ml(px(8.0)).flex_shrink_0().child(format!(
                                 "{}:{:02}",
                                 self.track.duration / 60,
                                 self.track.duration % 60
@@ -158,7 +218,7 @@ impl RenderOnce for TrackItem {
                             "track_play_from_here",
                             None::<&str>,
                             "Play from here",
-                            move |_, _, cx| play_from_track(cx, &self.track),
+                            move |_, _, cx| play_from_track(cx, &track),
                         ))
                         .item(menu_item(
                             "track_add_to_queue",

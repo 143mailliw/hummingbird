@@ -54,6 +54,7 @@ impl ReleaseView {
             .detach();
 
             let track_listing = TrackListing::new(
+                cx,
                 tracks.clone(),
                 px(f32::INFINITY), // render the whole thing
                 ArtistNameVisibility::OnlyIfDifferent(artist.as_ref().and_then(|v| v.name.clone())),
@@ -145,27 +146,12 @@ impl Render for ReleaseView {
                                     .max_h(px(160.0))
                                     .overflow_hidden()
                                     .flex()
-                                    // TODO: Ideally this should be ObjectFit::Cover, but for
-                                    // some reason that makes the element bigger
-                                    // FIXME: Is this a GPUI bug?
+                                    // TODO: Ideally this should be ObjectFit::Cover, but this
+                                    // breaks rounding
+                                    // FIXME: This is a GPUI bug
                                     .object_fit(ObjectFit::Fill)
                                     .rounded(px(4.0)),
-                            ), // .when(image.is_some(), |div| {
-                               //     div.child(
-                               //         img(image.clone().unwrap())
-                               //             .min_w(px(160.0))
-                               //             .min_h(px(160.0))
-                               //             .max_w(px(160.0))
-                               //             .max_h(px(160.0))
-                               //             .overflow_hidden()
-                               //             .flex()
-                               //             // TODO: Ideally this should be ObjectFit::Cover, but for
-                               //             // some reason that makes the element bigger
-                               //             // FIXME: Is this a GPUI bug?
-                               //             .object_fit(ObjectFit::Fill)
-                               //             .rounded(px(4.0)),
-                               //     )
-                               // }),
+                            ),
                     )
                     .child(
                         div()
@@ -311,12 +297,7 @@ impl Render for ReleaseView {
                     ),
             )
             .child({
-                let artist_name_visibility = if let Some(artist) = &self.artist {
-                    ArtistNameVisibility::OnlyIfDifferent(artist.name.clone())
-                } else {
-                    ArtistNameVisibility::Always
-                };
-                let render_fn = self.track_listing.make_render_fn(artist_name_visibility);
+                let render_fn = self.track_listing.make_render_fn();
 
                 list(self.track_listing.track_list_state().clone(), render_fn)
                     .w_full()
