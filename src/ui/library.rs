@@ -6,12 +6,13 @@ use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
 
-use crate::ui::library::sidebar::Sidebar;
+use crate::ui::library::{playlist_view::PlaylistView, sidebar::Sidebar};
 
 use super::models::Models;
 
 mod album_view;
 mod navigation;
+mod playlist_view;
 mod release_view;
 mod sidebar;
 mod track_listing;
@@ -20,6 +21,7 @@ mod track_listing;
 enum LibraryView {
     Album(Entity<AlbumView>),
     Release(Entity<ReleaseView>),
+    Playlist(Entity<PlaylistView>),
 }
 
 pub struct Library {
@@ -28,10 +30,11 @@ pub struct Library {
     sidebar: Entity<Sidebar>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ViewSwitchMessage {
     Albums,
     Release(i64),
+    Playlist(i64),
     Back,
 }
 
@@ -45,6 +48,7 @@ fn make_view(
     match message {
         ViewSwitchMessage::Albums => LibraryView::Album(AlbumView::new(cx, model.clone())),
         ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
+        ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
     }
 }
@@ -99,7 +103,7 @@ impl Library {
 
             Library {
                 navigation_view: NavigationView::new(cx, switcher_model.clone()),
-                sidebar: Sidebar::new(cx),
+                sidebar: Sidebar::new(cx, switcher_model.clone()),
                 view,
             }
         })
@@ -138,6 +142,9 @@ impl Render for Library {
                         LibraryView::Album(album_view) => album_view.clone().into_any_element(),
                         LibraryView::Release(release_view) => {
                             release_view.clone().into_any_element()
+                        }
+                        LibraryView::Playlist(playlist_view) => {
+                            playlist_view.clone().into_any_element()
                         }
                     }),
             )

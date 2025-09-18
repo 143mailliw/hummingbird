@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
 use gpui::{
-    div, px, App, AppContext, Context, Entity, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Window,
+    div, prelude::FluentBuilder, px, App, AppContext, Context, Entity, IntoElement, ParentElement,
+    Render, StatefulInteractiveElement, Styled, Window,
 };
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },
         global_actions::Search,
-        library::sidebar::playlists::PlaylistList,
+        library::{sidebar::playlists::PlaylistList, ViewSwitchMessage},
         theme::Theme,
     },
 };
@@ -24,13 +24,18 @@ mod playlists;
 pub struct Sidebar {
     playlists: Entity<PlaylistList>,
     track_stats: Arc<TrackStats>,
+    nav_model: Entity<VecDeque<ViewSwitchMessage>>,
 }
 
 impl Sidebar {
-    pub fn new(cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| Self {
-            playlists: PlaylistList::new(cx),
-            track_stats: cx.get_track_stats().unwrap(),
+    pub fn new(cx: &mut App, nav_model: Entity<VecDeque<ViewSwitchMessage>>) -> Entity<Self> {
+        cx.new(|cx| {
+            cx.observe(&nav_model, |_, _, cx| cx.notify()).detach();
+            Self {
+                playlists: PlaylistList::new(cx, nav_model.clone()),
+                track_stats: cx.get_track_stats().unwrap(),
+                nav_model,
+            }
         })
     }
 }
@@ -40,6 +45,7 @@ impl Render for Sidebar {
         let theme = cx.global::<Theme>();
         let stats_minutes = self.track_stats.total_duration / 60;
         let stats_hours = stats_minutes / 60;
+        let current_view = self.nav_model.read(cx);
 
         sidebar()
             .id("main-sidebar")
@@ -60,7 +66,20 @@ impl Render for Sidebar {
                     }))
                     .child(nav_button("sidebar-toggle", SIDEBAR_INACTIVE).ml_auto()),
             )
-            .child(sidebar_item("albums").icon(DISC).child("Albums").active())
+            .child(
+                sidebar_item("albums")
+                    .icon(DISC)
+                    .child("Albums")
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.nav_model.update(cx, |_, cx| {
+                            cx.emit(ViewSwitchMessage::Albums);
+                        });
+                    }))
+                    .when(
+                        current_view.iter().last() == Some(&ViewSwitchMessage::Albums),
+                        |this| this.active(),
+                    ),
+            )
             .child(sidebar_separator())
             .child(self.playlists.clone())
             .child(
