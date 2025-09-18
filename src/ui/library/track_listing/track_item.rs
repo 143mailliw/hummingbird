@@ -2,6 +2,7 @@ use gpui::prelude::{FluentBuilder, *};
 use gpui::{div, px, App, Entity, FontWeight, IntoElement, SharedString, Window};
 
 use crate::ui::components::icons::{icon, PLAY, PLUS, STAR, STAR_FILLED};
+use crate::ui::models::PlaylistEvent;
 use crate::{
     library::{db::LibraryAccess, types::Track},
     playback::{
@@ -176,6 +177,13 @@ impl Render for TrackItem {
                                                     .expect("could not like song"),
                                             );
                                         }
+
+                                        let playlist_tracker =
+                                            cx.global::<Models>().playlist_tracker.clone();
+
+                                        playlist_tracker.update(cx, |_, cx| {
+                                            cx.emit(PlaylistEvent::PlaylistUpdated(1));
+                                        });
 
                                         cx.notify();
                                     })),

@@ -53,6 +53,7 @@ pub struct Models {
     pub lastfm: Entity<LastFMState>,
     pub switcher_model: Entity<VecDeque<ViewSwitchMessage>>,
     pub show_about: Entity<bool>,
+    pub playlist_tracker: Entity<PlaylistInfoTransfer>,
 }
 
 impl Global for Models {}
@@ -117,6 +118,14 @@ pub enum MMBSEvent {
 
 impl EventEmitter<MMBSEvent> for MMBSList {}
 
+pub struct PlaylistInfoTransfer;
+
+pub enum PlaylistEvent {
+    PlaylistUpdated(i64),
+}
+
+impl EventEmitter<PlaylistEvent> for PlaylistInfoTransfer {}
+
 pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     debug!("Building models");
     let metadata: Entity<Metadata> = cx.new(|_| Metadata::default());
@@ -145,6 +154,8 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
             LastFMState::Disconnected
         }
     });
+
+    let playlist_tracker: Entity<PlaylistInfoTransfer> = cx.new(|_| PlaylistInfoTransfer);
 
     cx.subscribe(&albumart, |e, ev, cx| {
         let img = ev.0.clone();
@@ -222,6 +233,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         lastfm,
         switcher_model,
         show_about,
+        playlist_tracker,
     });
 
     const DEFAULT_VOLUME: f64 = 1.0;

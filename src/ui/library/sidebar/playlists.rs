@@ -14,6 +14,7 @@ use crate::{
             icons::{PLAYLIST, STAR},
             sidebar::sidebar_item,
         },
+        models::{Models, PlaylistEvent},
         theme::Theme,
     },
 };
@@ -26,7 +27,23 @@ impl PlaylistList {
     pub fn new(cx: &mut App) -> Entity<Self> {
         let playlists = cx.get_all_playlists().expect("could not geet playlists");
 
-        cx.new(|_| Self { playlists })
+        cx.new(|cx| {
+            let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
+
+            cx.subscribe(
+                &playlist_tracker,
+                |this: &mut Self, _, _: &PlaylistEvent, cx| {
+                    this.playlists = cx.get_all_playlists().unwrap();
+
+                    cx.notify();
+                },
+            )
+            .detach();
+
+            Self {
+                playlists: playlists.clone(),
+            }
+        })
     }
 }
 
