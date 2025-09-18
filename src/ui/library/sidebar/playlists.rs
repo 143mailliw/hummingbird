@@ -31,7 +31,7 @@ impl PlaylistList {
 }
 
 impl Render for PlaylistList {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
         let mut main = div();
 
