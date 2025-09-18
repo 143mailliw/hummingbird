@@ -36,13 +36,8 @@ use crate::{
 /// Audio Graph is the most managed of the Windows backends: you can throw nearly any stream at
 /// any device and have it play. Unlike WASAPI, it supports multiple output formats to the same
 /// device, and unlike XAudio2 and DirectSound, it supports low-latency mode.
+#[derive(Default)]
 pub struct AudioGraphProvider {}
-
-impl Default for AudioGraphProvider {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl DeviceProvider for AudioGraphProvider {
     fn initialize(&mut self) -> Result<(), InitializationError> {

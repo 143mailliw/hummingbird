@@ -9,7 +9,7 @@ use crate::{
     library::{db::LibraryAccess, types::TrackStats},
     ui::{
         components::{
-            icons::{DISC, SEARCH, SIDEBAR, SIDEBAR_INACTIVE},
+            icons::{DISC, SEARCH, SIDEBAR_INACTIVE},
             nav_button::nav_button,
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },

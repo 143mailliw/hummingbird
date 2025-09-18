@@ -9,7 +9,6 @@ use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 use table_data::{Column, TableData, TableSort};
 use table_item::TableItem;
-use tracing::warn;
 
 use crate::ui::{
     caching::hummingbird_cache,

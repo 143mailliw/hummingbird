@@ -26,7 +26,7 @@ impl Styled for NavButton {
 }
 
 impl RenderOnce for NavButton {
-    fn render(self, window: &mut gpui::Window, cx: &mut gpui::App) -> impl gpui::IntoElement {
+    fn render(self, _: &mut gpui::Window, cx: &mut gpui::App) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
 
         self.div

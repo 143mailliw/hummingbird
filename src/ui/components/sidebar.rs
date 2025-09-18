@@ -35,7 +35,7 @@ impl ParentElement for Sidebar {
 }
 
 impl RenderOnce for Sidebar {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         self.div.w(px(225.0)).flex().flex_col()
     }
 }
@@ -86,7 +86,7 @@ impl InteractiveElement for SidebarItem {
 }
 
 impl RenderOnce for SidebarItem {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         self.parent_div
@@ -123,7 +123,7 @@ pub fn sidebar_item(id: impl Into<ElementId>) -> SidebarItem {
 pub struct SidebarSeparator {}
 
 impl RenderOnce for SidebarSeparator {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<Theme>();
 
         div()

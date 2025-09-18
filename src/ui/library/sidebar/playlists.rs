@@ -11,7 +11,7 @@ use crate::{
     },
     ui::{
         components::{
-            icons::{icon, PLAYLIST, STAR},
+            icons::{PLAYLIST, STAR},
             sidebar::sidebar_item,
         },
         theme::Theme,

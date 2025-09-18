@@ -3,7 +3,6 @@ mod track_item;
 use std::sync::Arc;
 
 use gpui::{App, Entity, IntoElement, ListAlignment, ListState, Pixels, Window};
-use indexmap::IndexMap;
 
 use crate::library::types::{DBString, Track};
 use track_item::TrackItem;
