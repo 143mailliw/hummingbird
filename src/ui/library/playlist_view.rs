@@ -32,7 +32,7 @@ use crate::{
 
 pub struct PlaylistView {
     playlist: Arc<Playlist>,
-    playlist_track_ids: Arc<Vec<(i64, i64)>>,
+    playlist_track_ids: Arc<Vec<(i64, i64, i64)>>,
     views: Entity<AHashMap<usize, Entity<TrackItem>>>,
     render_counter: Entity<usize>,
 }
@@ -149,7 +149,7 @@ impl Render for PlaylistView {
                                                     .playlist_track_ids
                                                     .iter()
                                                     .zip(tracks.iter())
-                                                    .map(|((track, album), path)| {
+                                                    .map(|((_, track, album), path)| {
                                                         QueueItemData::new(
                                                             cx,
                                                             path.into(),
@@ -177,7 +177,7 @@ impl Render for PlaylistView {
                                                     .playlist_track_ids
                                                     .iter()
                                                     .zip(tracks.iter())
-                                                    .map(|((track, album), path)| {
+                                                    .map(|((_, track, album), path)| {
                                                         QueueItemData::new(
                                                             cx,
                                                             path.into(),
@@ -206,7 +206,7 @@ impl Render for PlaylistView {
                                                     .playlist_track_ids
                                                     .iter()
                                                     .zip(tracks.iter())
-                                                    .map(|((track, album), path)| {
+                                                    .map(|((_, track, album), path)| {
                                                         QueueItemData::new(
                                                             cx,
                                                             path.into(),
