@@ -11,6 +11,10 @@ use crate::{
         db::LibraryAccess,
         types::{Playlist, PlaylistType},
     },
+    playback::{
+        interface::{replace_queue, GPUIPlaybackInterface},
+        queue::QueueItemData,
+    },
     ui::{
         components::{
             button::{button, ButtonIntent, ButtonSize},
@@ -20,7 +24,7 @@ use crate::{
             track_item::{TrackItem, TrackItemLeftField},
             ArtistNameVisibility,
         },
-        models::{Models, PlaylistEvent},
+        models::{Models, PlaybackInfo, PlaylistEvent},
         theme::Theme,
         util::{create_or_retrieve_view, prune_views},
     },
@@ -135,21 +139,94 @@ impl Render for PlaylistView {
                                             .font_weight(FontWeight::SEMIBOLD)
                                             .intent(ButtonIntent::Primary)
                                             .child(icon(PLAY).size(px(16.0)).my_auto())
-                                            .child("Play"),
+                                            .child("Play")
+                                            .on_click(cx.listener(|this, _, _, cx| {
+                                                let tracks = cx
+                                                    .get_playlist_track_files(this.playlist.id)
+                                                    .unwrap();
+
+                                                let queue_items = this
+                                                    .playlist_track_ids
+                                                    .iter()
+                                                    .zip(tracks.iter())
+                                                    .map(|((track, album), path)| {
+                                                        QueueItemData::new(
+                                                            cx,
+                                                            path.into(),
+                                                            Some(*track),
+                                                            Some(*album),
+                                                        )
+                                                    })
+                                                    .collect();
+
+                                                replace_queue(queue_items, cx);
+                                            })),
                                     )
                                     .child(
                                         button()
                                             .id("playlist-add-button")
                                             .size(ButtonSize::Large)
                                             .flex_none()
-                                            .child(icon(CIRCLE_PLUS).size(px(16.0)).my_auto()),
+                                            .child(icon(CIRCLE_PLUS).size(px(16.0)).my_auto())
+                                            .on_click(cx.listener(|this, _, _, cx| {
+                                                let tracks = cx
+                                                    .get_playlist_track_files(this.playlist.id)
+                                                    .unwrap();
+
+                                                let queue_items = this
+                                                    .playlist_track_ids
+                                                    .iter()
+                                                    .zip(tracks.iter())
+                                                    .map(|((track, album), path)| {
+                                                        QueueItemData::new(
+                                                            cx,
+                                                            path.into(),
+                                                            Some(*track),
+                                                            Some(*album),
+                                                        )
+                                                    })
+                                                    .collect();
+
+                                                cx.global::<GPUIPlaybackInterface>()
+                                                    .queue_list(queue_items);
+                                            })),
                                     )
                                     .child(
                                         button()
                                             .id("playlist-shuffle-button")
                                             .size(ButtonSize::Large)
                                             .flex_none()
-                                            .child(icon(SHUFFLE).size(px(16.0)).my_auto()),
+                                            .child(icon(SHUFFLE).size(px(16.0)).my_auto())
+                                            .on_click(cx.listener(|this, _, _, cx| {
+                                                let tracks = cx
+                                                    .get_playlist_track_files(this.playlist.id)
+                                                    .unwrap();
+
+                                                let queue_items = this
+                                                    .playlist_track_ids
+                                                    .iter()
+                                                    .zip(tracks.iter())
+                                                    .map(|((track, album), path)| {
+                                                        QueueItemData::new(
+                                                            cx,
+                                                            path.into(),
+                                                            Some(*track),
+                                                            Some(*album),
+                                                        )
+                                                    })
+                                                    .collect();
+
+                                                if !(*cx
+                                                    .global::<PlaybackInfo>()
+                                                    .shuffling
+                                                    .read(cx))
+                                                {
+                                                    cx.global::<GPUIPlaybackInterface>()
+                                                        .toggle_shuffle();
+                                                }
+
+                                                replace_queue(queue_items, cx);
+                                            })),
                                     ),
                             ),
                     ),
