@@ -16,7 +16,10 @@ use crate::{
             button::{button, ButtonIntent, ButtonSize},
             icons::{icon, CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR},
         },
-        library::track_listing::{track_item::TrackItem, ArtistNameVisibility},
+        library::track_listing::{
+            track_item::{TrackItem, TrackItemLeftField},
+            ArtistNameVisibility,
+        },
         models::{Models, PlaylistEvent},
         theme::Theme,
         util::{create_or_retrieve_view, prune_views},
@@ -98,7 +101,7 @@ impl Render for PlaylistView {
                                 } else {
                                     PLAYLIST
                                 })
-                                .size(px(70.0)),
+                                .size(px(100.0)),
                             ),
                     )
                     .child(
@@ -178,6 +181,7 @@ impl Render for PlaylistView {
                                         Arc::try_unwrap(track).unwrap(),
                                         false,
                                         ArtistNameVisibility::Always,
+                                        TrackItemLeftField::Art,
                                     )
                                 },
                                 cx,

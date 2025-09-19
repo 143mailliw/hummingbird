@@ -1,5 +1,5 @@
 use gpui::prelude::{FluentBuilder, *};
-use gpui::{div, px, App, Entity, FontWeight, IntoElement, SharedString, Window};
+use gpui::{div, img, px, App, Entity, FontWeight, IntoElement, SharedString, Window};
 
 use crate::ui::components::icons::{icon, PLAY, PLUS, STAR, STAR_FILLED};
 use crate::ui::models::PlaylistEvent;
@@ -27,6 +27,14 @@ pub struct TrackItem {
     pub artist_name_visibility: ArtistNameVisibility,
     pub is_liked: Option<i64>,
     pub hover_group: SharedString,
+    left_field: TrackItemLeftField,
+    album_art: Option<SharedString>,
+}
+
+#[derive(Eq, PartialEq)]
+pub enum TrackItemLeftField {
+    TrackNum,
+    Art,
 }
 
 impl TrackItem {
@@ -35,13 +43,18 @@ impl TrackItem {
         track: Track,
         is_start: bool,
         anv: ArtistNameVisibility,
+        left_field: TrackItemLeftField,
     ) -> Entity<Self> {
         cx.new(|cx| Self {
             hover_group: format!("track-{}", track.id).into(),
             is_liked: cx.playlist_has_track(1, track.id).unwrap_or_default(),
+            album_art: track
+                .album_id
+                .map(|v| format!("!db://album/{v}/thumb").into()),
             track,
             is_start,
             artist_name_visibility: anv,
+            left_field,
         })
     }
 }
@@ -112,12 +125,28 @@ impl Render for TrackItem {
                                 })
                             })
                             .max_w_full()
-                            .child(
-                                div().w(px(62.0)).flex_shrink_0().child(format!(
+                            .when(self.left_field == TrackItemLeftField::TrackNum, |this| {
+                                this.child(div().w(px(62.0)).flex_shrink_0().child(format!(
                                     "{}",
                                     self.track.track_number.unwrap_or_default()
-                                )),
-                            )
+                                )))
+                            })
+                            .when(self.left_field == TrackItemLeftField::Art, |this| {
+                                this.child(
+                                    div()
+                                        .w(px(22.0))
+                                        .h(px(22.0))
+                                        .mr(px(12.0))
+                                        .my_auto()
+                                        .rounded(px(3.0))
+                                        .bg(theme.album_art_background)
+                                        .when_some(self.album_art.clone(), |this, art| {
+                                            this.child(
+                                                img(art).w(px(22.0)).h(px(22.0)).rounded(px(3.0)),
+                                            )
+                                        }),
+                                )
+                            })
                             .child(
                                 div()
                                     .font_weight(FontWeight::SEMIBOLD)

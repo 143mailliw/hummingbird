@@ -4,7 +4,10 @@ use std::sync::Arc;
 
 use gpui::{App, Entity, IntoElement, ListAlignment, ListState, Pixels, Window};
 
-use crate::library::types::{DBString, Track};
+use crate::{
+    library::types::{DBString, Track},
+    ui::library::track_listing::track_item::TrackItemLeftField,
+};
 use track_item::TrackItem;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -42,6 +45,7 @@ impl TrackListing {
                             track.clone(),
                             index == 0,
                             artist_name_visibility.clone(),
+                            TrackItemLeftField::TrackNum,
                         )
                     })
                     .collect(),
