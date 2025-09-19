@@ -209,7 +209,7 @@ pub struct Album {
     pub isrc: Option<DBString>,
 }
 
-#[derive(sqlx::FromRow, Clone)]
+#[derive(sqlx::FromRow, Clone, Debug)]
 pub struct Track {
     pub id: i64,
     pub title: DBString,

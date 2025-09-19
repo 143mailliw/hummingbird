@@ -127,25 +127,9 @@ impl Render for TrackItem {
                             )
                             .child(
                                 div()
-                                    .font_weight(FontWeight::LIGHT)
-                                    .text_sm()
-                                    .my_auto()
-                                    .text_color(theme.text_secondary)
-                                    .text_ellipsis()
-                                    .overflow_x_hidden()
-                                    .flex_shrink()
-                                    .ml_auto()
-                                    .when(show_artist_name, |this| {
-                                        this.when_some(
-                                            self.track.artist_names.clone(),
-                                            |this, v| this.child(v.0),
-                                        )
-                                    }),
-                            )
-                            .child(
-                                div()
                                     .id("like")
-                                    .ml(px(8.0))
+                                    .mr(px(-4.0))
+                                    .ml_auto()
                                     .my_auto()
                                     .rounded_sm()
                                     .p(px(4.0))
@@ -188,7 +172,24 @@ impl Render for TrackItem {
                                         cx.notify();
                                     })),
                             )
-                            .child(div().ml(px(8.0)).flex_shrink_0().child(format!(
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::LIGHT)
+                                    .text_sm()
+                                    .my_auto()
+                                    .text_color(theme.text_secondary)
+                                    .text_ellipsis()
+                                    .overflow_x_hidden()
+                                    .flex_shrink()
+                                    .ml(px(12.0))
+                                    .when(show_artist_name, |this| {
+                                        this.when_some(
+                                            self.track.artist_names.clone(),
+                                            |this, v| this.child(v.0),
+                                        )
+                                    }),
+                            )
+                            .child(div().ml(px(12.0)).flex_shrink_0().child(format!(
                                 "{}:{:02}",
                                 self.track.duration / 60,
                                 self.track.duration % 60

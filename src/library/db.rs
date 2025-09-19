@@ -258,7 +258,7 @@ pub async fn get_playlist(
 pub async fn get_playlist_track_files(
     pool: &SqlitePool,
     playlist_id: i64,
-) -> Result<Arc<Vec<(String,)>>, sqlx::Error> {
+) -> Result<Arc<Vec<String>>, sqlx::Error> {
     let query = include_str!("../../queries/playlist/get_track_files.sql");
 
     let track_files: Vec<(String,)> = sqlx::query_as(query)
@@ -266,16 +266,16 @@ pub async fn get_playlist_track_files(
         .fetch_all(pool)
         .await?;
 
-    Ok(Arc::new(track_files))
+    Ok(Arc::new(track_files.into_iter().map(|v| v.0).collect()))
 }
 
 pub async fn get_playlist_tracks(
     pool: &SqlitePool,
     playlist_id: i64,
-) -> Result<Arc<Vec<(i32,)>>, sqlx::Error> {
+) -> Result<Arc<Vec<(i64, i64)>>, sqlx::Error> {
     let query = include_str!("../../queries/playlist/get_track_listing.sql");
 
-    let tracks: Vec<(i32,)> = sqlx::query_as(query)
+    let tracks: Vec<(i64, i64)> = sqlx::query_as(query)
         .bind(playlist_id)
         .fetch_all(pool)
         .await?;
@@ -379,11 +379,8 @@ pub trait LibraryAccess {
     fn delete_playlist(&self, playlist_id: i64) -> Result<(), sqlx::Error>;
     fn get_all_playlists(&self) -> Result<Arc<Vec<PlaylistWithCount>>, sqlx::Error>;
     fn get_playlist(&self, playlist_id: i64) -> Result<Arc<Playlist>, sqlx::Error>;
-    fn get_playlist_track_files(
-        &self,
-        playlist_id: i64,
-    ) -> Result<Arc<Vec<(String,)>>, sqlx::Error>;
-    fn get_playlist_tracks(&self, playlist_id: i64) -> Result<Arc<Vec<(i32,)>>, sqlx::Error>;
+    fn get_playlist_track_files(&self, playlist_id: i64) -> Result<Arc<Vec<String>>, sqlx::Error>;
+    fn get_playlist_tracks(&self, playlist_id: i64) -> Result<Arc<Vec<(i64, i64)>>, sqlx::Error>;
     fn move_playlist_item(&self, item_id: i64, new_position: i64) -> Result<(), sqlx::Error>;
     fn remove_playlist_item(&self, item_id: i64) -> Result<(), sqlx::Error>;
     fn get_playlist_item(&self, item_id: i64) -> Result<PlaylistItem, sqlx::Error>;
@@ -462,15 +459,12 @@ impl LibraryAccess for App {
         block_on(get_playlist(&pool.0, playlist_id))
     }
 
-    fn get_playlist_track_files(
-        &self,
-        playlist_id: i64,
-    ) -> Result<Arc<Vec<(String,)>>, sqlx::Error> {
+    fn get_playlist_track_files(&self, playlist_id: i64) -> Result<Arc<Vec<String>>, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(get_playlist_track_files(&pool.0, playlist_id))
     }
 
-    fn get_playlist_tracks(&self, playlist_id: i64) -> Result<Arc<Vec<(i32,)>>, sqlx::Error> {
+    fn get_playlist_tracks(&self, playlist_id: i64) -> Result<Arc<Vec<(i64, i64)>>, sqlx::Error> {
         let pool: &Pool = self.global();
         block_on(get_playlist_tracks(&pool.0, playlist_id))
     }

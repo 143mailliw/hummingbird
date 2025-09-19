@@ -1,4 +1,4 @@
-mod track_item;
+pub mod track_item;
 
 use std::sync::Arc;
 
