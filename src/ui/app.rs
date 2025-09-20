@@ -15,7 +15,11 @@ use crate::{
         db::create_pool,
         scan::{ScanInterface, ScanThread},
     },
-    playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
+    playback::{
+        interface::{GPUIPlaybackInterface, PlaybackInterface},
+        queue::QueueItemData,
+        thread::PlaybackThread,
+    },
     services::controllers::make_cl,
     settings::{
         setup_settings,
@@ -178,6 +182,16 @@ impl Render for WindowShadow {
                     })
                     .on_mouse_move(|_e, _, cx| {
                         cx.stop_propagation();
+                    })
+                    .on_drop(|ev: &ExternalPaths, _, cx| {
+                        let items = ev
+                            .paths()
+                            .iter()
+                            .map(|path| QueueItemData::new(cx, path.clone(), None, None))
+                            .collect();
+
+                        let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                        playback_interface.queue_list(items);
                     })
                     .overflow_hidden()
                     .bg(theme.background_primary)
