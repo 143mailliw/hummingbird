@@ -300,28 +300,32 @@ impl Render for Queue {
                         .read()
                         .expect("could not read queue");
 
-                    let items = queue[range].to_vec();
+                    if range.end <= queue.len() {
+                        let items = queue[range].to_vec();
 
-                    drop(queue);
+                        drop(queue);
 
-                    items
-                        .into_iter()
-                        .enumerate()
-                        .map(|(idx, item)| {
-                            let idx = idx + start;
+                        items
+                            .into_iter()
+                            .enumerate()
+                            .map(|(idx, item)| {
+                                let idx = idx + start;
 
-                            if !is_templ_render {
-                                prune_views(&views_model, &render_counter, idx, cx);
-                            }
+                                if !is_templ_render {
+                                    prune_views(&views_model, &render_counter, idx, cx);
+                                }
 
-                            div().child(create_or_retrieve_view(
-                                &views_model,
-                                idx,
-                                move |cx| QueueItem::new(cx, Some(item), idx),
-                                cx,
-                            ))
-                        })
-                        .collect()
+                                div().child(create_or_retrieve_view(
+                                    &views_model,
+                                    idx,
+                                    move |cx| QueueItem::new(cx, Some(item), idx),
+                                    cx,
+                                ))
+                            })
+                            .collect()
+                    } else {
+                        Vec::new()
+                    }
                 })
                 .w_full()
                 .h_full()
