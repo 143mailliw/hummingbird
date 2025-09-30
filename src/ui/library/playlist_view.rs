@@ -30,6 +30,8 @@ use crate::{
     },
 };
 
+use super::track_listing::track_item::TrackPlaylistInfo;
+
 pub struct PlaylistView {
     playlist: Arc<Playlist>,
     playlist_track_ids: Arc<Vec<(i64, i64, i64)>>,
@@ -71,6 +73,7 @@ impl Render for PlaylistView {
         let items_clone = self.playlist_track_ids.clone();
         let views_model = self.views.clone();
         let render_counter = self.render_counter.clone();
+        let pl_id = self.playlist.id;
 
         div()
             .pt(px(10.0))
@@ -259,6 +262,10 @@ impl Render for PlaylistView {
                                         false,
                                         ArtistNameVisibility::Always,
                                         TrackItemLeftField::Art,
+                                        Some(TrackPlaylistInfo {
+                                            id: pl_id,
+                                            item_id: item.0,
+                                        }),
                                     )
                                 },
                                 cx,

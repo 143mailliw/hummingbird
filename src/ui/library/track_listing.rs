@@ -46,6 +46,7 @@ impl TrackListing {
                             index == 0,
                             artist_name_visibility.clone(),
                             TrackItemLeftField::TrackNum,
+                            None,
                         )
                     })
                     .collect(),

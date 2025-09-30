@@ -21,6 +21,11 @@ use crate::{
 
 use super::ArtistNameVisibility;
 
+pub struct TrackPlaylistInfo {
+    pub id: i64,
+    pub item_id: i64,
+}
+
 pub struct TrackItem {
     pub track: Track,
     pub is_start: bool,
@@ -29,6 +34,7 @@ pub struct TrackItem {
     pub hover_group: SharedString,
     left_field: TrackItemLeftField,
     album_art: Option<SharedString>,
+    pl_info: Option<TrackPlaylistInfo>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -44,6 +50,7 @@ impl TrackItem {
         is_start: bool,
         anv: ArtistNameVisibility,
         left_field: TrackItemLeftField,
+        pl_info: Option<TrackPlaylistInfo>,
     ) -> Entity<Self> {
         cx.new(|cx| Self {
             hover_group: format!("track-{}", track.id).into(),
@@ -55,6 +62,7 @@ impl TrackItem {
             is_start,
             artist_name_visibility: anv,
             left_field,
+            pl_info,
         })
     }
 }
@@ -84,7 +92,8 @@ impl Render for TrackItem {
                     .id(self.track.id as usize)
                     .on_click({
                         let track = self.track.clone();
-                        move |_, _, cx| play_from_track(cx, &track)
+                        let plid = self.pl_info.as_ref().map(|pl| pl.id);
+                        move |_, _, cx| play_from_track(cx, &track, plid)
                     })
                     .when(self.is_start, |this| {
                         this.child(
@@ -256,7 +265,10 @@ impl Render for TrackItem {
                             "track_play_from_here",
                             None::<&str>,
                             "Play from here",
-                            move |_, _, cx| play_from_track(cx, &track),
+                            {
+                                let plid = self.pl_info.as_ref().map(|pl| pl.id);
+                                move |_, _, cx| play_from_track(cx, &track, plid)
+                            },
                         ))
                         .item(menu_item(
                             "track_add_to_queue",
@@ -278,8 +290,22 @@ impl Render for TrackItem {
     }
 }
 
-pub fn play_from_track(cx: &mut App, track: &Track) {
-    let queue_items = if let Some(album_id) = track.album_id {
+pub fn play_from_track(cx: &mut App, track: &Track, pl_id: Option<i64>) {
+    let queue_items = if let Some(pl_id) = pl_id {
+        let ids = cx
+            .get_playlist_tracks(pl_id)
+            .expect("failed to retrieve playlist track info");
+        let paths = cx
+            .get_playlist_track_files(pl_id)
+            .expect("failed to retrieve playlist track paths");
+
+        ids.iter()
+            .zip(paths.iter())
+            .map(|((_, track, album), path)| {
+                QueueItemData::new(cx, path.into(), Some(*track), Some(*album))
+            })
+            .collect()
+    } else if let Some(album_id) = track.album_id {
         cx.list_tracks_in_album(album_id)
             .expect("Failed to retrieve tracks")
             .iter()
