@@ -15,11 +15,7 @@ use crate::{
         db::create_pool,
         scan::{ScanInterface, ScanThread},
     },
-    playback::{
-        interface::{GPUIPlaybackInterface, PlaybackInterface},
-        queue::QueueItemData,
-        thread::PlaybackThread,
-    },
+    playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
     services::controllers::make_cl,
     settings::{
         setup_settings,

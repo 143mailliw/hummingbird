@@ -60,7 +60,7 @@ impl Render for Sidebar {
                 div()
                     .flex()
                     .mb(px(10.0))
-                    .mx(px(-5.0))
+                    .mx(px(-2.0))
                     .child(nav_button("search", SEARCH).on_click(|_, window, cx| {
                         window.dispatch_action(Box::new(Search), cx);
                     }))
@@ -76,7 +76,11 @@ impl Render for Sidebar {
                         });
                     }))
                     .when(
-                        current_view.iter().last() == Some(&ViewSwitchMessage::Albums),
+                        match current_view.iter().last() {
+                            Some(ViewSwitchMessage::Albums) => true,
+                            Some(ViewSwitchMessage::Release(_)) => true,
+                            _ => false,
+                        },
                         |this| this.active(),
                     ),
             )
