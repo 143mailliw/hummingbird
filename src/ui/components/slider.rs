@@ -152,8 +152,8 @@ impl Element for Slider {
                         cx.stop_propagation();
 
                         let relative = ev.position - bounds.origin;
-                        let relative_x = relative.x.0;
-                        let width = bounds.size.width.0;
+                        let relative_x: f32 = relative.x.into();
+                        let width: f32 = bounds.size.width.into();
                         let value = (relative_x / width).clamp(0.0, 1.0);
 
                         (func.borrow_mut())(value, window, cx);
@@ -165,8 +165,8 @@ impl Element for Slider {
                     cx.on_mouse_event(move |ev: &MouseMoveEvent, _, window, cx| {
                         if *mouse_in_2.borrow() {
                             let relative = ev.position - bounds.origin;
-                            let relative_x = relative.x.0;
-                            let width = bounds.size.width.0;
+                            let relative_x: f32 = relative.x.into();
+                            let width: f32 = bounds.size.width.into();
                             let value = (relative_x / width).clamp(0.0, 1.0);
 
                             (func_copy.borrow_mut())(value, window, cx);

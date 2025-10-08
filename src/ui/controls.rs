@@ -617,9 +617,9 @@ impl Render for SecondaryControls {
                                 }),
                         )
                         .on_scroll_wheel(move |ev, _, cx| {
-                            let delta = ev.delta.pixel_delta(px(0.01666666)).y.0;
+                            let delta: f64 = ev.delta.pixel_delta(px(0.01666666)).y.into();
                             cx.global::<GPUIPlaybackInterface>().set_volume(f64::clamp(
-                                volume + delta as f64,
+                                volume + delta,
                                 0_f64,
                                 1_f64,
                             ));
