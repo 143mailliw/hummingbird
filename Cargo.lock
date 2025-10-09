@@ -2519,8 +2519,9 @@ dependencies = [
 
 [[package]]
 name = "gpui"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8a209a56079b7af7d158e410aaad8666edf5ad55450803eaace98a4eef383f7"
 dependencies = [
  "anyhow",
  "as-raw-xcb-connection",
@@ -2613,8 +2614,9 @@ dependencies = [
 
 [[package]]
 name = "gpui-macros"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "756549abfa9eef8391c685ae8a79a1a0e30b7d6e51f32cdce61998c689718710"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -8616,7 +8618,8 @@ checksum = "bec9e4a500ca8864c5b47b8b482a73d62e4237670e5b5f1d6b9e3cae50f28f2b"
 [[package]]
 name = "xim-ctext"
 version = "0.3.0"
-source = "git+https://github.com/zed-industries/xim-rs.git?rev=16f35a2c881b815a2b6cdfd6687988e84f8447d8#16f35a2c881b815a2b6cdfd6687988e84f8447d8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ac61a7062c40f3c37b6e82eeeef835d5cc7824b632a72784a89b3963c33284c"
 dependencies = [
  "encoding_rs",
 ]
@@ -8624,9 +8627,10 @@ dependencies = [
 [[package]]
 name = "xim-parser"
 version = "0.2.1"
-source = "git+https://github.com/zed-industries/xim-rs.git?rev=16f35a2c881b815a2b6cdfd6687988e84f8447d8#16f35a2c881b815a2b6cdfd6687988e84f8447d8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b100b895758fefbf602129502acc0dd474bc08dd1e2036f17a7c118d6fd6fe53"
 dependencies = [
- "bitflags 2.9.4",
+ "bitflags 1.3.2",
 ]
 
 [[package]]
@@ -8756,8 +8760,9 @@ dependencies = [
 
 [[package]]
 name = "zed-collections"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec1b9b3b5d39c11198dda53dbd50e18fbcaebc854c7c62921bf444cb5f21ab8a"
 dependencies = [
  "indexmap",
  "rustc-hash 2.1.1",
@@ -8766,8 +8771,9 @@ dependencies = [
 
 [[package]]
 name = "zed-derive-refineable"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0438b07ec0b8965715363dd1096a28e2d758408b7d67d683510b57dc2d121210"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8778,7 +8784,8 @@ dependencies = [
 [[package]]
 name = "zed-font-kit"
 version = "0.14.1-zed"
-source = "git+https://github.com/zed-industries/font-kit?rev=110523127440aefb11ce0cf280ae7c5071337ec5#110523127440aefb11ce0cf280ae7c5071337ec5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3898e450f36f852edda72e3f985c34426042c4951790b23b107f93394f9bff5"
 dependencies = [
  "bitflags 2.9.4",
  "byteorder",
@@ -8801,8 +8808,9 @@ dependencies = [
 
 [[package]]
 name = "zed-http-client"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c3f2bb8e91cfc16ef201813d76fa6c4e98e5193f07f88d51c7b912d3761f72f"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -8827,8 +8835,9 @@ dependencies = [
 
 [[package]]
 name = "zed-media"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b145013b2053b9b9bef788405815240e4d8648a3c8271ce9e49c7ef2384f48e7"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -8843,8 +8852,9 @@ dependencies = [
 
 [[package]]
 name = "zed-perf"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfdfdb2834f17691d64bbb21aa7b7dd2e933df9711c5c60874973254f37b335c"
 dependencies = [
  "serde",
  "serde_json",
@@ -8854,8 +8864,9 @@ dependencies = [
 
 [[package]]
 name = "zed-refineable"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1898ca1f0e28bbe3fe1183899f79c083b646f8b8cea3ae52be6834ab29e0d656"
 dependencies = [
  "workspace-hack",
  "zed-derive-refineable",
@@ -8864,7 +8875,8 @@ dependencies = [
 [[package]]
 name = "zed-reqwest"
 version = "0.12.15-zed"
-source = "git+https://github.com/zed-industries/reqwest.git?rev=c15662463bda39148ba154100dd44d3fba5873a4#c15662463bda39148ba154100dd44d3fba5873a4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac2d05756ff48539950c3282ad7acf3817ad3f08797c205ad1c34a2ce03b9970"
 dependencies = [
  "base64",
  "bytes",
@@ -8913,7 +8925,8 @@ dependencies = [
 [[package]]
 name = "zed-scap"
 version = "0.0.8-zed"
-source = "git+https://github.com/zed-industries/scap?rev=4afea48c3b002197176fb19cd0f9b180dd36eaac#4afea48c3b002197176fb19cd0f9b180dd36eaac"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6b338d705ae33a43ca00287c11129303a7a0aa57b101b72a1c08c863f698ac8"
 dependencies = [
  "anyhow",
  "cocoa 0.25.0",
@@ -8933,8 +8946,9 @@ dependencies = [
 
 [[package]]
 name = "zed-semantic-version"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "963eb3815502d03cdb116555e624baa87c286466cc2ad6b022ab5154d4032911"
 dependencies = [
  "anyhow",
  "serde",
@@ -8943,8 +8957,9 @@ dependencies = [
 
 [[package]]
 name = "zed-sum-tree"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d490156d0d7311855564d6e1d6dccab992405a0c0e15e1c8ef18920c02177e35"
 dependencies = [
  "arrayvec",
  "log",
@@ -8954,8 +8969,9 @@ dependencies = [
 
 [[package]]
 name = "zed-util"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "989eeb4bc093333d33226f5a478d97d1d9b305fce5798bc89dd094768b4286b7"
 dependencies = [
  "anyhow",
  "async-fs",
@@ -8990,8 +9006,9 @@ dependencies = [
 
 [[package]]
 name = "zed-util-macros"
-version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#4dbd18648561310a9dbe85491f0e3675b4f73c3a"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47eb0c78e38dfec0e59237f5cff5613a926c0262c3688ce070029ca3cc54fa63"
 dependencies = [
  "quote",
  "syn 2.0.106",
@@ -9002,7 +9019,8 @@ dependencies = [
 [[package]]
 name = "zed-xim"
 version = "0.4.0-zed"
-source = "git+https://github.com/zed-industries/xim-rs.git?rev=16f35a2c881b815a2b6cdfd6687988e84f8447d8#16f35a2c881b815a2b6cdfd6687988e84f8447d8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c0b46ed118eba34d9ba53d94ddc0b665e0e06a2cf874cfa2dd5dec278148642"
 dependencies = [
  "ahash",
  "hashbrown 0.14.5",

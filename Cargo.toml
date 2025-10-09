@@ -24,7 +24,7 @@ dateparser = "0.2"
 directories = "6"
 globwalk = "0.9"
 futures = "0.3"
-gpui = { git = "https://github.com/zed-industries/zed" }
+gpui = "0.2.0"
 image = "0.25"
 indexmap = { version = "2", features = ["std", "serde"] }
 intx = "0.1"
