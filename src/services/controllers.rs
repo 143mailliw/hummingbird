@@ -235,9 +235,14 @@ pub struct CLHolder(pub Entity<ControllerList>);
 impl Global for CLHolder {}
 
 pub fn make_cl(cx: &mut App, window: &mut Window) {
-    let rwh = HasWindowHandle::window_handle(window)
-        .ok()
-        .map(|v| v.as_raw());
+    let rwh = if cfg!(target_os = "linux") {
+        // X11 windows panic with unimplemented and we don't need it here
+        None
+    } else {
+        HasWindowHandle::window_handle(window)
+            .ok()
+            .map(|v| v.as_raw())
+    };
 
     // cloning actually is neccesary because of the async move closure in pc_mutex
     #[allow(clippy::unnecessary_to_owned)]
