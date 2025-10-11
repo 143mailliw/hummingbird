@@ -43,7 +43,9 @@ impl TrackListing {
                         TrackItem::new(
                             cx,
                             track.clone(),
-                            index == 0,
+                            (index == 0 || track.track_number == Some(1))
+                                && track.disc_number != Some(0)
+                                && track.disc_number.is_some(),
                             artist_name_visibility.clone(),
                             TrackItemLeftField::TrackNum,
                             None,
