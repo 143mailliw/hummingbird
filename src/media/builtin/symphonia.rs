@@ -89,8 +89,11 @@ impl SymphoniaProvider {
                     }
                 }
                 Some(StandardTagKey::Date) => {
-                    self.current_metadata.date =
-                        Some(dateparser::parse(&tag.value.to_string()).ok()).flatten();
+                    if let Ok(date) = dateparser::parse(&tag.value.to_string()) {
+                        self.current_metadata.date = Some(date);
+                    } else if let Ok(year) = tag.value.to_string().parse::<u16>() {
+                        self.current_metadata.year = Some(year);
+                    }
                 }
                 Some(StandardTagKey::TrackNumber) => match &tag.value {
                     Value::String(v) => {

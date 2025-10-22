@@ -492,6 +492,7 @@ impl ScanThread {
                         .bind(resized_image)
                         .bind(thumb)
                         .bind(metadata.date)
+                        .bind(metadata.year)
                         .bind(&metadata.label)
                         .bind(&metadata.catalog)
                         .bind(&metadata.isrc)

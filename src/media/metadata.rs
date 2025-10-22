@@ -15,6 +15,10 @@ pub struct Metadata {
     pub bpm: Option<u64>,
     pub compilation: bool,
     pub date: Option<DateTime<Utc>>,
+    /// Optional year field. If the date field is filled, the year field will be empty. This field
+    /// exists because some tagging software uses the date field as a year field, which cannot be
+    /// handled properly as a date.
+    pub year: Option<u16>,
 
     pub track_current: Option<u64>,
     pub track_max: Option<u64>,

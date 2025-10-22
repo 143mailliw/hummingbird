@@ -310,6 +310,7 @@ impl Render for ReleaseView {
             .when(
                 self.release_info.is_some()
                     || self.album.release_date.is_some()
+                    || self.album.release_year.is_some()
                     || self.album.isrc.is_some(),
                 |this| {
                     this.child(
@@ -329,6 +330,9 @@ impl Render for ReleaseView {
                                 this.child(
                                     div().child(format!("Released {}", date.format("%B %-e, %Y"))),
                                 )
+                            })
+                            .when_some(self.album.release_year, |this, year| {
+                                this.child(div().child(format!("Released {year}")))
                             })
                             .when_some(self.album.isrc.as_ref(), |this, isrc| {
                                 this.child(div().child(isrc.clone()))

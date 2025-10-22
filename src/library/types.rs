@@ -192,6 +192,11 @@ pub struct Album {
     pub artist_id: i64,
     #[sqlx(default)]
     pub release_date: Option<DateTime<Utc>>,
+    #[sqlx(default)]
+    /// Optional year field. If the date field is filled, the year field will be empty. This field
+    /// exists because some tagging software uses the date field as a year field, which cannot be
+    /// handled properly as a date.
+    pub release_year: Option<u16>,
     pub created_at: DateTime<Utc>,
     #[sqlx(default)]
     pub image: Option<Box<[u8]>>,
