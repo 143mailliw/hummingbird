@@ -9,10 +9,14 @@ use ahash::AHashMap;
 use async_channel::{Receiver, Sender};
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
-use image::{codecs::jpeg::JpegEncoder, imageops::thumbnail, DynamicImage, EncodableLayout};
+use image::{DynamicImage, EncodableLayout, codecs::jpeg::JpegEncoder, imageops::thumbnail};
 use smol::block_on;
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
+
+/// The version of the scanning process. If this version number is incremented, a re-scan of all
+/// files will be forced (see [ScanCommand::ForceScan]).
+const SCAN_VERSION: u16 = 1;
 
 use crate::{
     media::{
@@ -36,6 +40,11 @@ pub enum ScanEvent {
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum ScanCommand {
     Scan,
+    /// A force-scan is different to a regular scan in that it will ignore all previous data and
+    /// instead re-scan all tracks and re-create all album information. This is necessary when the
+    /// database schema has been changed, or a bug has been fixed with in the scanning proccess,
+    /// and is usually triggered by the scan version changing (see [SCAN_VERSION]).
+    ForceScan,
     Stop,
 }
 
@@ -66,6 +75,17 @@ impl ScanInterface {
         .detach();
     }
 
+    pub fn force_scan(&self) {
+        let command_tx = self.command_tx.clone();
+        smol::spawn(async move {
+            command_tx
+                .send(ScanCommand::ForceScan)
+                .await
+                .expect("could not send tx");
+        })
+        .detach();
+    }
+
     pub fn stop(&self) {
         let command_tx = self.command_tx.clone();
         smol::spawn(async move {
@@ -86,14 +106,16 @@ impl ScanInterface {
         let Some(events_rx) = events_rx else {
             return;
         };
-        cx.spawn(async move |cx| loop {
-            while let Ok(event) = events_rx.recv().await {
-                state_model
-                    .update(cx, |m, cx| {
-                        *m = event;
-                        cx.notify()
-                    })
-                    .expect("failed to update scan state model");
+        cx.spawn(async move |cx| {
+            loop {
+                while let Ok(event) = events_rx.recv().await {
+                    state_model
+                        .update(cx, |m, cx| {
+                            *m = event;
+                            cx.notify()
+                        })
+                        .expect("failed to update scan state model");
+                }
             }
         })
         .detach();
@@ -124,6 +146,13 @@ pub struct ScanThread {
     scan_record_path: Option<PathBuf>,
     scanned: u64,
     discovered_total: u64,
+    /// Whether or not to force a rescan all files. This is set to true when a force-scan is
+    /// requested, which results in all previous data being ignored.
+    is_force: bool,
+    /// A list of enocuntered albums. When force-scan is enabled, this list will be used to
+    /// determine whether or not an album should be inserted, instead of checking the
+    /// album_title_artist_id_idx index.
+    force_encountered_albums: Vec<i64>,
 }
 
 fn build_provider_table() -> Vec<(&'static [&'static str], Box<dyn MediaProvider>)> {
@@ -205,6 +234,8 @@ impl ScanThread {
                     scan_record_path: None,
                     scanned: 0,
                     discovered_total: 0,
+                    is_force: false,
+                    force_encountered_albums: Vec::new(),
                 };
 
                 thread.run();
@@ -273,6 +304,35 @@ impl ScanThread {
                         self.scan_state = ScanState::Cleanup;
                         self.scanned = 0;
                         self.discovered_total = 0;
+                        self.discovered = self.scan_settings.paths.clone();
+                        self.visited.clear();
+                        self.to_process.clear();
+                        self.is_force = false;
+
+                        let event_tx = self.event_tx.clone();
+                        smol::spawn(async move {
+                            event_tx
+                                .send(ScanEvent::Cleaning)
+                                .await
+                                .expect("could not send scan started event");
+                        })
+                        .detach();
+                    }
+                }
+                ScanCommand::ForceScan => {
+                    if self.scan_state == ScanState::Idle {
+                        self.discovered = self.scan_settings.paths.clone();
+                        self.scan_state = ScanState::Cleanup;
+                        self.scanned = 0;
+                        self.discovered_total = 0;
+                        self.discovered = self.scan_settings.paths.clone();
+                        self.visited.clear();
+                        self.to_process.clear();
+
+                        self.is_force = true;
+                        self.force_encountered_albums.clear();
+
+                        self.scan_record = AHashMap::new();
 
                         let event_tx = self.event_tx.clone();
                         smol::spawn(async move {
@@ -407,7 +467,7 @@ impl ScanThread {
     }
 
     async fn insert_album(
-        &self,
+        &mut self,
         metadata: &Metadata,
         artist_id: Option<i64>,
         image: &Option<Box<[u8]>>,
@@ -428,9 +488,21 @@ impl ScanThread {
                 .fetch_one(&self.pool)
                 .await;
 
-        match result {
-            Ok(v) => Ok(Some(v.0)),
-            Err(sqlx::Error::RowNotFound) => {
+        let should_force = if let Ok((id,)) = &result
+            && self.is_force
+        {
+            let result = !self.force_encountered_albums.contains(id) && self.is_force;
+
+            self.force_encountered_albums.push(*id);
+
+            result
+        } else {
+            false
+        };
+
+        match (result, should_force) {
+            (Ok(v), false) => Ok(Some(v.0)),
+            (Err(sqlx::Error::RowNotFound), _) | (Ok(_), true) => {
                 let (resized_image, thumb) = match image {
                     Some(image) => {
                         // if there is a decode error, just ignore it and pretend there is no image
@@ -502,7 +574,7 @@ impl ScanThread {
 
                 Ok(Some(result.0))
             }
-            Err(e) => Err(e.into()),
+            (Err(e), _) => Err(e.into()),
         }
     }
 

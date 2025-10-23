@@ -3,8 +3,8 @@ use std::{path::Path, sync::Arc};
 use gpui::App;
 use smol::block_on;
 use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
     SqlitePool,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
 };
 use tracing::debug;
 

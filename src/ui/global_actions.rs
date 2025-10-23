@@ -1,13 +1,16 @@
-use gpui::{actions, App, KeyBinding, Menu, MenuItem, SharedString};
+use gpui::{App, KeyBinding, Menu, MenuItem, SharedString, actions};
 use tracing::{debug, info};
 
-use crate::playback::{interface::GPUIPlaybackInterface, thread::PlaybackState};
+use crate::{
+    library::scan::ScanInterface,
+    playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
+};
 
 use super::models::{Models, PlaybackInfo};
 
 actions!(
     hummingbird,
-    [About, Quit, PlayPause, Next, Previous, Search]
+    [About, Quit, PlayPause, Next, Previous, Search, ForceScan]
 );
 
 actions!(hummingbird, [HideSelf, HideOthers, ShowAll]);
@@ -22,6 +25,7 @@ pub fn register_actions(cx: &mut App) {
     cx.on_action(hide_others);
     cx.on_action(show_all);
     cx.on_action(about);
+    cx.on_action(force_scan);
     debug!("actions: {:?}", cx.all_action_names());
     debug!("action available: {:?}", cx.is_action_available(&Quit));
     if cfg!(target_os = "macos") {
@@ -37,6 +41,7 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("ctrl-left", Previous, None)]);
         cx.bind_keys([KeyBinding::new("ctrl-f", Search, None)]);
     }
+    cx.bind_keys([KeyBinding::new("alt-shift-s", ForceScan, None)]);
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
     cx.set_menus(vec![
         Menu {
@@ -113,4 +118,9 @@ fn show_all(_: &ShowAll, cx: &mut App) {
 fn about(_: &About, cx: &mut App) {
     let show_about = cx.global::<Models>().show_about.clone();
     show_about.write(cx, true);
+}
+
+fn force_scan(_: &ForceScan, cx: &mut App) {
+    let scanner = cx.global::<ScanInterface>();
+    scanner.force_scan();
 }

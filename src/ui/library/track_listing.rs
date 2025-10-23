@@ -66,7 +66,7 @@ impl TrackListing {
 
     pub fn make_render_fn(
         &self,
-    ) -> impl Fn(usize, &mut Window, &mut App) -> gpui::AnyElement + Clone {
+    ) -> impl Fn(usize, &mut Window, &mut App) -> gpui::AnyElement + Clone + 'static {
         let tracks = self.tracks.clone();
         move |idx, _, _| tracks[idx].clone().into_any_element()
     }

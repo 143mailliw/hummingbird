@@ -9,14 +9,14 @@ use crate::{
         types::{Album, Artist, Track},
     },
     playback::{
-        interface::{replace_queue, GPUIPlaybackInterface},
+        interface::{GPUIPlaybackInterface, replace_queue},
         queue::QueueItemData,
         thread::PlaybackState,
     },
     ui::{
         components::{
-            button::{button, ButtonIntent, ButtonSize},
-            icons::{icon, CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE},
+            button::{ButtonIntent, ButtonSize, button},
+            icons::{CIRCLE_PLUS, PAUSE, PLAY, SHUFFLE, icon},
         },
         global_actions::PlayPause,
         library::track_listing::{ArtistNameVisibility, TrackListing},
@@ -298,8 +298,9 @@ impl Render for ReleaseView {
             )
             .child({
                 let render_fn = self.track_listing.make_render_fn();
+                let what = self.track_listing.track_list_state().clone();
 
-                list(self.track_listing.track_list_state().clone(), render_fn)
+                list(what, render_fn)
                     .w_full()
                     .flex()
                     .flex_col()
