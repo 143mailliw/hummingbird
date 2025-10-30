@@ -10,7 +10,10 @@ use async_channel::{Receiver, Sender};
 use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
-use crate::{devices::builtin::cpal::CpalProvider, playback::events::RepeatState};
+use crate::{
+    devices::builtin::cpal::CpalProvider, media::errors::PlaybackStartError,
+    playback::events::RepeatState,
+};
 use crate::{devices::builtin::dummy::DummyDeviceProvider, settings::playback::PlaybackSettings};
 // #[cfg(target_os = "linux")]
 // use crate::devices::builtin::pulse::PulseProvider;
@@ -39,18 +42,6 @@ pub enum PlaybackState {
     Stopped,
     Playing,
     Paused,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum PlaybackError {
-    #[error("Failed to open media file: {0}")]
-    FileOpenError(#[from] std::io::Error),
-    #[error("Failed to process media: {0}")]
-    MediaError(String),
-    #[error("Audio stream error: {0}")]
-    StreamError(String),
-    #[error("Channel configuration error: {0}")]
-    ChannelError(String),
 }
 
 pub struct PlaybackThread {
@@ -431,7 +422,7 @@ impl PlaybackThread {
     }
 
     /// Open a new track by given path.
-    fn open(&mut self, path: &PathBuf) -> Result<(), PlaybackError> {
+    fn open(&mut self, path: &PathBuf) -> Result<(), PlaybackStartError> {
         info!("Opening: {:?}", path);
 
         let mut recreation_required = false;
@@ -455,28 +446,33 @@ impl PlaybackThread {
         let provider = self
             .media_provider
             .as_mut()
-            .ok_or(PlaybackError::MediaError(
+            .ok_or(PlaybackStartError::MediaError(
                 "No media provider available".to_string(),
             ))?;
 
         self.resampler = None;
-        let src = std::fs::File::open(path).map_err(PlaybackError::FileOpenError)?;
+        let src = std::fs::File::open(path)
+            .map_err(|e| PlaybackStartError::MediaError(format!("Unable to open file: {}", e)))?;
 
         provider
             .open(src, None)
-            .map_err(|e| PlaybackError::MediaError(format!("Unable to open file: {}", e)))?;
+            .map_err(|e| PlaybackStartError::MediaError(format!("Unable to open file: {}", e)))?;
+
+        provider.start_playback().map_err(|e| {
+            PlaybackStartError::MediaError(format!("Unable to start playback: {}", e))
+        })?;
 
         // TODO: handle multiple media providers
-        let channels = provider
-            .channels()
-            .map_err(|e| PlaybackError::MediaError(format!("Unable to get channels: {}", e)))?;
+        let channels = provider.channels().map_err(|e| {
+            PlaybackStartError::MediaError(format!("Unable to get channels: {}", e))
+        })?;
 
-        let stream = self.stream.as_ref().ok_or(PlaybackError::StreamError(
+        let stream = self.stream.as_ref().ok_or(PlaybackStartError::StreamError(
             "No audio stream available".to_string(),
         ))?;
 
         let stream_channels = stream.get_current_format().map_err(|e| {
-            PlaybackError::StreamError(format!("Unable to get stream format: {}", e))
+            PlaybackStartError::StreamError(format!("Unable to get stream format: {}", e))
         })?;
 
         if channels.count() != stream_channels.channels.count() {
@@ -555,7 +551,9 @@ impl PlaybackThread {
             info!("Repeating current track");
             let path = queue[self.queue_next - 1].get_path().clone();
             drop(queue);
-            self.open(&path);
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            }
             return;
         }
 
@@ -563,7 +561,9 @@ impl PlaybackThread {
             info!("Opening next file in queue");
             let path = queue[self.queue_next].get_path().clone();
             drop(queue);
-            self.open(&path);
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            }
             let events_tx = self.events_tx.clone();
             let queue_next = self.queue_next;
             smol::spawn(async move {
