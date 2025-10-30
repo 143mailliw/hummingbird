@@ -276,7 +276,7 @@ impl ScanThread {
         loop {
             self.read_commands();
 
-            // TODO: start file watcher to update db automatically when files are added or removedr
+            // TODO: start file watcher to update db automatically when files are added or removed
             match self.scan_state {
                 ScanState::Idle => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
