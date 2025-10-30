@@ -273,11 +273,10 @@ pub fn find_fonts(cx: &mut App) -> gpui::Result<()> {
     let paths = cx.asset_source().list("!bundled:fonts")?;
     let mut fonts = vec![];
     for path in paths {
-        if path.ends_with(".ttf") || path.ends_with(".otf") {
-            if let Some(v) = cx.asset_source().load(&path)? {
+        if (path.ends_with(".ttf") || path.ends_with(".otf"))
+            && let Some(v) = cx.asset_source().load(&path)? {
                 fonts.push(v);
             }
-        }
     }
 
     let results = cx.text_system().add_fonts(fonts);
@@ -373,14 +372,13 @@ pub async fn run() {
                 PlaybackThread::start(queue, playback_settings);
             playback_interface.start_broadcast(cx);
 
-            if !parse_args_and_prepare(cx, &playback_interface) {
-                if let Some(track) = storage_data.current_track {
+            if !parse_args_and_prepare(cx, &playback_interface)
+                && let Some(track) = storage_data.current_track {
                     // open current track,
                     playback_interface.open(track.get_path().clone());
                     // but stop it immediately
                     playback_interface.pause();
                 }
-            }
             cx.set_global(playback_interface);
 
             cx.activate(true);

@@ -28,4 +28,3 @@ macro_rules! make_unknown_error_unwrap {
 }
 
 pub(crate) use make_unknown_error;
-pub(crate) use make_unknown_error_unwrap;

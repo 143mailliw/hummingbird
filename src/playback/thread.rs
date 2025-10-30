@@ -682,8 +682,8 @@ impl PlaybackThread {
             drop(queue);
         }
 
-        if self.state == PlaybackState::Stopped {
-            if let Some(first) = first {
+        if self.state == PlaybackState::Stopped
+            && let Some(first) = first {
                 let path = first.get_path();
                 self.open(path);
                 self.queue_next = pre_len + 1;
@@ -696,7 +696,6 @@ impl PlaybackThread {
                 })
                 .detach();
             }
-        }
 
         let events_tx = self.events_tx.clone();
         smol::spawn(async move {
@@ -710,8 +709,8 @@ impl PlaybackThread {
 
     /// Emit a PositionChanged event if the timestamp has changed.
     fn update_ts(&mut self) {
-        if let Some(provider) = &self.media_provider {
-            if let Ok(timestamp) = provider.position_secs() {
+        if let Some(provider) = &self.media_provider
+            && let Ok(timestamp) = provider.position_secs() {
                 if timestamp == self.last_timestamp {
                     return;
                 }
@@ -727,7 +726,6 @@ impl PlaybackThread {
 
                 self.last_timestamp = timestamp;
             }
-        }
     }
 
     /// Seek to the specified timestamp (in seconds).

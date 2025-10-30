@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use gpui::{
-    div, prelude::FluentBuilder, px, App, AppContext, Context, Entity, IntoElement, ParentElement,
-    Render, StatefulInteractiveElement, Styled, Window,
+    App, AppContext, Context, Entity, IntoElement, ParentElement, Render,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
             sidebar::{sidebar, sidebar_item, sidebar_separator},
         },
         global_actions::Search,
-        library::{sidebar::playlists::PlaylistList, ViewSwitchMessage},
+        library::{ViewSwitchMessage, sidebar::playlists::PlaylistList},
         theme::Theme,
     },
 };
@@ -76,11 +76,10 @@ impl Render for Sidebar {
                         });
                     }))
                     .when(
-                        match current_view.iter().last() {
-                            Some(ViewSwitchMessage::Albums) => true,
-                            Some(ViewSwitchMessage::Release(_)) => true,
-                            _ => false,
-                        },
+                        matches!(
+                            current_view.iter().last(),
+                            Some(ViewSwitchMessage::Albums) | Some(ViewSwitchMessage::Release(_))
+                        ),
                         |this| this.active(),
                     ),
             )

@@ -620,8 +620,8 @@ impl Element for TextElement {
             cx,
         );
 
-        if focus_handle.is_focused(window) {
-            if let Some(cursor) = &cursor {
+        if focus_handle.is_focused(window)
+            && let Some(cursor) = &cursor {
                 let mut origin = cursor.bounds.origin - bounds.origin;
                 let original_x = origin.x;
                 origin.y = px(0.0);
@@ -634,7 +634,6 @@ impl Element for TextElement {
                     }
                 })
             }
-        }
 
         if let Some(selection) = prepaint.selection.take() {
             window.paint_quad(selection)
@@ -644,11 +643,10 @@ impl Element for TextElement {
         line.paint(bounds.origin, window.line_height(), window, cx)
             .unwrap();
 
-        if focus_handle.is_focused(window) {
-            if let Some(cursor) = cursor {
+        if focus_handle.is_focused(window)
+            && let Some(cursor) = cursor {
                 window.paint_quad(cursor);
             }
-        }
 
         self.input.update(cx, |input, _cx| {
             input.last_layout = Some(line);

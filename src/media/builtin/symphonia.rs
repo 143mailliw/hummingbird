@@ -238,12 +238,11 @@ impl MediaProvider for SymphoniaProvider {
             .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
             .ok_or(PlaybackStartError::NothingToPlay)?;
 
-        if let Some(frame_count) = track.codec_params.n_frames {
-            if let Some(tb) = track.codec_params.time_base {
+        if let Some(frame_count) = track.codec_params.n_frames
+            && let Some(tb) = track.codec_params.time_base {
                 self.current_length = Some(tb.calc_time(frame_count).seconds);
                 self.current_timebase = Some(tb);
             }
-        }
 
         self.current_track = track.id;
 

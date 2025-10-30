@@ -4,8 +4,8 @@ use crate::{
     ui::components::{
         context::context,
         icons::{
-            icon, MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_OFF, REPEAT_ONCE,
-            SHUFFLE, VOLUME, VOLUME_OFF,
+            MENU, NEXT_TRACK, PAUSE, PLAY, PREV_TRACK, REPEAT, REPEAT_OFF, REPEAT_ONCE, SHUFFLE,
+            VOLUME, VOLUME_OFF, icon,
         },
         menu::{menu, menu_item},
     },
