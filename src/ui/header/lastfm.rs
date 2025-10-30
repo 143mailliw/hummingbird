@@ -2,9 +2,9 @@ use gpui::*;
 use tracing::error;
 
 use crate::{
-    services::mmb::lastfm::{client::LastFMClient, LASTFM_API_KEY, LASTFM_API_SECRET},
+    services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET, client::LastFMClient},
     ui::{
-        components::icons::{icon, LAST_FM},
+        components::icons::{LAST_FM, icon},
         models::{LastFMState, Models},
         theme::Theme,
     },

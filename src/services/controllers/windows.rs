@@ -4,7 +4,6 @@ use async_lock::Mutex;
 use async_trait::async_trait;
 use raw_window_handle::RawWindowHandle;
 use windows::{
-    core::HSTRING,
     Foundation::TypedEventHandler,
     Media::{
         MediaPlaybackAutoRepeatMode, MediaPlaybackStatus, MediaPlaybackType,
@@ -14,6 +13,7 @@ use windows::{
     },
     Storage::Streams::{DataWriter, InMemoryRandomAccessStream, RandomAccessStreamReference},
     Win32::{Foundation::HWND, System::WinRT::ISystemMediaTransportControlsInterop},
+    core::HSTRING,
 };
 
 use crate::{

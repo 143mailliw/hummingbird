@@ -1,12 +1,12 @@
 use gpui::prelude::{FluentBuilder, *};
-use gpui::{div, img, px, App, Entity, FontWeight, IntoElement, SharedString, Window};
+use gpui::{App, Entity, FontWeight, IntoElement, SharedString, Window, div, img, px};
 
-use crate::ui::components::icons::{icon, PLAY, PLUS, STAR, STAR_FILLED};
+use crate::ui::components::icons::{PLAY, PLUS, STAR, STAR_FILLED, icon};
 use crate::ui::models::PlaylistEvent;
 use crate::{
     library::{db::LibraryAccess, types::Track},
     playback::{
-        interface::{replace_queue, GPUIPlaybackInterface},
+        interface::{GPUIPlaybackInterface, replace_queue},
         queue::QueueItemData,
     },
     ui::{

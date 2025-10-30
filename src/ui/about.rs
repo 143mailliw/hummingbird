@@ -1,10 +1,10 @@
 use gpui::{
-    div, img, px, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    StatefulInteractiveElement, Styled,
+    FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
+    StatefulInteractiveElement, Styled, div, img, px,
 };
 
 use super::{
-    components::modal::{modal, OnExitHandler},
+    components::modal::{OnExitHandler, modal},
     theme::Theme,
 };
 

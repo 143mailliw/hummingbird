@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use gpui::{IntoElement, RenderImage, SharedString};
 use image::{Frame, RgbaImage};
 use smallvec::SmallVec;
-use sqlx::{encode::IsNull, error::BoxDynError, Database, Decode, Sqlite, Type};
+use sqlx::{Database, Decode, Sqlite, Type, encode::IsNull, error::BoxDynError};
 
 use crate::util::rgb_to_bgr;
 

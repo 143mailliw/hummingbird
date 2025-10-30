@@ -5,7 +5,7 @@ use std::{
 
 use async_lock::{Mutex, RwLock};
 use async_trait::async_trait;
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use mpris_server::{
     LoopStatus, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface, Server,
     Signal, Time, Volume,

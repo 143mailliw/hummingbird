@@ -12,7 +12,7 @@ use table_item::TableItem;
 
 use crate::ui::{
     caching::hummingbird_cache,
-    components::icons::{icon, CHEVRON_DOWN, CHEVRON_UP},
+    components::icons::{CHEVRON_DOWN, CHEVRON_UP, icon},
     theme::Theme,
     util::{create_or_retrieve_view, prune_views},
 };

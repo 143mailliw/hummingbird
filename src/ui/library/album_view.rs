@@ -5,7 +5,7 @@ use gpui::*;
 use crate::{
     library::{
         scan::ScanEvent,
-        types::{table::AlbumColumn, Album},
+        types::{Album, table::AlbumColumn},
     },
     ui::{
         components::table::{Table, TableEvent},

@@ -18,9 +18,8 @@ use crate::{
     playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
     services::controllers::make_cl,
     settings::{
-        setup_settings,
+        SettingsGlobal, setup_settings,
         storage::{Storage, StorageData},
-        SettingsGlobal,
     },
     ui::{assets::HummingbirdAssetSource, constants::APP_SHADOW_SIZE},
 };
@@ -35,10 +34,10 @@ use super::{
     global_actions::register_actions,
     header::Header,
     library::Library,
-    models::{self, build_models, Models, PlaybackInfo},
+    models::{self, Models, PlaybackInfo, build_models},
     queue::Queue,
     search::SearchView,
-    theme::{setup_theme, Theme},
+    theme::{Theme, setup_theme},
     util::drop_image_from_app,
 };
 
