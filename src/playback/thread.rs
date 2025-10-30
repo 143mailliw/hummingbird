@@ -479,23 +479,6 @@ impl PlaybackThread {
             PlaybackError::StreamError(format!("Unable to get stream format: {}", e))
         })?;
 
-        // if src.is_err() {
-        //     error!("failed to open media: {:?}", src.err().unwrap());
-        //     recreation_required = true;
-        // }
-
-        // provider.start_playback().expect("unable to start playback");
-
-        // let channels = provider.channels().expect("unable to get channels");
-        // let stream_channels = self
-        //     .stream
-        //     .as_ref()
-        //     .unwrap()
-        //     .get_current_format()
-        //     .unwrap()
-        //     .channels
-        // .clone();
-
         if channels.count() != stream_channels.channels.count() {
             info!(
                 "Channel count mismatch, re-opening with the correct channel count (if supported)"
