@@ -15,14 +15,11 @@ use crate::{
 
 use super::album_item::AlbumPaletteItem;
 
+type MatcherFunc = Box<dyn Fn(&Arc<AlbumPaletteItem>, &mut App) -> Utf32String + 'static>;
+type OnAccept = Box<dyn Fn(&Arc<AlbumPaletteItem>, &mut App) + 'static>;
+
 pub struct SearchModel {
-    palette: Entity<
-        Palette<
-            AlbumPaletteItem,
-            Box<dyn Fn(&Arc<AlbumPaletteItem>, &mut App) -> Utf32String + 'static>,
-            Box<dyn Fn(&Arc<AlbumPaletteItem>, &mut App) + 'static>,
-        >,
-    >,
+    palette: Entity<Palette<AlbumPaletteItem, MatcherFunc, OnAccept>>,
 }
 
 impl SearchModel {
@@ -38,19 +35,18 @@ impl SearchModel {
 
             let weak_self = cx.weak_entity();
 
-            let matcher: Box<dyn Fn(&Arc<AlbumPaletteItem>, &mut App) -> Utf32String + 'static> =
+            let matcher: MatcherFunc =
                 Box::new(|album, _| Utf32String::from(format!("{} {}", album.title, album.artist)));
 
-            let on_accept: Box<dyn Fn(&Arc<AlbumPaletteItem>, &mut App) + 'static> =
-                Box::new(move |album, cx| {
-                    let event = ViewSwitchMessage::Release(album.id as i64);
+            let on_accept: OnAccept = Box::new(move |album, cx| {
+                let event = ViewSwitchMessage::Release(album.id as i64);
 
-                    if let Some(search_model) = weak_self.upgrade() {
-                        search_model.update(cx, |_: &mut SearchModel, cx| {
-                            cx.emit(event);
-                        });
-                    }
-                });
+                if let Some(search_model) = weak_self.upgrade() {
+                    search_model.update(cx, |_: &mut SearchModel, cx| {
+                        cx.emit(event);
+                    });
+                }
+            });
 
             let palette = Palette::new(cx, albums, matcher, on_accept);
 

@@ -12,7 +12,7 @@ use nucleo::{
     Config, Nucleo, Utf32String,
     pattern::{CaseMatching, Normalization},
 };
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::ui::{components::input::EnrichedInputAction, theme::Theme};
 
@@ -22,6 +22,14 @@ pub trait PaletteItem {
     fn right_content(&self, cx: &mut App) -> Option<SharedString>;
 }
 
+#[allow(type_alias_bounds)]
+type ViewsModel<T, MatcherFunc, OnAccept>
+where
+    T: Send + Sync + PartialEq + PaletteItem + 'static,
+    MatcherFunc: Fn(&Arc<T>, &mut App) -> Utf32String + 'static,
+    OnAccept: Fn(&Arc<T>, &mut App) + 'static,
+= Entity<AHashMap<usize, Entity<FinderItem<T, MatcherFunc, OnAccept>>>>;
+
 pub struct Finder<T, MatcherFunc, OnAccept>
 where
     T: Send + Sync + PartialEq + PaletteItem + 'static,
@@ -30,7 +38,7 @@ where
 {
     query: String,
     matcher: Nucleo<Arc<T>>,
-    views_model: Entity<AHashMap<usize, Entity<FinderItem<T, MatcherFunc, OnAccept>>>>,
+    views_model: ViewsModel<T, MatcherFunc, OnAccept>,
     render_counter: Entity<usize>,
     last_match: Vec<Arc<T>>,
     list_state: ListState,
@@ -304,9 +312,6 @@ where
                 list(self.list_state.clone(), move |idx, _, cx| {
                     if idx < last_match.len() {
                         let item = &last_match[idx];
-                        let left = item.left_content(cx);
-                        let middle = item.middle_content(cx);
-                        let right = item.right_content(cx);
 
                         prune_views(&views_model, &render_counter, idx, cx);
 
@@ -318,13 +323,13 @@ where
                                 {
                                     let current_selection = current_selection.clone();
                                     let weak_finder = weak_finder.clone();
+                                    let item = item.clone();
+
                                     move |cx| {
                                         FinderItem::new(
                                             cx,
                                             ("finder-item", idx),
-                                            left.clone(),
-                                            middle.clone(),
-                                            right.clone(),
+                                            &item,
                                             idx,
                                             &current_selection,
                                             weak_finder.clone(),
@@ -380,9 +385,7 @@ where
     pub fn new(
         cx: &mut App,
         id: impl Into<ElementId>,
-        left: Option<FinderItemLeft>,
-        middle: SharedString,
-        right: Option<SharedString>,
+        item: &Arc<T>,
         idx: usize,
         current_selection: &Entity<usize>,
         weak_parent: WeakEntity<Finder<T, MatcherFunc, OnAccept>>,
@@ -397,6 +400,10 @@ where
                 },
             )
             .detach();
+
+            let left = item.left_content(cx);
+            let middle = item.middle_content(cx);
+            let right = item.right_content(cx);
 
             Self {
                 id: id.into(),
