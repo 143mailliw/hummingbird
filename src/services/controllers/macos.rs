@@ -3,7 +3,7 @@ use std::{path::Path, ptr::NonNull, sync::Arc};
 use async_lock::Mutex;
 use async_trait::async_trait;
 use block2::RcBlock;
-use objc2::{rc::Retained, runtime::ProtocolObject, AnyThread};
+use objc2::{AnyThread, rc::Retained, runtime::ProtocolObject};
 use objc2_app_kit::NSImage;
 use objc2_core_foundation::CGSize;
 use objc2_foundation::{NSData, NSMutableDictionary, NSNumber, NSString};

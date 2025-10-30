@@ -3,7 +3,7 @@ use std::{fs::File, hash::Hasher, io::Cursor, sync::Arc};
 use ahash::AHasher;
 use async_lock::Mutex;
 use gpui::{App, AppContext, Entity, Global, RenderImage, SharedString, Task};
-use image::{imageops::thumbnail, Frame, ImageReader};
+use image::{Frame, ImageReader, imageops::thumbnail};
 use smallvec::smallvec;
 use tracing::{debug, error};
 

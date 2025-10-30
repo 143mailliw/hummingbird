@@ -8,16 +8,16 @@ use crate::{
         },
         format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
-        util::{interleave, Scale},
+        util::{Scale, interleave},
     },
     media::playback::{GetInnerSamples, Mute, PlaybackFrame},
     util::make_unknown_error,
 };
 use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
     Host, SizedSample,
+    traits::{DeviceTrait, HostTrait, StreamTrait},
 };
-use rb::{Producer, RbConsumer, RbProducer, SpscRb, RB};
+use rb::{Producer, RB, RbConsumer, RbProducer, SpscRb};
 
 pub struct CpalProvider {
     host: Host,

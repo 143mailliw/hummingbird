@@ -30,6 +30,12 @@ pub enum PlaybackStartError {
     BrokenContainer,
     #[error("Container is supported but not codec")]
     ContainerSupportedButNotCodec,
+    #[error("Failed to process media: {0}")]
+    MediaError(String),
+    #[error("Audio stream error: {0}")]
+    StreamError(String),
+    #[error("Channel configuration error: {0}")]
+    ChannelError(String),
     #[error("Unknown media provider error: `{0}`")]
     Unknown(String),
 }

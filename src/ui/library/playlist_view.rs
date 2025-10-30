@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use ahash::AHashMap;
 use gpui::{
-    div, px, rems, uniform_list, App, AppContext, Context, Entity, FontWeight, ParentElement,
-    Render, Styled, Window,
+    App, AppContext, Context, Entity, FontWeight, ParentElement, Render, Styled, Window, div, px,
+    rems, uniform_list,
 };
 
 use crate::{
@@ -12,17 +12,17 @@ use crate::{
         types::{Playlist, PlaylistType},
     },
     playback::{
-        interface::{replace_queue, GPUIPlaybackInterface},
+        interface::{GPUIPlaybackInterface, replace_queue},
         queue::QueueItemData,
     },
     ui::{
         components::{
-            button::{button, ButtonIntent, ButtonSize},
-            icons::{icon, CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR},
+            button::{ButtonIntent, ButtonSize, button},
+            icons::{CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR, icon},
         },
         library::track_listing::{
-            track_item::{TrackItem, TrackItemLeftField},
             ArtistNameVisibility,
+            track_item::{TrackItem, TrackItemLeftField},
         },
         models::{Models, PlaybackInfo, PlaylistEvent},
         theme::Theme,

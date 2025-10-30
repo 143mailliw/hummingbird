@@ -1,6 +1,6 @@
 use gpui::{
-    div, px, Div, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, Stateful,
-    StatefulInteractiveElement, StyleRefinement, Styled,
+    Div, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, Stateful,
+    StatefulInteractiveElement, StyleRefinement, Styled, div, px,
 };
 
 use crate::ui::{components::icons::icon, theme::Theme};

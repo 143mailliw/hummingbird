@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufReader, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-use gpui::{rgb, rgba, App, AppContext, AsyncApp, EventEmitter, Global, Rgba};
+use gpui::{App, AppContext, AsyncApp, EventEmitter, Global, Rgba, rgb, rgba};
 use notify::{Event, RecursiveMode, Watcher};
 use serde::Deserialize;
 use tracing::{error, info, warn};
@@ -205,40 +205,42 @@ pub fn setup_theme(cx: &mut App, path: PathBuf) {
             warn!("failed to watch settings directory: {:?}", e);
         }
 
-        cx.spawn(async move |cx: &mut AsyncApp| loop {
-            while let Ok(event) = rx.try_recv() {
-                match event {
-                    Ok(v) => {
-                        if v.paths.iter().any(|t| t.ends_with("theme.json")) {
-                            match v.kind {
-                                notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
-                                    info!("Theme changed, updating...");
-                                    let theme = create_theme(&path);
-                                    theme_transmitter
-                                        .update(cx, move |_, m| {
-                                            m.emit(theme);
-                                        })
-                                        .expect("could not send theme to main thread");
+        cx.spawn(async move |cx: &mut AsyncApp| {
+            loop {
+                while let Ok(event) = rx.try_recv() {
+                    match event {
+                        Ok(v) => {
+                            if v.paths.iter().any(|t| t.ends_with("theme.json")) {
+                                match v.kind {
+                                    notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
+                                        info!("Theme changed, updating...");
+                                        let theme = create_theme(&path);
+                                        theme_transmitter
+                                            .update(cx, move |_, m| {
+                                                m.emit(theme);
+                                            })
+                                            .expect("could not send theme to main thread");
+                                    }
+                                    notify::EventKind::Remove(_) => {
+                                        info!("Theme file removed, resetting to default...");
+                                        theme_transmitter
+                                            .update(cx, |_, m| {
+                                                m.emit(Theme::default());
+                                            })
+                                            .expect("could not send theme to main thread");
+                                    }
+                                    _ => (),
                                 }
-                                notify::EventKind::Remove(_) => {
-                                    info!("Theme file removed, resetting to default...");
-                                    theme_transmitter
-                                        .update(cx, |_, m| {
-                                            m.emit(Theme::default());
-                                        })
-                                        .expect("could not send theme to main thread");
-                                }
-                                _ => (),
                             }
                         }
+                        Err(e) => error!("error occured while watching theme.json: {:?}", e),
                     }
-                    Err(e) => error!("error occured while watching theme.json: {:?}", e),
                 }
-            }
 
-            cx.background_executor()
-                .timer(Duration::from_millis(10))
-                .await;
+                cx.background_executor()
+                    .timer(Duration::from_millis(10))
+                    .await;
+            }
         })
         .detach();
 

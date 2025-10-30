@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use gpui::{
-    div, prelude::FluentBuilder, px, App, AppContext, Context, Entity, FontWeight, ParentElement,
-    Render, StatefulInteractiveElement, Styled, Window,
+    App, AppContext, Context, Entity, FontWeight, ParentElement, Render,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 
 use crate::{

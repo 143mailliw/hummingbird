@@ -83,7 +83,7 @@ pub trait PlaybackController {
     /// Indicates that the playback state has changed. When the PlaybackState is Stopped, no file
     /// is queued for playback.
     async fn playback_state_changed(&mut self, playback_state: PlaybackState)
-        -> anyhow::Result<()>;
+    -> anyhow::Result<()>;
 
     /// Indicates that the shuffle state has changed.
     async fn shuffle_state_changed(&mut self, shuffling: bool) -> anyhow::Result<()>;

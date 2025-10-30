@@ -10,7 +10,10 @@ use async_channel::{Receiver, Sender};
 use rand::{rng, seq::SliceRandom};
 use tracing::{debug, error, info, warn};
 
-use crate::{devices::builtin::cpal::CpalProvider, playback::events::RepeatState};
+use crate::{
+    devices::builtin::cpal::CpalProvider, media::errors::PlaybackStartError,
+    playback::events::RepeatState,
+};
 use crate::{devices::builtin::dummy::DummyDeviceProvider, settings::playback::PlaybackSettings};
 // #[cfg(target_os = "linux")]
 // use crate::devices::builtin::pulse::PulseProvider;
@@ -290,7 +293,12 @@ impl PlaybackThread {
                 PlaybackCommand::Play => self.play(),
                 PlaybackCommand::Pause => self.pause(),
                 PlaybackCommand::TogglePlayPause => self.toggle_play_pause(),
-                PlaybackCommand::Open(path) => self.open(&path),
+                PlaybackCommand::Open(path) => {
+                    if let Err(err) = self.open(&path) {
+                        // todo: send error to the events channel, to display on the UI.
+                        error!("Failed to open media: {:?}", err);
+                    }
+                }
                 PlaybackCommand::Queue(v) => self.queue(v),
                 PlaybackCommand::QueueList(v) => self.queue_list(v),
                 PlaybackCommand::Next => self.next(true),
@@ -395,7 +403,10 @@ impl PlaybackThread {
         if self.state == PlaybackState::Stopped && !queue.is_empty() {
             let path = queue[0].get_path().clone();
             drop(queue);
-            self.open(&path);
+
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            };
             let events_tx = self.events_tx.clone();
             smol::spawn(async move {
                 events_tx
@@ -411,58 +422,67 @@ impl PlaybackThread {
     }
 
     /// Open a new track by given path.
-    fn open(&mut self, path: &PathBuf) {
+    fn open(&mut self, path: &PathBuf) -> Result<(), PlaybackStartError> {
         info!("Opening: {:?}", path);
 
         let mut recreation_required = false;
 
         if self.state == PlaybackState::Paused {
-            let result = self.stream.as_mut().unwrap().reset();
-
-            if let Err(err) = result {
-                warn!("Failed to reset device, forcing recreation: {:?}", err);
-                recreation_required = true;
+            if let Some(result) = self.stream.as_mut() {
+                if let Err(err) = result.reset() {
+                    warn!("Failed to reset device, forcing recreation: {:?}", err);
+                    recreation_required = true;
+                }
             }
         }
 
-        let play_result = self.stream.as_mut().unwrap().play();
+        if let Some(stream) = self.stream.as_mut() {
+            if let Err(err) = stream.play() {
+                warn!("Failed to reset device, forcing recreation: {:?}", err);
+                recreation_required = true;
+            }
+        };
 
-        if play_result.is_err() {
-            warn!(
-                "Failed to start playback, forcing recreation: {:?}",
-                play_result.err().unwrap()
-            );
-            recreation_required = true;
-        }
+        let provider = self
+            .media_provider
+            .as_mut()
+            .ok_or(PlaybackStartError::MediaError(
+                "No media provider available".to_string(),
+            ))?;
+
+        self.resampler = None;
+        let src = std::fs::File::open(path)
+            .map_err(|e| PlaybackStartError::MediaError(format!("Unable to open file: {}", e)))?;
+
+        provider
+            .open(src, None)
+            .map_err(|e| PlaybackStartError::MediaError(format!("Unable to open file: {}", e)))?;
+
+        provider.start_playback().map_err(|e| {
+            PlaybackStartError::MediaError(format!("Unable to start playback: {}", e))
+        })?;
 
         // TODO: handle multiple media providers
-        let Some(provider) = &mut self.media_provider else {
-            return;
-        };
-        // TODO: proper error handling
-        self.resampler = None;
-        let src = std::fs::File::open(path).expect("failed to open media");
-        provider.open(src, None).expect("unable to open file");
-        provider.start_playback().expect("unable to start playback");
+        let channels = provider.channels().map_err(|e| {
+            PlaybackStartError::MediaError(format!("Unable to get channels: {}", e))
+        })?;
 
-        let channels = provider.channels().expect("unable to get channels");
-        let stream_channels = self
-            .stream
-            .as_ref()
-            .unwrap()
-            .get_current_format()
-            .unwrap()
-            .channels
-            .clone();
+        let stream = self.stream.as_ref().ok_or(PlaybackStartError::StreamError(
+            "No audio stream available".to_string(),
+        ))?;
 
-        if channels.count() != stream_channels.count() {
+        let stream_channels = stream.get_current_format().map_err(|e| {
+            PlaybackStartError::StreamError(format!("Unable to get stream format: {}", e))
+        })?;
+
+        if channels.count() != stream_channels.channels.count() {
             info!(
                 "Channel count mismatch, re-opening with the correct channel count (if supported)"
             );
             info!(
                 "Decoder wanted {}, stream had {}",
                 channels.count(),
-                stream_channels.count()
+                stream_channels.channels.count()
             );
             recreation_required = true;
         }
@@ -519,6 +539,8 @@ impl PlaybackThread {
                 .expect("unable to send event");
         })
         .detach();
+
+        Ok(())
     }
 
     /// Skip to the next track in the queue.
@@ -529,7 +551,9 @@ impl PlaybackThread {
             info!("Repeating current track");
             let path = queue[self.queue_next - 1].get_path().clone();
             drop(queue);
-            self.open(&path);
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            }
             return;
         }
 
@@ -537,7 +561,9 @@ impl PlaybackThread {
             info!("Opening next file in queue");
             let path = queue[self.queue_next].get_path().clone();
             drop(queue);
-            self.open(&path);
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            }
             let events_tx = self.events_tx.clone();
             let queue_next = self.queue_next;
             smol::spawn(async move {
@@ -591,7 +617,10 @@ impl PlaybackThread {
             let path = queue.last().unwrap().get_path().clone();
             self.queue_next = queue.len();
             drop(queue);
-            self.open(&path);
+
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            };
             let events_tx = self.events_tx.clone();
             let new_position = self.queue_next - 1;
             smol::spawn(async move {
@@ -616,7 +645,10 @@ impl PlaybackThread {
             .detach();
             self.queue_next -= 1;
             debug!("queue_next: {}", self.queue_next);
-            self.open(&path);
+
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            };
         }
     }
 
@@ -637,7 +669,10 @@ impl PlaybackThread {
 
         if self.state == PlaybackState::Stopped {
             let path = item.get_path();
-            self.open(path);
+
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            };
             self.queue_next = pre_len + 1;
             let events_tx = self.events_tx.clone();
             smol::spawn(async move {
@@ -685,7 +720,10 @@ impl PlaybackThread {
         if self.state == PlaybackState::Stopped
             && let Some(first) = first {
                 let path = first.get_path();
-                self.open(path);
+
+                if let Err(err) = self.open(&path) {
+                    error!("Unable to open file: {:?}", err);
+                };
                 self.queue_next = pre_len + 1;
                 let events_tx = self.events_tx.clone();
                 smol::spawn(async move {
@@ -744,7 +782,10 @@ impl PlaybackThread {
         if index < queue.len() {
             let path = queue[index].get_path().clone();
             drop(queue);
-            self.open(&path);
+
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            };
             self.queue_next = index + 1;
             let events_tx = self.events_tx.clone();
             smol::spawn(async move {

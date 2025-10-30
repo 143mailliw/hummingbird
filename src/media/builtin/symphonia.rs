@@ -5,7 +5,7 @@ use regex::Regex;
 use symphonia::{
     core::{
         audio::{AudioBufferRef, Channels, Signal},
-        codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL},
+        codecs::{CODEC_TYPE_NULL, Decoder, DecoderOptions},
         errors::Error,
         formats::{FormatOptions, FormatReader, SeekMode, SeekTo},
         io::MediaSourceStream,
