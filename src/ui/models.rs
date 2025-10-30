@@ -20,10 +20,10 @@ use crate::{
         thread::PlaybackState,
     },
     services::mmb::{
-        lastfm::{client::LastFMClient, types::Session, LastFM, LASTFM_API_KEY, LASTFM_API_SECRET},
         MediaMetadataBroadcastService,
+        lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET, LastFM, client::LastFMClient, types::Session},
     },
-    settings::{storage::StorageData, SettingsGlobal},
+    settings::{SettingsGlobal, storage::StorageData},
     ui::{app::get_dirs, data::Decode, library::ViewSwitchMessage},
 };
 

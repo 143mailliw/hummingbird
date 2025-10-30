@@ -63,41 +63,43 @@ pub fn setup_settings(cx: &mut App, path: PathBuf) {
         warn!("failed to watch settings file: {:?}", e);
     }
 
-    cx.spawn(async move |app: &mut AsyncApp| loop {
-        while let Ok(event) = rx.try_recv() {
-            match event {
-                Ok(v) => {
-                    if !v.paths.iter().any(|t| t.ends_with("settings.json")) {
-                        return;
-                    };
-                    match v.kind {
-                        notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
-                            info!("Settings changed, updating...");
-                            let settings = create_settings(&path);
-                            settings_model
-                                .update(app, |v, _| {
-                                    *v = settings;
-                                })
-                                .expect("settings model could not be updated");
+    cx.spawn(async move |app: &mut AsyncApp| {
+        loop {
+            while let Ok(event) = rx.try_recv() {
+                match event {
+                    Ok(v) => {
+                        if !v.paths.iter().any(|t| t.ends_with("settings.json")) {
+                            return;
+                        };
+                        match v.kind {
+                            notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
+                                info!("Settings changed, updating...");
+                                let settings = create_settings(&path);
+                                settings_model
+                                    .update(app, |v, _| {
+                                        *v = settings;
+                                    })
+                                    .expect("settings model could not be updated");
+                            }
+                            notify::EventKind::Remove(_) => {
+                                info!("Settings file removed, using default settings");
+                                settings_model
+                                    .update(app, |v, _| {
+                                        *v = Settings::default();
+                                    })
+                                    .expect("settings model could not be updated");
+                            }
+                            _ => (),
                         }
-                        notify::EventKind::Remove(_) => {
-                            info!("Settings file removed, using default settings");
-                            settings_model
-                                .update(app, |v, _| {
-                                    *v = Settings::default();
-                                })
-                                .expect("settings model could not be updated");
-                        }
-                        _ => (),
                     }
+                    Err(e) => warn!("watch error: {:?}", e),
                 }
-                Err(e) => warn!("watch error: {:?}", e),
             }
-        }
 
-        app.background_executor()
-            .timer(Duration::from_millis(10))
-            .await;
+            app.background_executor()
+                .timer(Duration::from_millis(10))
+                .await;
+        }
     })
     .detach();
 

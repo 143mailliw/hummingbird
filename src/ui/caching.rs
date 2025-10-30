@@ -3,8 +3,8 @@ use std::{collections::VecDeque, mem::take};
 use ahash::HashMapExt;
 use futures::FutureExt;
 use gpui::{
-    hash, App, AppContext, Asset, AssetLogger, ElementId, Entity, ImageAssetLoader, ImageCache,
-    ImageCacheItem, ImageCacheProvider, ImageSource, Resource,
+    App, AppContext, Asset, AssetLogger, ElementId, Entity, ImageAssetLoader, ImageCache,
+    ImageCacheItem, ImageCacheProvider, ImageSource, Resource, hash,
 };
 use rustc_hash::FxHashMap;
 use tracing::{debug, error};

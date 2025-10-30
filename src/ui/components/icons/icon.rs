@@ -1,4 +1,4 @@
-use gpui::{svg, IntoElement, RenderOnce, SharedString, StyleRefinement, Styled, Svg};
+use gpui::{IntoElement, RenderOnce, SharedString, StyleRefinement, Styled, Svg, svg};
 
 use crate::ui::theme::Theme;
 

@@ -6,7 +6,7 @@ use prelude::FluentBuilder;
 use crate::{
     library::scan::ScanEvent,
     services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET},
-    ui::components::icons::{icon, CROSS, FOLDER_CHECK, FOLDER_SEARCH, MAXIMIZE, MINUS},
+    ui::components::icons::{CROSS, FOLDER_CHECK, FOLDER_SEARCH, MAXIMIZE, MINUS, icon},
 };
 
 use super::{constants::APP_ROUNDING, models::Models, theme::Theme};

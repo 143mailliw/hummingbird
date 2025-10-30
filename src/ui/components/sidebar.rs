@@ -1,7 +1,7 @@
 use gpui::{
-    div, prelude::FluentBuilder, px, App, Div, ElementId, FontWeight, InteractiveElement,
-    IntoElement, ParentElement, RenderOnce, Stateful, StatefulInteractiveElement, StyleRefinement,
-    Styled, Window,
+    App, Div, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
+    Stateful, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder, px,
 };
 
 use crate::ui::{components::icons::icon, theme::Theme, util::MaybeStateful};

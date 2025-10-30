@@ -1,9 +1,8 @@
 use std::slice::from_raw_parts_mut;
 
-use rb::{Producer, RbConsumer, RbProducer, SpscRb, RB};
+use rb::{Producer, RB, RbConsumer, RbProducer, SpscRb};
 use tracing::error;
 use windows::{
-    core::Interface,
     Devices::Enumeration::{DeviceClass, DeviceInformation},
     Foundation::TypedEventHandler,
     Media::{
@@ -15,6 +14,7 @@ use windows::{
         Render::AudioRenderCategory,
     },
     Win32::System::WinRT::IMemoryBufferByteAccess,
+    core::Interface,
 };
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
         },
         format::{BufferSize, ChannelSpec, FormatInfo, SampleFormat, SupportedFormat},
         traits::{Device, DeviceProvider, OutputStream},
-        util::{interleave, Packed},
+        util::{Packed, interleave},
     },
     media::playback::{GetInnerSamples, PlaybackFrame},
     util::make_unknown_error,

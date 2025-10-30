@@ -4,7 +4,7 @@ use crate::{
         queue::{DataSource, QueueItemData},
     },
     ui::components::{
-        icons::{icon, CROSS, SHUFFLE, TRASH},
+        icons::{CROSS, SHUFFLE, TRASH, icon},
         nav_button::nav_button,
     },
 };
@@ -13,7 +13,7 @@ use gpui::*;
 use prelude::FluentBuilder;
 
 use super::{
-    components::button::{button, ButtonSize, ButtonStyle},
+    components::button::{ButtonSize, ButtonStyle, button},
     models::{Models, PlaybackInfo},
     theme::Theme,
     util::{create_or_retrieve_view, drop_image_from_app, prune_views},

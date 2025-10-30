@@ -7,8 +7,8 @@ use rustc_hash::FxBuildHasher;
 use crate::ui::theme::Theme;
 
 use super::{
-    table_data::{Column, TableData},
     OnSelectHandler,
+    table_data::{Column, TableData},
 };
 
 #[derive(Clone)]
