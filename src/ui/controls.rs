@@ -57,6 +57,9 @@ impl Render for Controls {
                         div.rounded_br(APP_ROUNDING)
                     }),
             })
+            .on_any_mouse_down(|_, _, cx| {
+                cx.stop_propagation();
+            })
             .flex()
             .child(self.info_section.clone())
             .child(self.scrubber.clone())
