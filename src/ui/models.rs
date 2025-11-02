@@ -120,6 +120,7 @@ impl EventEmitter<MMBSEvent> for MMBSList {}
 
 pub struct PlaylistInfoTransfer;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlaylistEvent {
     PlaylistUpdated(i64),
 }

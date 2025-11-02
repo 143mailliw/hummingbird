@@ -241,7 +241,7 @@ where
             .collect()
     }
 
-    fn regenerate_list_state(&mut self, cx: &mut Context<Self>) {
+    pub fn regenerate_list_state(&mut self, cx: &mut Context<Self>) {
         let matches = self.get_matches();
         let curr_scroll = self.list_state.logical_scroll_top();
 

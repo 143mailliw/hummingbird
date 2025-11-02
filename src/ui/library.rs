@@ -10,6 +10,7 @@ use crate::ui::library::{playlist_view::PlaylistView, sidebar::Sidebar};
 
 use super::models::Models;
 
+mod add_to_playlist;
 mod album_view;
 mod navigation;
 mod playlist_view;

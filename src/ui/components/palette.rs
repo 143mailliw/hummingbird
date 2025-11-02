@@ -90,6 +90,7 @@ where
         });
         cx.update_entity(&self.finder, |finder, cx| {
             finder.set_query("".to_string(), cx);
+            finder.regenerate_list_state(cx);
             cx.notify();
         });
     }

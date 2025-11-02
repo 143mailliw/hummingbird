@@ -1,7 +1,9 @@
 use gpui::prelude::{FluentBuilder, *};
 use gpui::{App, Entity, FontWeight, IntoElement, SharedString, Window, div, img, px};
 
-use crate::ui::components::icons::{PLAY, PLUS, STAR, STAR_FILLED, icon};
+use crate::ui::components::icons::{PLAY, PLAYLIST_ADD, PLUS, STAR, STAR_FILLED, icon};
+use crate::ui::components::menu::CMenuItem;
+use crate::ui::library::add_to_playlist::AddToPlaylist;
 use crate::ui::models::PlaylistEvent;
 use crate::{
     library::{db::LibraryAccess, types::Track},
@@ -35,6 +37,8 @@ pub struct TrackItem {
     left_field: TrackItemLeftField,
     album_art: Option<SharedString>,
     pl_info: Option<TrackPlaylistInfo>,
+    add_to: Entity<AddToPlaylist>,
+    show_add_to: Entity<bool>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -52,17 +56,35 @@ impl TrackItem {
         left_field: TrackItemLeftField,
         pl_info: Option<TrackPlaylistInfo>,
     ) -> Entity<Self> {
-        cx.new(|cx| Self {
-            hover_group: format!("track-{}", track.id).into(),
-            is_liked: cx.playlist_has_track(1, track.id).unwrap_or_default(),
-            album_art: track
-                .album_id
-                .map(|v| format!("!db://album/{v}/thumb").into()),
-            track,
-            is_start,
-            artist_name_visibility: anv,
-            left_field,
-            pl_info,
+        cx.new(|cx| {
+            let show_add_to = cx.new(|_| false);
+            let add_to = AddToPlaylist::new(cx, show_add_to.clone(), track.id);
+            let track_id = track.id;
+
+            let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
+
+            cx.subscribe(&playlist_tracker, move |this: &mut Self, _, ev, cx| {
+                if PlaylistEvent::PlaylistUpdated(1) == *ev {
+                    this.is_liked = cx.playlist_has_track(1, track_id).unwrap_or_default();
+                    cx.notify();
+                }
+            })
+            .detach();
+
+            Self {
+                hover_group: format!("track-{}", track.id).into(),
+                is_liked: cx.playlist_has_track(1, track.id).unwrap_or_default(),
+                album_art: track
+                    .album_id
+                    .map(|v| format!("!db://album/{v}/thumb").into()),
+                add_to,
+                show_add_to,
+                track,
+                is_start,
+                artist_name_visibility: anv,
+                left_field,
+                pl_info,
+            }
         })
     }
 }
@@ -83,6 +105,8 @@ impl Render for TrackItem {
 
         let track = self.track.clone();
 
+        let show_clone = self.show_add_to.clone();
+
         context(("context", self.track.id as usize))
             .with(
                 div()
@@ -95,6 +119,7 @@ impl Render for TrackItem {
                         let plid = self.pl_info.as_ref().map(|pl| pl.id);
                         move |_, _, cx| play_from_track(cx, &track, plid)
                     })
+                    .child(self.add_to.clone())
                     .when(self.is_start, |this| {
                         this.child(
                             div()
@@ -284,6 +309,13 @@ impl Render for TrackItem {
                                 let playback_interface = cx.global::<GPUIPlaybackInterface>();
                                 playback_interface.queue(data);
                             },
+                        ))
+                        .item(CMenuItem::Seperator)
+                        .item(menu_item(
+                            "track_add_to_playlist",
+                            Some(PLAYLIST_ADD),
+                            "Add to playlist",
+                            move |_, _, cx| show_clone.write(cx, true),
                         )),
                 ),
             )

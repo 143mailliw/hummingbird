@@ -243,7 +243,7 @@ pub enum PlaylistType {
     System = 1,
 }
 
-#[derive(sqlx::FromRow, Clone)]
+#[derive(sqlx::FromRow, Clone, Debug, PartialEq)]
 pub struct Playlist {
     pub id: i64,
     pub name: DBString,
@@ -252,7 +252,7 @@ pub struct Playlist {
     pub playlist_type: PlaylistType,
 }
 
-#[derive(sqlx::FromRow, Clone)]
+#[derive(sqlx::FromRow, Clone, Debug, PartialEq)]
 pub struct PlaylistWithCount {
     pub id: i64,
     pub name: DBString,
@@ -262,7 +262,7 @@ pub struct PlaylistWithCount {
     pub track_count: i64,
 }
 
-#[derive(sqlx::FromRow, Clone)]
+#[derive(sqlx::FromRow, Clone, Debug, PartialEq)]
 pub struct PlaylistItem {
     pub id: i64,
     pub playlist_id: i64,

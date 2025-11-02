@@ -1,3 +1,6 @@
+// Paths to icons from Tabler Icons, for use with icon.rs
+// See assets/icons/LICENSE
+
 pub const ARROW_LEFT: &str = "!bundled:icons/arrow-left.svg";
 pub const SHUFFLE: &str = "!bundled:icons/arrows-shuffle.svg";
 pub const LAST_FM: &str = "!bundled:icons/brand-lastfm.svg";
@@ -24,6 +27,7 @@ pub const CHEVRON_UP: &str = "!bundled:icons/chevron-up.svg";
 pub const CHEVRON_DOWN: &str = "!bundled:icons/chevron-down.svg";
 pub const DISC: &str = "!bundled:icons/disc.svg";
 pub const PLAYLIST: &str = "!bundled:icons/playlist.svg";
+pub const PLAYLIST_ADD: &str = "!bundled:icons/playlist-add.svg";
 pub const STAR: &str = "!bundled:icons/star.svg";
 pub const STAR_FILLED: &str = "!bundled:icons/star-filled.svg";
 pub const SIDEBAR: &str = "!bundled:icons/layout-sidebar.svg";
