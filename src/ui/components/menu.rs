@@ -27,10 +27,9 @@ impl RenderOnce for CMenuItem {
                 .on_click(func)
                 .rounded(px(4.0))
                 .flex()
-                .px(px(9.0))
-                .pt(px(5.0))
-                .pb(px(5.0))
-                .my(px(-1.0))
+                .px(px(7.0))
+                .pt(px(6.0))
+                .pb(px(6.0))
                 .line_height(rems(1.25))
                 .min_w_full()
                 .bg(theme.menu_item)
@@ -40,9 +39,9 @@ impl RenderOnce for CMenuItem {
                 .font_weight(FontWeight::MEDIUM)
                 .child(
                     div()
-                        .w(px(16.0))
-                        .h(px(16.0))
-                        .mr(px(8.0))
+                        .w(px(18.0))
+                        .h(px(18.0))
+                        .mr(px(7.0))
                         .pt(px(0.5))
                         .my_auto()
                         .flex()
@@ -51,7 +50,7 @@ impl RenderOnce for CMenuItem {
                         .when_some(icon_path, |this, icon_path| {
                             this.child(
                                 icon(icon_path)
-                                    .size(px(16.0))
+                                    .size(px(18.0))
                                     .text_color(theme.text_secondary),
                             )
                         }),
@@ -59,9 +58,12 @@ impl RenderOnce for CMenuItem {
                 .child(div().child(name))
                 .into_any_element(),
             CMenuItem::Seperator => div()
-                .w_full()
+                .min_w_full()
                 .h(px(1.0))
+                .flex_shrink_0()
                 .bg(theme.elevated_border_color)
+                .mx(px(4.0))
+                .my(px(2.0))
                 .into_any_element(),
             CMenuItem::Header(_) => div().into_any_element(), // TODO: implement this
         }
@@ -105,6 +107,6 @@ impl RenderOnce for Menu {
 pub fn menu() -> Menu {
     Menu {
         items: vec![],
-        div: div().min_w(px(200.0)).px(px(2.0)).py(px(3.0)),
+        div: div().min_w(px(200.0)).px(px(2.0)).py(px(2.0)),
     }
 }
