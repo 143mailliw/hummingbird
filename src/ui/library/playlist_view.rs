@@ -51,6 +51,9 @@ impl PlaylistView {
                         if *id == this.playlist.id {
                             this.playlist_track_ids =
                                 cx.get_playlist_tracks(this.playlist.id).unwrap();
+
+                            this.views = cx.new(|_| AHashMap::new());
+                            this.render_counter = cx.new(|_| 0);
                         }
                     }
                 },

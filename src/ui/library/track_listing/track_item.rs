@@ -1,7 +1,9 @@
 use gpui::prelude::{FluentBuilder, *};
 use gpui::{App, Entity, FontWeight, IntoElement, SharedString, Window, div, img, px};
 
-use crate::ui::components::icons::{PLAY, PLAYLIST_ADD, PLUS, STAR, STAR_FILLED, icon};
+use crate::ui::components::icons::{
+    PLAY, PLAYLIST_ADD, PLAYLIST_REMOVE, PLUS, STAR, STAR_FILLED, icon,
+};
 use crate::ui::components::menu::CMenuItem;
 use crate::ui::library::add_to_playlist::AddToPlaylist;
 use crate::ui::models::PlaylistEvent;
@@ -316,7 +318,24 @@ impl Render for TrackItem {
                             Some(PLAYLIST_ADD),
                             "Add to playlist",
                             move |_, _, cx| show_clone.write(cx, true),
-                        )),
+                        ))
+                        .when_some(self.pl_info.as_ref(), |menu, info| {
+                            let playlist_id = info.id;
+                            let item_id = info.item_id;
+                            let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
+
+                            menu.item(menu_item(
+                                "track_remove_from_playlist",
+                                Some(PLAYLIST_REMOVE),
+                                "Remove from playlist",
+                                move |_, _, cx| {
+                                    cx.remove_playlist_item(item_id).unwrap();
+                                    playlist_tracker.update(cx, |_, cx| {
+                                        cx.emit(PlaylistEvent::PlaylistUpdated(playlist_id));
+                                    })
+                                },
+                            ))
+                        }),
                 ),
             )
     }
