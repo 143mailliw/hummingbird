@@ -36,7 +36,7 @@ specified, the color from the default theme is used.
 
 ## Example
 A `theme.json` for the default theme is provided here. Note the colors may be
-out of date, an effort is made to ensure all possible fields are represented
+out of date, but an effort is made to ensure all possible fields are represented
 in this example.
 
 ```json
@@ -48,8 +48,10 @@ in this example.
   "border_color": "#272D37",
 
   "album_art_background": "#4C5974",
+
   "text": "#F4F5F6",
   "text_secondary": "#BEC4CA",
+  "text_link": "#5279D4",
 
   "nav_button_hover": "#161A22",
   "nav_button_active": "#0A0E12",

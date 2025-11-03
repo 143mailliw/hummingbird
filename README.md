@@ -15,13 +15,13 @@ design standard.
 - Scrobbling (last.fm) support
 - Fuzzy-find album search (press Ctrl + F)
 - Desktop integration
+- Playlists
 
 ## Planned Features
 - WASM Extension support:
   - Codecs
   - Scrobble services
   - Metadata services
-- Playlists
 - Advanced search
 - Opus support
 - ReplayGain
@@ -37,6 +37,8 @@ automatically. The macOS binary is signed and notarized, and should work on
 most macOS versions out of the box.
 
 ## Building
+For more detailed instructions, see the [Building](docs/building.md) documentation.
+
 ```sh
 # install relevant devel packages for xcb-common, x11, wayland, openssl, and pulseaudio if on Linux
 git clone https://github.com/143mailliw/hummingbird
