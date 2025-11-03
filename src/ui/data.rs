@@ -1,7 +1,12 @@
-use std::{fs::File, hash::Hasher, io::Cursor, sync::Arc};
+use std::{
+    fs::File,
+    hash::Hasher,
+    io::Cursor,
+    sync::{Arc, LazyLock},
+};
 
 use ahash::AHasher;
-use gpui::{App, AppContext, Entity, Global, RenderImage, SharedString, Task};
+use gpui::{App, AppContext, Entity, RenderImage, SharedString, Task};
 use image::{Frame, ImageReader, imageops::thumbnail};
 use moka::future::Cache;
 use smallvec::smallvec;
@@ -13,24 +18,7 @@ use crate::{
     util::rgb_to_bgr,
 };
 
-#[derive(Clone)]
-pub struct AlbumCache {
-    pub cache: Arc<Cache<u64, Arc<RenderImage>>>,
-}
-
-impl AlbumCache {
-    pub fn new() -> Self {
-        Self {
-            cache: Arc::new(Cache::new(30)),
-        }
-    }
-}
-
-impl Global for AlbumCache {}
-
-pub fn create_album_cache(cx: &mut App) {
-    cx.set_global(AlbumCache::new());
-}
+static ALBUM_CACHE: LazyLock<Cache<u64, Arc<RenderImage>>> = LazyLock::new(|| Cache::new(30));
 
 fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>> {
     let mut image = ImageReader::new(Cursor::new(data))
@@ -49,7 +37,7 @@ fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>
     Ok(Arc::new(RenderImage::new(smallvec![frame])))
 }
 
-async fn read_metadata(path: String, cache: Arc<Cache<u64, Arc<RenderImage>>>) -> anyhow::Result<QueueItemUIData> {
+async fn read_metadata(path: String) -> anyhow::Result<QueueItemUIData> {
     let file = File::open(&path)?;
 
     // TODO: Switch to a different media provider based on the file
@@ -65,14 +53,14 @@ async fn read_metadata(path: String, cache: Arc<Cache<u64, Arc<RenderImage>>>) -
         hasher.write(&v);
         let hash = hasher.finish();
 
-        if let Some(image) = cache.get(&hash).await {
+        if let Some(image) = ALBUM_CACHE.get(&hash).await {
             debug!("read_metadata cache hit for {}", hash);
             Some(image.clone())
         } else {
             let image = decode_image(v, true);
             if let Ok(image) = image {
                 debug!("read_metadata cache miss for {}", hash);
-                cache.insert(hash, image.clone()).await;
+                ALBUM_CACHE.insert(hash, image.clone()).await;
                 Some(image)
             } else if let Err(err) = image {
                 error!("Failed to read image for metadata: {}", err);
@@ -138,13 +126,8 @@ impl Decode for App {
     }
 
     fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
-        let AlbumCache { cache } = self.global();
-        let cache = cache.clone();
-
         self.spawn(async move |cx| {
-            let read_task = cx
-                .background_spawn(read_metadata(path, cache))
-                .await;
+            let read_task = cx.background_spawn(read_metadata(path)).await;
 
             let Ok(metadata) = read_task else {
                 error!("Failed to read metadata - {:?}", read_task);
