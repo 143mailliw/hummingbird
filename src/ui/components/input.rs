@@ -621,19 +621,20 @@ impl Element for TextElement {
         );
 
         if focus_handle.is_focused(window)
-            && let Some(cursor) = &cursor {
-                let mut origin = cursor.bounds.origin - bounds.origin;
-                let original_x = origin.x;
-                origin.y = px(0.0);
-                origin.x = -origin.x - cursor.bounds.size.width;
-                self.input.update(cx, |m, _| {
-                    if original_x > m.scroll_handle.bounds().size.width {
-                        m.scroll_handle.set_offset(origin);
-                    } else {
-                        m.scroll_handle.set_offset(point(px(0.), px(0.)));
-                    }
-                })
-            }
+            && let Some(cursor) = &cursor
+        {
+            let mut origin = cursor.bounds.origin - bounds.origin;
+            let original_x = origin.x;
+            origin.y = px(0.0);
+            origin.x = -origin.x - cursor.bounds.size.width;
+            self.input.update(cx, |m, _| {
+                if original_x > m.scroll_handle.bounds().size.width {
+                    m.scroll_handle.set_offset(origin);
+                } else {
+                    m.scroll_handle.set_offset(point(px(0.), px(0.)));
+                }
+            })
+        }
 
         if let Some(selection) = prepaint.selection.take() {
             window.paint_quad(selection)
@@ -644,9 +645,10 @@ impl Element for TextElement {
             .unwrap();
 
         if focus_handle.is_focused(window)
-            && let Some(cursor) = cursor {
-                window.paint_quad(cursor);
-            }
+            && let Some(cursor) = cursor
+        {
+            window.paint_quad(cursor);
+        }
 
         self.input.update(cx, |input, _cx| {
             input.last_layout = Some(line);

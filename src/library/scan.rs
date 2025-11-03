@@ -166,9 +166,10 @@ fn build_provider_table() -> Vec<(&'static [&'static str], Box<dyn MediaProvider
 fn file_is_scannable_with_provider(path: &Path, exts: &&[&str]) -> bool {
     for extension in exts.iter() {
         if let Some(ext) = path.extension()
-            && ext == *extension {
-                return true;
-            }
+            && ext == *extension
+        {
+            return true;
+        }
     }
 
     false
@@ -379,9 +380,10 @@ impl ScanThread {
                 continue;
             }
             if let Some(last_scan) = self.scan_record.get(path)
-                && *last_scan == timestamp {
-                    return false;
-                }
+                && *last_scan == timestamp
+            {
+                return false;
+            }
 
             self.scan_record.insert(path.clone(), timestamp);
             return true;
@@ -669,13 +671,14 @@ impl ScanThread {
     fn read_metadata_for_path(&mut self, path: &PathBuf) -> Option<FileInformation> {
         for (exts, provider) in &mut self.provider_table {
             if file_is_scannable_with_provider(path, exts)
-                && let Ok(mut metadata) = scan_file_with_provider(path, provider) {
-                    if metadata.2.is_none() {
-                        metadata.2 = scan_path_for_album_art(path);
-                    }
-
-                    return Some(metadata);
+                && let Ok(mut metadata) = scan_file_with_provider(path, provider)
+            {
+                if metadata.2.is_none() {
+                    metadata.2 = scan_path_for_album_art(path);
                 }
+
+                return Some(metadata);
+            }
         }
 
         None

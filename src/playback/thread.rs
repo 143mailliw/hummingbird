@@ -718,22 +718,23 @@ impl PlaybackThread {
         }
 
         if self.state == PlaybackState::Stopped
-            && let Some(first) = first {
-                let path = first.get_path();
+            && let Some(first) = first
+        {
+            let path = first.get_path();
 
-                if let Err(err) = self.open(&path) {
-                    error!("Unable to open file: {:?}", err);
-                };
-                self.queue_next = pre_len + 1;
-                let events_tx = self.events_tx.clone();
-                smol::spawn(async move {
-                    events_tx
-                        .send(PlaybackEvent::QueuePositionChanged(pre_len))
-                        .await
-                        .expect("unable to send event");
-                })
-                .detach();
-            }
+            if let Err(err) = self.open(&path) {
+                error!("Unable to open file: {:?}", err);
+            };
+            self.queue_next = pre_len + 1;
+            let events_tx = self.events_tx.clone();
+            smol::spawn(async move {
+                events_tx
+                    .send(PlaybackEvent::QueuePositionChanged(pre_len))
+                    .await
+                    .expect("unable to send event");
+            })
+            .detach();
+        }
 
         let events_tx = self.events_tx.clone();
         smol::spawn(async move {
@@ -748,22 +749,23 @@ impl PlaybackThread {
     /// Emit a PositionChanged event if the timestamp has changed.
     fn update_ts(&mut self) {
         if let Some(provider) = &self.media_provider
-            && let Ok(timestamp) = provider.position_secs() {
-                if timestamp == self.last_timestamp {
-                    return;
-                }
-
-                let events_tx = self.events_tx.clone();
-                smol::spawn(async move {
-                    events_tx
-                        .send(PlaybackEvent::PositionChanged(timestamp))
-                        .await
-                        .expect("unable to send event");
-                })
-                .detach();
-
-                self.last_timestamp = timestamp;
+            && let Ok(timestamp) = provider.position_secs()
+        {
+            if timestamp == self.last_timestamp {
+                return;
             }
+
+            let events_tx = self.events_tx.clone();
+            smol::spawn(async move {
+                events_tx
+                    .send(PlaybackEvent::PositionChanged(timestamp))
+                    .await
+                    .expect("unable to send event");
+            })
+            .detach();
+
+            self.last_timestamp = timestamp;
+        }
     }
 
     /// Seek to the specified timestamp (in seconds).
