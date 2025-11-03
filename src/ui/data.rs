@@ -2,6 +2,7 @@ use std::{
     fs::File,
     hash::Hasher,
     io::Cursor,
+    path::PathBuf,
     sync::{Arc, LazyLock},
 };
 
@@ -37,8 +38,9 @@ fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>
     Ok(Arc::new(RenderImage::new(smallvec![frame])))
 }
 
-async fn read_metadata(path: String) -> anyhow::Result<QueueItemUIData> {
-    let file = File::open(&path)?;
+#[tracing::instrument(level = "debug")]
+async fn read_metadata(path: PathBuf) -> anyhow::Result<QueueItemUIData> {
+    let file = File::open(path)?;
 
     // TODO: Switch to a different media provider based on the file
     let mut media_provider = SymphoniaProvider::default();
@@ -90,7 +92,7 @@ pub trait Decode {
         thumb: bool,
         entity: Entity<Option<Arc<RenderImage>>>,
     ) -> Task<()>;
-    fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()>;
+    fn read_metadata(&self, path: PathBuf, entity: Entity<Option<QueueItemUIData>>) -> Task<()>;
 }
 
 impl Decode for App {
@@ -125,7 +127,7 @@ impl Decode for App {
         })
     }
 
-    fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
+    fn read_metadata(&self, path: PathBuf, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
         self.spawn(async move |cx| {
             let read_task = cx.background_spawn(read_metadata(path)).await;
 
