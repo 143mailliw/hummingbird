@@ -5,9 +5,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use ahash::AHashMap;
 use async_lock::Mutex;
 use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, warn};
 
@@ -105,7 +105,7 @@ pub struct Queue {
 impl EventEmitter<(PathBuf, QueueItemUIData)> for Queue {}
 
 #[derive(Clone)]
-pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);
+pub struct MMBSList(pub FxHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);
 
 #[derive(Clone)]
 pub enum MMBSEvent {
@@ -134,7 +134,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
     let queue: Entity<Queue> = cx.new(move |_| queue);
     let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
-    let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(AHashMap::new()));
+    let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(FxHashMap::default()));
     let show_about: Entity<bool> = cx.new(|_| false);
     let lastfm: Entity<LastFMState> = cx.new(|cx| {
         let dirs = get_dirs();

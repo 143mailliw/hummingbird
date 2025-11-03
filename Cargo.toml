@@ -11,7 +11,6 @@ categories = ["multimedia::audio"]
 runtime_shaders = ["gpui/runtime_shaders"]
 
 [dependencies]
-ahash = { version = "0.8", features = ["serde"] }
 anyhow = "1"
 async-trait = "0.1"
 async-channel = "2"
