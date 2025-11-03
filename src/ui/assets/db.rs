@@ -12,34 +12,22 @@ pub fn load(pool: &SqlitePool, url: Url) -> gpui::Result<Option<Cow<'static, [u8
     {
         "album" => {
             let mut segments = url.path_segments().ok_or_else(|| anyhow!("missing path"))?;
-            let id = segments
+            let id: i64 = segments
                 .next()
                 .ok_or_else(|| anyhow!("missing id"))?
-                .parse::<i64>()?;
-
+                .parse()?;
             let image_type = segments
                 .next()
                 .ok_or_else(|| anyhow!("missing image type"))?;
 
-            let image = match image_type {
-                "thumb" => block_on(
-                    sqlx::query_as::<_, (Vec<u8>,)>(include_str!(
-                        "../../../queries/assets/find_album_thumb.sql"
-                    ))
-                    .bind(id)
-                    .fetch_one(pool),
-                )?,
-                "full" => block_on(
-                    sqlx::query_as::<_, (Vec<u8>,)>(include_str!(
-                        "../../../queries/assets/find_album_art.sql"
-                    ))
-                    .bind(id)
-                    .fetch_one(pool),
-                )?,
-                _ => unimplemented!(),
+            let query = match image_type {
+                "thumb" => include_str!("../../../queries/assets/find_album_thumb.sql"),
+                "full" => include_str!("../../../queries/assets/find_album_art.sql"),
+                _ => unimplemented!("invalid image type '{image_type}'"),
             };
 
-            Ok(Some(Cow::Owned(image.0)))
+            let (image,) = block_on(sqlx::query_as(query).bind(id).fetch_one(pool))?;
+            Ok(Some(Cow::Owned(image)))
         }
         _ => Ok(None),
     }
