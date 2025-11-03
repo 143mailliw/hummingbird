@@ -13,9 +13,9 @@ use crate::{
     },
     ui::{
         components::{
-            icons::{PLAYLIST, STAR_FILLED},
+            icons::{PLAYLIST, PLAYLIST_ADD, STAR_FILLED},
             modal::modal,
-            palette::{FinderItemLeft, Palette, PaletteItem},
+            palette::{ExtraItem, ExtraItemProvider, FinderItemLeft, Palette, PaletteItem},
         },
         models::{Models, PlaylistEvent},
     },
@@ -56,8 +56,17 @@ pub struct AddToPlaylist {
 impl AddToPlaylist {
     pub fn new(cx: &mut App, show: Entity<bool>, track_id: i64) -> Entity<Self> {
         cx.new(|cx| {
-            cx.observe(&show, |this: &mut Self, _, cx| {
+            cx.observe(&show, move |this: &mut Self, _, cx| {
                 this.palette.update(cx, |this, cx| {
+                    let new_playlists = (*cx.get_all_playlists().unwrap())
+                        .clone()
+                        .into_iter()
+                        .map(|playlist| (track_id, playlist))
+                        .map(Arc::new)
+                        .collect::<Vec<_>>();
+
+                    cx.emit(new_playlists);
+
                     this.reset(cx);
                 });
 
@@ -97,10 +106,43 @@ impl AddToPlaylist {
                 .map(Arc::new)
                 .collect();
 
-            Self {
-                show,
-                palette: Palette::new(cx, items, matcher, on_accept),
-            }
+            let palette = Palette::new(cx, items, matcher, on_accept);
+
+            let show_for_create = show.clone();
+            let provider: ExtraItemProvider = Arc::new(move |query: &str| {
+                let name = query.trim();
+                if name.is_empty() {
+                    return Vec::new();
+                }
+
+                let name_string = name.to_string();
+                let display = format!("Create new playlist '{}'", name_string);
+
+                let show_clone2 = show_for_create.clone();
+
+                vec![ExtraItem {
+                    left: Some(FinderItemLeft::Icon(PLAYLIST_ADD.into())),
+                    middle: display.into(),
+                    right: None,
+                    on_accept: Arc::new(move |cx| {
+                        let playlist_id = cx.create_playlist(&name_string).unwrap();
+                        cx.add_playlist_item(playlist_id, track_id).unwrap();
+
+                        let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
+                        playlist_tracker.update(cx, |_, cx| {
+                            cx.emit(PlaylistEvent::PlaylistUpdated(playlist_id));
+                        });
+
+                        show_clone2.write(cx, false);
+                    }),
+                }]
+            });
+
+            cx.update_entity(&palette, |palette, cx| {
+                palette.register_extra_provider(provider.clone(), cx);
+            });
+
+            Self { show, palette }
         })
     }
 }

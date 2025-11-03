@@ -1,6 +1,6 @@
 mod finder;
 
-pub use finder::{FinderItemLeft, PaletteItem};
+pub use finder::{ExtraItem, ExtraItemProvider, FinderItemLeft, PaletteItem};
 
 use std::sync::Arc;
 
@@ -91,6 +91,13 @@ where
         cx.update_entity(&self.finder, |finder, cx| {
             finder.set_query("".to_string(), cx);
             finder.regenerate_list_state(cx);
+            cx.notify();
+        });
+    }
+
+    pub fn register_extra_provider(&self, provider: ExtraItemProvider, cx: &mut Context<Self>) {
+        cx.update_entity(&self.finder, |finder, cx| {
+            finder.register_extra_provider(provider, cx);
             cx.notify();
         });
     }

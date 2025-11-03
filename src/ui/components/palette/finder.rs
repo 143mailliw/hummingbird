@@ -22,6 +22,16 @@ pub trait PaletteItem {
     fn right_content(&self, cx: &mut App) -> Option<SharedString>;
 }
 
+#[derive(Clone)]
+pub struct ExtraItem {
+    pub left: Option<FinderItemLeft>,
+    pub middle: SharedString,
+    pub right: Option<SharedString>,
+    pub on_accept: Arc<dyn Fn(&mut App) + Send + Sync>,
+}
+
+pub type ExtraItemProvider = Arc<dyn Fn(&str) -> Vec<ExtraItem> + Send + Sync>;
+
 #[allow(type_alias_bounds)]
 type ViewsModel<T, MatcherFunc, OnAccept>
 where
@@ -41,6 +51,8 @@ where
     views_model: ViewsModel<T, MatcherFunc, OnAccept>,
     render_counter: Entity<usize>,
     last_match: Vec<Arc<T>>,
+    extra_providers: Vec<ExtraItemProvider>,
+    extra_items: Vec<ExtraItem>,
     list_state: ListState,
     current_selection: Entity<usize>,
     on_accept: Arc<OnAccept>,
@@ -157,8 +169,15 @@ where
                     }
                     EnrichedInputAction::Accept => {
                         let idx = *this.current_selection.read(cx);
-                        if let Some(item) = this.last_match.get(idx) {
-                            on_accept_clone(item, cx);
+                        if idx < this.extra_items.len() {
+                            if let Some(extra) = this.extra_items.get(idx) {
+                                (extra.on_accept)(cx);
+                            }
+                        } else {
+                            let match_idx = idx.saturating_sub(this.extra_items.len());
+                            if let Some(item) = this.last_match.get(match_idx) {
+                                on_accept_clone(item, cx);
+                            }
                         }
                     }
                 },
@@ -190,6 +209,8 @@ where
                 matcher,
                 views_model,
                 last_match: Vec::new(),
+                extra_providers: Vec::new(),
+                extra_items: Vec::new(),
                 render_counter,
                 current_selection,
                 list_state: Self::make_list_state(None),
@@ -197,6 +218,21 @@ where
                 phantom: PhantomData,
             }
         })
+    }
+
+    pub fn register_extra_provider(&mut self, provider: ExtraItemProvider, cx: &mut Context<Self>) {
+        self.extra_providers.push(provider);
+        self.recompute_extra_items();
+        self.regenerate_list_state(cx);
+    }
+
+    fn recompute_extra_items(&mut self) {
+        let mut new_items: Vec<ExtraItem> = Vec::new();
+        for provider in &self.extra_providers {
+            let mut provided = (provider)(&self.query);
+            new_items.append(&mut provided);
+        }
+        self.extra_items = new_items;
     }
 
     pub fn set_query(&mut self, query: String, cx: &mut Context<Self>) {
@@ -207,12 +243,16 @@ where
             .pattern
             .reparse(0, &query, CaseMatching::Smart, Normalization::Smart, false);
 
+        // recompute dynamic extra items based on query
+        self.recompute_extra_items();
+
         // get some matches ready immediately
         self.tick(20);
 
         let matches = self.get_matches();
 
-        if matches != self.last_match {
+        // if there are extras or the items are different regenerate the list state
+        if matches != self.last_match || !self.extra_items.is_empty() {
             self.last_match = matches;
             self.regenerate_list_state(cx);
         }
@@ -248,13 +288,14 @@ where
         self.views_model = cx.new(|_| AHashMap::default());
         self.render_counter = cx.new(|_| 0);
 
-        self.list_state = Self::make_list_state(Some(&matches));
+        let total = matches.len() + self.extra_items.len();
+        self.list_state = Self::make_list_state(Some(total));
         self.list_state.scroll_to(curr_scroll);
     }
 
-    fn make_list_state(matches: Option<&[Arc<T>]>) -> ListState {
-        match matches {
-            Some(matches) => ListState::new(matches.len(), ListAlignment::Top, px(300.0)),
+    fn make_list_state(total_count: Option<usize>) -> ListState {
+        match total_count {
+            Some(count) => ListState::new(count, ListAlignment::Top, px(300.0)),
             None => ListState::new(0, ListAlignment::Top, px(64.0)),
         }
     }
@@ -296,6 +337,7 @@ where
         use crate::ui::util::{create_or_retrieve_view, prune_views};
 
         let last_match = self.last_match.clone();
+        let extra_items = self.extra_items.clone();
         let views_model = self.views_model.clone();
         let render_counter = self.render_counter.clone();
         let current_selection = self.current_selection.clone();
@@ -310,8 +352,38 @@ where
             .p(px(4.0))
             .child(
                 list(self.list_state.clone(), move |idx, _, cx| {
-                    if idx < last_match.len() {
-                        let item = &last_match[idx];
+                    let extras_len = extra_items.len();
+                    if idx < extras_len {
+                        let extra = &extra_items[idx];
+
+                        prune_views(&views_model, &render_counter, idx, cx);
+
+                        div()
+                            .w_full()
+                            .child(create_or_retrieve_view(
+                                &views_model,
+                                idx,
+                                {
+                                    let current_selection = current_selection.clone();
+                                    let weak_finder = weak_finder.clone();
+                                    let extra = extra.clone();
+
+                                    move |cx| {
+                                        FinderItem::new_extra(
+                                            cx,
+                                            ("finder-extra-item", idx),
+                                            idx,
+                                            &current_selection,
+                                            weak_finder.clone(),
+                                            extra.clone(),
+                                        )
+                                    }
+                                },
+                                cx,
+                            ))
+                            .into_any_element()
+                    } else if idx - extras_len < last_match.len() {
+                        let item = &last_match[idx - extras_len];
 
                         prune_views(&views_model, &render_counter, idx, cx);
 
@@ -366,7 +438,8 @@ where
     idx: usize,
     current_selection: usize,
     weak_parent: WeakEntity<Finder<T, MatcherFunc, OnAccept>>,
-    item_data: Arc<T>,
+    item_data: Option<Arc<T>>,
+    on_accept_override: Option<Arc<dyn Fn(&mut App) + Send + Sync>>,
 }
 
 #[derive(Clone)]
@@ -413,7 +486,40 @@ where
                 idx,
                 current_selection: *current_selection.read(cx),
                 weak_parent,
-                item_data,
+                item_data: Some(item_data),
+                on_accept_override: None,
+            }
+        })
+    }
+
+    pub fn new_extra(
+        cx: &mut App,
+        id: impl Into<ElementId>,
+        idx: usize,
+        current_selection: &Entity<usize>,
+        weak_parent: WeakEntity<Finder<T, MatcherFunc, OnAccept>>,
+        extra: ExtraItem,
+    ) -> Entity<Self> {
+        cx.new(|cx| {
+            cx.observe(
+                current_selection,
+                |this: &mut Self, selection_model, cx: &mut Context<Self>| {
+                    this.current_selection = *selection_model.read(cx);
+                    cx.notify();
+                },
+            )
+            .detach();
+
+            Self {
+                id: id.into(),
+                left: extra.left.clone(),
+                middle: extra.middle.clone(),
+                right: extra.right.clone(),
+                idx,
+                current_selection: *current_selection.read(cx),
+                weak_parent,
+                item_data: None,
+                on_accept_override: Some(extra.on_accept.clone()),
             }
         })
     }
@@ -430,6 +536,7 @@ where
 
         let weak_parent = self.weak_parent.clone();
         let item_data = self.item_data.clone();
+        let on_accept_override = self.on_accept_override.clone();
 
         div()
             .px(px(10.0))
@@ -446,10 +553,14 @@ where
             })
             .rounded(px(4.0))
             .on_click(cx.listener(move |_, _, _, cx| {
-                if let Some(parent) = weak_parent.upgrade() {
-                    parent.update(cx, |finder, cx| {
-                        (finder.on_accept)(&item_data, cx);
-                    });
+                if let Some(override_fn) = on_accept_override.clone() {
+                    override_fn(cx);
+                } else if let Some(parent) = weak_parent.upgrade() {
+                    if let Some(item) = item_data.clone() {
+                        parent.update(cx, |finder, cx| {
+                            (finder.on_accept)(&item, cx);
+                        });
+                    }
                 }
             }))
             .when_some(self.left.clone(), |div_outer, left| {
