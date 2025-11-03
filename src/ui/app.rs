@@ -35,7 +35,6 @@ use super::{
     components::{input, modal},
     constants::APP_ROUNDING,
     controls::Controls,
-    data::create_album_cache,
     global_actions::register_actions,
     header::Header,
     library::Library,
@@ -354,8 +353,6 @@ pub async fn run() {
             input::bind_actions(cx);
             modal::bind_actions(cx);
             library::bind_actions(cx);
-
-            create_album_cache(cx);
 
             let settings = cx.global::<SettingsGlobal>().model.read(cx);
             let playback_settings = settings.playback.clone();
