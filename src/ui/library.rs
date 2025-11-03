@@ -37,6 +37,7 @@ pub enum ViewSwitchMessage {
     Release(i64),
     Playlist(i64),
     Back,
+    Refresh,
 }
 
 impl EventEmitter<ViewSwitchMessage> for VecDeque<ViewSwitchMessage> {}
@@ -51,6 +52,7 @@ fn make_view(
         ViewSwitchMessage::Release(id) => LibraryView::Release(ReleaseView::new(cx, *id)),
         ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
+        ViewSwitchMessage::Refresh => panic!("improper use of make_view (cannot make Refresh)"),
     }
 }
 
@@ -82,6 +84,11 @@ impl Library {
                             } else {
                                 this.view.clone()
                             }
+                        }
+                        ViewSwitchMessage::Refresh => {
+                            let last = m.read(cx).iter().last().unwrap().clone();
+
+                            make_view(&last, cx, m)
                         }
                         _ => {
                             m.update(cx, |v, cx| {

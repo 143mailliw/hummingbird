@@ -46,7 +46,7 @@ impl PlaylistView {
 
             cx.subscribe(
                 &playlist_tracker,
-                |this: &mut Self, _, ev: &PlaylistEvent, cx| match ev {
+                move |this: &mut Self, _, ev: &PlaylistEvent, cx| match ev {
                     PlaylistEvent::PlaylistUpdated(id) => {
                         if *id == this.playlist.id {
                             this.playlist_track_ids =
@@ -56,6 +56,7 @@ impl PlaylistView {
                             this.render_counter = cx.new(|_| 0);
                         }
                     }
+                    _ => (),
                 },
             )
             .detach();

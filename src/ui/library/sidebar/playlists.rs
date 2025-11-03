@@ -4,6 +4,7 @@ use gpui::{
     App, AppContext, Context, Entity, FontWeight, InteractiveElement, ParentElement, Render,
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
+use tracing::error;
 
 use crate::{
     library::{
@@ -12,7 +13,9 @@ use crate::{
     },
     ui::{
         components::{
-            icons::{PLAYLIST, STAR},
+            context::context,
+            icons::{CROSS, PLAYLIST, STAR},
+            menu::{menu, menu_item},
             sidebar::sidebar_item,
         },
         library::ViewSwitchMessage,
@@ -69,36 +72,72 @@ impl Render for PlaylistList {
             let pl_id = playlist.id;
 
             main = main.child(
-                sidebar_item(("main-sidebar-pl", playlist.id as u64))
-                    .icon(if playlist.playlist_type == PlaylistType::System {
-                        STAR
-                    } else {
-                        PLAYLIST
-                    })
-                    .child(playlist.name.clone())
+                context(("playlist", pl_id as usize))
+                    .with(
+                        sidebar_item(("main-sidebar-pl", playlist.id as u64))
+                            .icon(if playlist.playlist_type == PlaylistType::System {
+                                STAR
+                            } else {
+                                PLAYLIST
+                            })
+                            .child(playlist.name.clone())
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::NORMAL)
+                                    .text_color(theme.text_secondary)
+                                    .text_xs()
+                                    .mt(px(2.0))
+                                    .child(if playlist.track_count == 1 {
+                                        format!("{} song", playlist.track_count)
+                                    } else {
+                                        format!("{} songs", playlist.track_count)
+                                    }),
+                            )
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.nav_model.update(cx, move |_, cx| {
+                                    cx.emit(ViewSwitchMessage::Playlist(pl_id));
+                                });
+                            }))
+                            .when(
+                                current_view.iter().last()
+                                    == Some(&ViewSwitchMessage::Playlist(playlist.id)),
+                                |this| this.active(),
+                            ),
+                    )
                     .child(
                         div()
-                            .font_weight(FontWeight::NORMAL)
-                            .text_color(theme.text_secondary)
-                            .text_xs()
-                            .mt(px(2.0))
-                            .child(if playlist.track_count == 1 {
-                                format!("{} song", playlist.track_count)
-                            } else {
-                                format!("{} songs", playlist.track_count)
-                            }),
-                    )
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.nav_model.update(cx, move |_, cx| {
-                            cx.emit(ViewSwitchMessage::Playlist(pl_id));
-                        });
-                    }))
-                    .when(
-                        current_view.iter().last()
-                            == Some(&ViewSwitchMessage::Playlist(playlist.id)),
-                        |this| this.active(),
+                            .bg(theme.elevated_background)
+                            .child(menu().item(menu_item(
+                                "delete_playlist",
+                                Some(CROSS),
+                                "Delete playlist",
+                                move |_, _, cx| {
+                                    if let Err(err) = cx.delete_playlist(pl_id) {
+                                        error!("Failed to delete playlist: {}", err);
+                                    }
+
+                                    let playlist_tracker =
+                                        cx.global::<Models>().playlist_tracker.clone();
+
+                                    playlist_tracker.update(cx, |_, cx| {
+                                        cx.emit(PlaylistEvent::PlaylistDeleted(pl_id))
+                                    });
+
+                                    let switcher_model =
+                                        cx.global::<Models>().switcher_model.clone();
+
+                                    switcher_model.update(cx, |view_switch_messages, cx| {
+                                        view_switch_messages
+                                            .retain(|v| *v != ViewSwitchMessage::Playlist(pl_id));
+
+                                        cx.emit(ViewSwitchMessage::Refresh);
+
+                                        cx.notify();
+                                    })
+                                },
+                            ))),
                     ),
-            )
+            );
         }
 
         main

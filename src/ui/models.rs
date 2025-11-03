@@ -123,6 +123,7 @@ pub struct PlaylistInfoTransfer;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlaylistEvent {
     PlaylistUpdated(i64),
+    PlaylistDeleted(i64),
 }
 
 impl EventEmitter<PlaylistEvent> for PlaylistInfoTransfer {}
