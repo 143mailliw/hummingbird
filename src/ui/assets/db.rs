@@ -6,15 +6,20 @@ use sqlx::SqlitePool;
 use url::Url;
 
 pub fn load(pool: &SqlitePool, url: Url) -> gpui::Result<Option<Cow<'static, [u8]>>> {
-    match url.host_str().ok_or(anyhow!("missing table name"))? {
+    match url
+        .host_str()
+        .ok_or_else(|| anyhow!("missing table name"))?
+    {
         "album" => {
-            let mut segments = url.path_segments().ok_or(anyhow!("missing path"))?;
+            let mut segments = url.path_segments().ok_or_else(|| anyhow!("missing path"))?;
             let id = segments
                 .next()
-                .ok_or(anyhow!("missing id"))?
+                .ok_or_else(|| anyhow!("missing id"))?
                 .parse::<i64>()?;
 
-            let image_type = segments.next().ok_or(anyhow!("missing image type"))?;
+            let image_type = segments
+                .next()
+                .ok_or_else(|| anyhow!("missing image type"))?;
 
             let image = match image_type {
                 "thumb" => block_on(

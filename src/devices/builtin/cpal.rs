@@ -55,7 +55,7 @@ impl DeviceProvider for CpalProvider {
     fn get_device_by_uid(&mut self, id: &str) -> Result<Box<dyn Device>, FindError> {
         self.host
             .devices()?
-            .find(|dev| dev.name().unwrap_or("NULL".into()) == *id)
+            .find(|dev| id == dev.name().as_deref().unwrap_or("NULL"))
             .ok_or(FindError::DeviceDoesNotExist)
             .map(|dev| Box::new(CpalDevice::from(dev)) as Box<dyn Device>)
     }
