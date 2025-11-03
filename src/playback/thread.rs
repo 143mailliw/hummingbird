@@ -427,20 +427,19 @@ impl PlaybackThread {
 
         let mut recreation_required = false;
 
-        if self.state == PlaybackState::Paused {
-            if let Some(result) = self.stream.as_mut() {
-                if let Err(err) = result.reset() {
-                    warn!("Failed to reset device, forcing recreation: {:?}", err);
-                    recreation_required = true;
-                }
-            }
+        if self.state == PlaybackState::Paused
+            && let Some(result) = self.stream.as_mut()
+            && let Err(err) = result.reset()
+        {
+            warn!("Failed to reset device, forcing recreation: {:?}", err);
+            recreation_required = true;
         }
 
-        if let Some(stream) = self.stream.as_mut() {
-            if let Err(err) = stream.play() {
-                warn!("Failed to reset device, forcing recreation: {:?}", err);
-                recreation_required = true;
-            }
+        if let Some(stream) = self.stream.as_mut()
+            && let Err(err) = stream.play()
+        {
+            warn!("Failed to reset device, forcing recreation: {:?}", err);
+            recreation_required = true;
         };
 
         let provider = self
@@ -670,7 +669,7 @@ impl PlaybackThread {
         if self.state == PlaybackState::Stopped {
             let path = item.get_path();
 
-            if let Err(err) = self.open(&path) {
+            if let Err(err) = self.open(path) {
                 error!("Unable to open file: {:?}", err);
             };
             self.queue_next = pre_len + 1;
@@ -722,7 +721,7 @@ impl PlaybackThread {
         {
             let path = first.get_path();
 
-            if let Err(err) = self.open(&path) {
+            if let Err(err) = self.open(path) {
                 error!("Unable to open file: {:?}", err);
             };
             self.queue_next = pre_len + 1;
