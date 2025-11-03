@@ -8,3 +8,4 @@ result
 **/.DS_Store
 .env
 .idea/
+.vscode/
