@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use gpui::{
-    App, AppContext, Context, Entity, FontWeight, ParentElement, Render,
+    App, AppContext, Context, Entity, FontWeight, InteractiveElement, ParentElement, Render,
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 
@@ -59,7 +59,10 @@ impl PlaylistList {
 impl Render for PlaylistList {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
         let theme = cx.global::<Theme>();
-        let mut main = div();
+        let mut main = div()
+            .id("sidebar-playlist")
+            .flex_shrink()
+            .overflow_y_scroll();
         let current_view = self.nav_model.read(cx);
 
         for playlist in &*self.playlists {

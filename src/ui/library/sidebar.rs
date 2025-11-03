@@ -91,6 +91,7 @@ impl Render for Sidebar {
                     .flex_col()
                     .mt_auto()
                     .text_xs()
+                    .pt(px(8.0))
                     .text_color(theme.text_secondary)
                     .child(if self.track_stats.track_count != 1 {
                         format!("{} tracks", self.track_stats.track_count)
