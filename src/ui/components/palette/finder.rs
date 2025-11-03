@@ -1,6 +1,5 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
-use ahash::AHashMap;
 use async_channel::bounded;
 use gpui::{
     App, AppContext, Context, ElementId, Entity, EventEmitter, FontWeight, InteractiveElement,
@@ -12,6 +11,7 @@ use nucleo::{
     Config, Nucleo, Utf32String,
     pattern::{CaseMatching, Normalization},
 };
+use rustc_hash::FxHashMap;
 use tracing::debug;
 
 use crate::ui::{components::input::EnrichedInputAction, theme::Theme};
@@ -38,7 +38,7 @@ where
     T: Send + Sync + PartialEq + PaletteItem + 'static,
     MatcherFunc: Fn(&Arc<T>, &mut App) -> Utf32String + 'static,
     OnAccept: Fn(&Arc<T>, &mut App) + 'static,
-= Entity<AHashMap<usize, Entity<FinderItem<T, MatcherFunc, OnAccept>>>>;
+= Entity<FxHashMap<usize, Entity<FinderItem<T, MatcherFunc, OnAccept>>>>;
 
 pub struct Finder<T, MatcherFunc, OnAccept>
 where
@@ -84,7 +84,7 @@ where
                 _ = sender.try_send(());
             });
 
-            let views_model = cx.new(|_| AHashMap::default());
+            let views_model = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
 
             let matcher = Nucleo::new(config, notify.clone(), None, 1);
@@ -285,7 +285,7 @@ where
         let matches = self.get_matches();
         let curr_scroll = self.list_state.logical_scroll_top();
 
-        self.views_model = cx.new(|_| AHashMap::default());
+        self.views_model = cx.new(|_| FxHashMap::default());
         self.render_counter = cx.new(|_| 0);
 
         let total = matches.len() + self.extra_items.len();

@@ -5,11 +5,11 @@ use std::{
     time::SystemTime,
 };
 
-use ahash::AHashMap;
 use async_channel::{Receiver, Sender};
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{DynamicImage, EncodableLayout, codecs::jpeg::JpegEncoder, imageops::thumbnail};
+use rustc_hash::FxHashMap;
 use smol::block_on;
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
@@ -142,7 +142,7 @@ pub struct ScanThread {
     to_process: Vec<PathBuf>,
     scan_state: ScanState,
     provider_table: Vec<(&'static [&'static str], Box<dyn MediaProvider>)>,
-    scan_record: AHashMap<PathBuf, u64>,
+    scan_record: FxHashMap<PathBuf, u64>,
     scan_record_path: Option<PathBuf>,
     scanned: u64,
     discovered_total: u64,
@@ -230,7 +230,7 @@ impl ScanThread {
                     scan_state: ScanState::Idle,
                     provider_table: build_provider_table(),
                     scan_settings: settings,
-                    scan_record: AHashMap::new(),
+                    scan_record: FxHashMap::default(),
                     scan_record_path: None,
                     scanned: 0,
                     discovered_total: 0,
@@ -332,7 +332,7 @@ impl ScanThread {
                         self.is_force = true;
                         self.force_encountered_albums.clear();
 
-                        self.scan_record = AHashMap::new();
+                        self.scan_record = FxHashMap::default();
 
                         let event_tx = self.event_tx.clone();
                         smol::spawn(async move {

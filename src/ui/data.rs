@@ -6,10 +6,10 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use ahash::AHasher;
 use gpui::{App, AppContext, Entity, RenderImage, SharedString, Task};
 use image::{Frame, ImageReader, imageops::thumbnail};
 use moka::future::Cache;
+use rustc_hash::FxHasher;
 use smallvec::smallvec;
 use tracing::{debug, error};
 
@@ -51,7 +51,7 @@ async fn read_metadata(path: PathBuf) -> anyhow::Result<QueueItemUIData> {
 
     let album_art = if let Some(v) = album_art_source {
         // hash before hand to avoid storing the entire image as a key
-        let mut hasher = AHasher::default();
+        let mut hasher = FxHasher::default();
         hasher.write(&v);
         let hash = hasher.finish();
 

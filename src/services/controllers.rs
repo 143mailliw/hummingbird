@@ -7,12 +7,12 @@ mod windows;
 
 use std::{path::Path, sync::Arc};
 
-use ahash::AHashMap;
 use async_channel::Sender;
 use async_lock::Mutex;
 use async_trait::async_trait;
 use gpui::{App, AppContext, Entity, Global, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+use rustc_hash::FxHashMap;
 use tracing::{error, warn};
 
 use crate::{
@@ -226,7 +226,7 @@ impl ControllerBridge {
     }
 }
 
-pub type ControllerList = AHashMap<String, Arc<Mutex<dyn PlaybackController>>>;
+pub type ControllerList = FxHashMap<String, Arc<Mutex<dyn PlaybackController>>>;
 
 // has to be held in memory
 #[allow(dead_code)]
@@ -400,7 +400,7 @@ pub fn make_cl(cx: &mut App, window: &mut Window) {
         })
         .detach();
 
-        let mut list = ControllerList::new();
+        let mut list = ControllerList::default();
 
         let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
         let bridge = ControllerBridge::new(sender);

@@ -8,9 +8,9 @@ use crate::{
         nav_button::nav_button,
     },
 };
-use ahash::AHashMap;
 use gpui::*;
 use prelude::FluentBuilder;
+use rustc_hash::FxHashMap;
 
 use super::{
     components::button::{ButtonSize, ButtonStyle, button},
@@ -157,7 +157,7 @@ impl Render for QueueItem {
 }
 
 pub struct Queue {
-    views_model: Entity<AHashMap<usize, Entity<QueueItem>>>,
+    views_model: Entity<FxHashMap<usize, Entity<QueueItem>>>,
     render_counter: Entity<usize>,
     shuffling: Entity<bool>,
     show_queue: Entity<bool>,
@@ -166,12 +166,12 @@ pub struct Queue {
 impl Queue {
     pub fn new(cx: &mut App, show_queue: Entity<bool>) -> Entity<Self> {
         cx.new(|cx| {
-            let views_model = cx.new(|_| AHashMap::new());
+            let views_model = cx.new(|_| FxHashMap::default());
             let render_counter = cx.new(|_| 0);
             let items = cx.global::<Models>().queue.clone();
 
             cx.observe(&items, move |this: &mut Queue, _, cx| {
-                this.views_model = cx.new(|_| AHashMap::new());
+                this.views_model = cx.new(|_| FxHashMap::default());
                 this.render_counter = cx.new(|_| 0);
 
                 cx.notify();
