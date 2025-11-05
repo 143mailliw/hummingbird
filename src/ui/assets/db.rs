@@ -25,7 +25,8 @@ pub fn load(pool: &SqlitePool, url: Url) -> gpui::Result<Option<Cow<'static, [u8
                 _ => unimplemented!("invalid image type '{image_type}'"),
             };
 
-            let (image,) = crate::RUNTIME.block_on(sqlx::query_as(query).bind(id).fetch_one(pool))?;
+            let (image,) =
+                crate::RUNTIME.block_on(sqlx::query_as(query).bind(id).fetch_one(pool))?;
             Ok(Some(Cow::Owned(image)))
         }
         _ => Ok(None),

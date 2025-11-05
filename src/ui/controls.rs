@@ -1,5 +1,5 @@
 use crate::{
-    playback::{events::RepeatState, interface::GPUIPlaybackInterface, thread::PlaybackState},
+    playback::{events::RepeatState, interface::PlaybackInterface, thread::PlaybackState},
     settings::SettingsGlobal,
     ui::components::{
         context::context,
@@ -270,7 +270,7 @@ impl Render for PlaybackSection {
                         window.prevent_default();
                     })
                     .on_click(|_, _, cx| {
-                        cx.global::<GPUIPlaybackInterface>().toggle_shuffle();
+                        cx.global::<PlaybackInterface>().toggle_shuffle();
                     })
                     .child(icon(SHUFFLE).size(px(14.0)).when(*shuffling, |this| {
                         this.text_color(theme.playback_button_toggled)
@@ -378,13 +378,13 @@ impl Render for PlaybackSection {
                                 })
                                 .on_click(move |_, _, cx| match repeating {
                                     RepeatState::NotRepeating => cx
-                                        .global::<GPUIPlaybackInterface>()
+                                        .global::<PlaybackInterface>()
                                         .set_repeat(RepeatState::Repeating),
                                     RepeatState::Repeating => cx
-                                        .global::<GPUIPlaybackInterface>()
+                                        .global::<PlaybackInterface>()
                                         .set_repeat(RepeatState::RepeatingOne),
                                     RepeatState::RepeatingOne => cx
-                                        .global::<GPUIPlaybackInterface>()
+                                        .global::<PlaybackInterface>()
                                         .set_repeat(RepeatState::NotRepeating),
                                 })
                                 .child(
@@ -411,7 +411,7 @@ impl Render for PlaybackSection {
                                             Some(REPEAT_OFF),
                                             "Off",
                                             move |_, _, cx| {
-                                                cx.global::<GPUIPlaybackInterface>()
+                                                cx.global::<PlaybackInterface>()
                                                     .set_repeat(RepeatState::NotRepeating);
                                             },
                                         ))
@@ -421,7 +421,7 @@ impl Render for PlaybackSection {
                                         Some(REPEAT),
                                         "Repeat",
                                         move |_, _, cx| {
-                                            cx.global::<GPUIPlaybackInterface>()
+                                            cx.global::<PlaybackInterface>()
                                                 .set_repeat(RepeatState::Repeating);
                                         },
                                     ))
@@ -430,7 +430,7 @@ impl Render for PlaybackSection {
                                         Some(REPEAT_ONCE),
                                         "Repeat One",
                                         move |_, _, cx| {
-                                            cx.global::<GPUIPlaybackInterface>()
+                                            cx.global::<PlaybackInterface>()
                                                 .set_repeat(RepeatState::RepeatingOne);
                                         },
                                     )),
@@ -535,7 +535,7 @@ impl Render for Scrubber {
                         let info = cx.global::<PlaybackInfo>().clone();
 
                         if duration > 0 && *info.playback_state.read(cx) != PlaybackState::Stopped {
-                            cx.global::<GPUIPlaybackInterface>()
+                            cx.global::<PlaybackInterface>()
                                 .seek(v as f64 * duration as f64);
                         }
                     }),
@@ -595,13 +595,13 @@ impl Render for SecondaryControls {
                         .when(volume <= 0.0, |div| {
                             div.child(icon(VOLUME_OFF).size(px(14.0)))
                                 .on_click(move |_, _, cx| {
-                                    cx.global::<GPUIPlaybackInterface>().set_volume(prev_volume);
+                                    cx.global::<PlaybackInterface>().set_volume(prev_volume);
                                 })
                         })
                         .when(volume > 0.0, |div| {
                             div.child(icon(VOLUME).size(px(14.0)))
                                 .on_click(move |_, _, cx| {
-                                    cx.global::<GPUIPlaybackInterface>().set_volume(0 as f64);
+                                    cx.global::<PlaybackInterface>().set_volume(0 as f64);
                                 })
                         }),
                 )
@@ -616,12 +616,12 @@ impl Render for SecondaryControls {
                                 .id("volume")
                                 .value((volume) as f32)
                                 .on_change(move |v, _, cx| {
-                                    cx.global::<GPUIPlaybackInterface>().set_volume(v as f64);
+                                    cx.global::<PlaybackInterface>().set_volume(v as f64);
                                 }),
                         )
                         .on_scroll_wheel(move |ev, _, cx| {
                             let delta: f64 = ev.delta.pixel_delta(px(0.01666666)).y.into();
-                            cx.global::<GPUIPlaybackInterface>().set_volume(f64::clamp(
+                            cx.global::<PlaybackInterface>().set_volume(f64::clamp(
                                 volume + delta,
                                 0_f64,
                                 1_f64,

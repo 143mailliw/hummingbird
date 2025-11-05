@@ -14,7 +14,7 @@ use crate::{
         db::create_pool,
         scan::{ScanInterface, ScanThread},
     },
-    playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
+    playback::{interface::PlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
     services::controllers::make_cl,
     settings::{
         SettingsGlobal, setup_settings,
@@ -183,7 +183,7 @@ impl Render for WindowShadow {
                             .map(|path| QueueItemData::new(cx, path.clone(), None, None))
                             .collect();
 
-                        let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                        let playback_interface = cx.global::<PlaybackInterface>();
                         playback_interface.queue_list(items);
                     })
                     .overflow_hidden()
@@ -364,7 +364,7 @@ pub fn run() -> anyhow::Result<()> {
             })
             .detach();
 
-            let mut playback_interface: GPUIPlaybackInterface =
+            let mut playback_interface: PlaybackInterface =
                 PlaybackThread::start(queue, playback_settings);
             playback_interface.start_broadcast(cx);
 

@@ -115,12 +115,12 @@ pub const LINEAR_SCALING_COEFFICIENT: f64 = 0.295751527165_f64;
 
 impl PlaybackThread {
     /// Starts the playback thread and returns the created interface.
-    pub fn start<T: PlaybackInterface>(
+    pub fn start(
         queue: Arc<RwLock<Vec<QueueItemData>>>,
         settings: PlaybackSettings,
-    ) -> T {
+    ) -> PlaybackInterface {
         // TODO: use the refresh rate for the bounds
-        let (commands_tx, commands_rx) = async_channel::unbounded();
+        let (cmd_tx, commands_rx) = async_channel::unbounded();
         let (events_tx, events_rx) = async_channel::unbounded();
 
         std::thread::Builder::new()
@@ -154,7 +154,7 @@ impl PlaybackThread {
             })
             .expect("could not start playback thread");
 
-        T::new(commands_tx, events_rx)
+        PlaybackInterface::new(cmd_tx, events_rx)
     }
 
     /// Creates the initial stream and starts the main loop.

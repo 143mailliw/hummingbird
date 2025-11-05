@@ -16,12 +16,6 @@ use super::{
     thread::PlaybackState,
 };
 
-/// The PlaybackInterface trait defines the method used to create the struct that will be used to
-/// communicate between the playback thread and the main thread.
-pub trait PlaybackInterface {
-    fn new(commands_tx: Sender<PlaybackCommand>, events_rx: Receiver<PlaybackEvent>) -> Self;
-}
-
 /// The playback interface struct that will be used to communicate between the playback thread and
 /// the main thread. This implementation takes advantage of the GPUI Global trait to allow any
 /// function (so long as it is running on the main thread) to send commands to the playback thread.
@@ -33,27 +27,25 @@ pub trait PlaybackInterface {
 /// data thread for any required additional processing.
 ///
 /// For the functions provided by this interface, see the documentation for the playback thread.
-pub struct GPUIPlaybackInterface {
-    commands_tx: Sender<PlaybackCommand>,
+pub struct PlaybackInterface {
+    cmd_tx: Sender<PlaybackCommand>,
     events_rx: Option<Receiver<PlaybackEvent>>,
 }
 
-impl gpui::Global for GPUIPlaybackInterface {}
+impl gpui::Global for PlaybackInterface {}
 
-impl PlaybackInterface for GPUIPlaybackInterface {
-    fn new(commands_tx: Sender<PlaybackCommand>, events_rx: Receiver<PlaybackEvent>) -> Self {
+impl PlaybackInterface {
+    pub fn new(cmd_tx: Sender<PlaybackCommand>, events_rx: Receiver<PlaybackEvent>) -> Self {
         Self {
-            commands_tx,
+            cmd_tx: cmd_tx,
             events_rx: Some(events_rx),
         }
     }
-}
 
-impl GPUIPlaybackInterface {
     pub fn play(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Play)
                 .await
                 .expect("could not send tx");
@@ -61,9 +53,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn pause(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Pause)
                 .await
                 .expect("could not send tx");
@@ -71,9 +63,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn open(&self, path: PathBuf) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Open(path))
                 .await
                 .expect("could not send tx");
@@ -81,9 +73,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn queue(&self, item: QueueItemData) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Queue(item))
                 .await
                 .expect("could not send tx");
@@ -91,9 +83,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn queue_list(&self, items: Vec<QueueItemData>) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::QueueList(items))
                 .await
                 .expect("could not send tx");
@@ -101,9 +93,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn next(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Next)
                 .await
                 .expect("could not send tx");
@@ -111,9 +103,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn previous(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Previous)
                 .await
                 .expect("could not send tx");
@@ -121,9 +113,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn clear_queue(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::ClearQueue)
                 .await
                 .expect("could not send tx");
@@ -131,9 +123,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn jump(&self, index: usize) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Jump(index))
                 .await
                 .expect("could not send tx");
@@ -141,9 +133,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn jump_unshuffled(&self, index: usize) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::JumpUnshuffled(index))
                 .await
                 .expect("could not send tx");
@@ -151,9 +143,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn seek(&self, position: f64) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Seek(position))
                 .await
                 .expect("could not send tx");
@@ -161,9 +153,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn set_volume(&self, volume: f64) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::SetVolume(volume))
                 .await
                 .expect("could not send tx");
@@ -171,9 +163,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn replace_queue(&self, items: Vec<QueueItemData>) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::ReplaceQueue(items))
                 .await
                 .expect("could not send tx");
@@ -181,9 +173,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn stop(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::Stop)
                 .await
                 .expect("could not send tx");
@@ -191,9 +183,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn toggle_shuffle(&self) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::ToggleShuffle)
                 .await
                 .expect("could not send tx");
@@ -201,9 +193,9 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn set_repeat(&self, state: RepeatState) {
-        let commands_tx = self.commands_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            commands_tx
+            cmd_tx
                 .send(PlaybackCommand::SetRepeat(state))
                 .await
                 .expect("could not send tx");
@@ -211,7 +203,7 @@ impl GPUIPlaybackInterface {
     }
 
     pub fn get_sender(&self) -> Sender<PlaybackCommand> {
-        self.commands_tx.clone()
+        self.cmd_tx.clone()
     }
 
     /// Starts the broadcast loop that will read events from the playback thread and update data
@@ -394,7 +386,7 @@ impl GPUIPlaybackInterface {
 // TODO: this should be in a trait for AppContext
 /// Replace the current queue with the given items.
 pub fn replace_queue(items: Vec<QueueItemData>, app: &mut App) {
-    let playback_interface = app.global::<GPUIPlaybackInterface>();
+    let playback_interface = app.global::<PlaybackInterface>();
     playback_interface.replace_queue(items);
 
     // let data_interface = app.global::<GPUIDataInterface>();

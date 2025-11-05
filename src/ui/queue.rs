@@ -1,6 +1,6 @@
 use crate::{
     playback::{
-        interface::GPUIPlaybackInterface,
+        interface::PlaybackInterface,
         queue::{DataSource, QueueItemData},
     },
     ui::components::{
@@ -100,7 +100,7 @@ impl Render for QueueItem {
                 .border_color(theme.border_color)
                 .when(is_current, |div| div.bg(theme.queue_item_current))
                 .on_click(move |_, _, cx| {
-                    cx.global::<GPUIPlaybackInterface>().jump(idx);
+                    cx.global::<PlaybackInterface>().jump(idx);
                 })
                 .hover(|div| div.bg(theme.queue_item_hover))
                 .active(|div| div.bg(theme.queue_item_active))
@@ -268,8 +268,8 @@ impl Render for Queue {
                             .w_full()
                             .id("clear-queue")
                             .on_click(|_, _, cx| {
-                                cx.global::<GPUIPlaybackInterface>().clear_queue();
-                                cx.global::<GPUIPlaybackInterface>().stop();
+                                cx.global::<PlaybackInterface>().clear_queue();
+                                cx.global::<PlaybackInterface>().stop();
                             }),
                     )
                     .child(
@@ -281,9 +281,7 @@ impl Render for Queue {
                             .when(!shuffling, |this| this.child("Shuffle"))
                             .w_full()
                             .id("queue-shuffle")
-                            .on_click(|_, _, cx| {
-                                cx.global::<GPUIPlaybackInterface>().toggle_shuffle()
-                            }),
+                            .on_click(|_, _, cx| cx.global::<PlaybackInterface>().toggle_shuffle()),
                     ),
             )
             .child(
