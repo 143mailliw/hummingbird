@@ -103,7 +103,7 @@ fn get_token(cx: &mut App, state: Entity<LastFMState>) {
     cx.spawn(async move |cx| {
         let mut client = LastFMClient::new(
             LASTFM_API_KEY.unwrap().to_string(),
-            LASTFM_API_SECRET.unwrap(),
+            LASTFM_API_SECRET.unwrap().to_string(),
         );
 
         if let Ok(token) = client.get_token().await {
@@ -135,10 +135,10 @@ fn confirm(cx: &mut App, state: Entity<LastFMState>, token: String) {
     cx.spawn(async move |cx| {
         let mut client = LastFMClient::new(
             LASTFM_API_KEY.unwrap().to_string(),
-            LASTFM_API_SECRET.unwrap(),
+            LASTFM_API_SECRET.unwrap().to_string(),
         );
 
-        if let Ok(session) = client.get_session(token).await {
+        if let Ok(session) = client.get_session(&token).await {
             state
                 .update(cx, move |_, cx| {
                     cx.emit(session);

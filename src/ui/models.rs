@@ -272,7 +272,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
 
 pub fn create_last_fm_mmbs(cx: &mut App, mmbs_list: &Entity<MMBSList>, session: String) {
     if let (Some(key), Some(secret)) = (LASTFM_API_KEY, LASTFM_API_SECRET) {
-        let mut client = LastFMClient::new(key.to_string(), secret);
+        let mut client = LastFMClient::new(key.to_string(), secret.to_string());
         client.set_session(session);
         let mmbs = LastFM::new(client);
         mmbs_list.update(cx, |m, _| {
