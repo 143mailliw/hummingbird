@@ -22,7 +22,7 @@ cpal = "0.16"
 dateparser = "0.2"
 directories = "6"
 globwalk = "0.9"
-futures = "0.3"
+futures = { version = "0.3", default-features = false }
 gpui = "0.2.0"
 image = "0.25"
 indexmap = { version = "2", features = ["std", "serde"] }
