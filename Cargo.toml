@@ -46,6 +46,7 @@ smol-macros = "0.1"
 smol = "2"
 symphonia = { version = "0.5", features = ["all", "opt-simd-sse"] }
 thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 unicode-segmentation = "1"
