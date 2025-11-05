@@ -266,22 +266,14 @@ impl PlaybackThread {
                 .expect("failed to get metadata")
                 .clone(),
         );
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::MetadataUpdate(metadata))
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::MetadataUpdate(metadata))
+            .expect("unable to send event");
 
         let image = provider.read_image().expect("failed to decode image");
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::AlbumArtUpdate(image))
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::AlbumArtUpdate(image))
+            .expect("unable to send event");
     }
 
     /// Read incoming commands from the command channel, and process them.
@@ -329,13 +321,9 @@ impl PlaybackThread {
 
             self.state = PlaybackState::Paused;
 
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::StateChanged(PlaybackState::Paused))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Paused))
+                .expect("unable to send event");
         }
     }
 
@@ -385,13 +373,9 @@ impl PlaybackThread {
 
             self.state = PlaybackState::Playing;
 
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::StateChanged(PlaybackState::Playing))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Playing))
+                .expect("unable to send event");
         }
 
         let queue = self.queue.read().expect("couldn't get the queue");
@@ -403,13 +387,9 @@ impl PlaybackThread {
             if let Err(err) = self.open(&path) {
                 error!("Unable to open file: {:?}", err);
             };
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(0))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(0))
+                .expect("unable to send event");
             self.queue_next = 1;
         }
 
@@ -481,31 +461,19 @@ impl PlaybackThread {
             recreation_required = true;
         }
 
-        let events_tx = self.events_tx.clone();
         let path = path.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::SongChanged(path))
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::SongChanged(path))
+            .expect("unable to send event");
 
         if let Ok(duration) = provider.duration_secs() {
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::DurationChanged(duration))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::DurationChanged(duration))
+                .expect("unable to send event");
         } else {
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::DurationChanged(0))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::DurationChanged(0))
+                .expect("unable to send event");
         }
 
         if recreation_required {
@@ -522,13 +490,9 @@ impl PlaybackThread {
 
         self.update_ts();
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::StateChanged(PlaybackState::Playing))
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Playing))
+            .expect("unable to send event");
 
         Ok(())
     }
@@ -554,14 +518,9 @@ impl PlaybackThread {
             if let Err(err) = self.open(&path) {
                 error!("Unable to open file: {:?}", err);
             }
-            let events_tx = self.events_tx.clone();
-            let queue_next = self.queue_next;
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(queue_next))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(self.queue_next))
+                .expect("unable to send event");
             self.queue_next += 1;
         } else if !user_initiated {
             if self.repeat == RepeatState::Repeating {
@@ -570,13 +529,9 @@ impl PlaybackThread {
                 if self.shuffle {
                     queue.shuffle(&mut rng());
 
-                    let events_tx = self.events_tx.clone();
-                    crate::RUNTIME.spawn(async move {
-                        events_tx
-                            .send(PlaybackEvent::QueueUpdated)
-                            .await
-                            .expect("unable to send event");
-                    });
+                    self.events_tx
+                        .send_blocking(PlaybackEvent::QueueUpdated)
+                        .expect("unable to send event");
                 }
 
                 drop(queue);
@@ -609,26 +564,18 @@ impl PlaybackThread {
             if let Err(err) = self.open(&path) {
                 error!("Unable to open file: {:?}", err);
             };
-            let events_tx = self.events_tx.clone();
             let new_position = self.queue_next - 1;
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(new_position))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(new_position))
+                .expect("unable to send event");
         } else if self.queue_next > 1 {
             info!("Opening previous file in queue");
             let path = queue[self.queue_next - 2].get_path().clone();
             drop(queue);
-            let events_tx = self.events_tx.clone();
             let new_position = self.queue_next - 2;
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(new_position))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(new_position))
+                .expect("unable to send event");
             self.queue_next -= 1;
             debug!("queue_next: {}", self.queue_next);
 
@@ -660,22 +607,14 @@ impl PlaybackThread {
                 error!("Unable to open file: {:?}", err);
             };
             self.queue_next = pre_len + 1;
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(pre_len))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(pre_len))
+                .expect("unable to send event");
         }
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::QueueUpdated)
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
     }
 
     /// Add a list of QueueItemData to the queue. If nothing is playing, start playing the first
@@ -710,22 +649,14 @@ impl PlaybackThread {
                 error!("Unable to open file: {:?}", err);
             };
             self.queue_next = pre_len + 1;
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(pre_len))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(pre_len))
+                .expect("unable to send event");
         }
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::QueueUpdated)
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
     }
 
     /// Emit a PositionChanged event if the timestamp has changed.
@@ -737,13 +668,9 @@ impl PlaybackThread {
                 return;
             }
 
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::PositionChanged(timestamp))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::PositionChanged(timestamp))
+                .expect("unable to send event");
 
             self.last_timestamp = timestamp;
         }
@@ -770,13 +697,9 @@ impl PlaybackThread {
                 error!("Unable to open file: {:?}", err);
             };
             self.queue_next = index + 1;
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::QueuePositionChanged(index))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueuePositionChanged(index))
+                .expect("unable to send event");
         }
     }
 
@@ -820,13 +743,9 @@ impl PlaybackThread {
         self.queue_next = 0;
         self.jump(0);
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::QueueUpdated)
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::QueueUpdated)
+            .expect("unable to send event");
     }
 
     /// Clear the current queue.
@@ -836,17 +755,12 @@ impl PlaybackThread {
         self.original_queue = Vec::new();
         self.queue_next = 0;
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::QueuePositionChanged(0))
-                .await
-                .expect("unable to send event");
-            events_tx
-                .send(PlaybackEvent::QueueUpdated)
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::QueuePositionChanged(0))
+            .unwrap();
+        self.events_tx
+            .send_blocking(PlaybackEvent::QueueUpdated)
+            .unwrap();
     }
 
     /// Stop the current playback.
@@ -857,13 +771,9 @@ impl PlaybackThread {
         }
         self.state = PlaybackState::Stopped;
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::StateChanged(PlaybackState::Stopped))
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Stopped))
+            .expect("unable to send event");
     }
 
     /// Toggle shuffle mode. This will result in the queue being duplicated and shuffled.
@@ -888,42 +798,33 @@ impl PlaybackThread {
             swap(&mut self.original_queue, &mut queue);
             self.original_queue = Vec::new();
             self.shuffle = false;
+            drop(queue);
 
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::ShuffleToggled(false, index))
-                    .await
+            self.events_tx
+                .send_blocking(PlaybackEvent::ShuffleToggled(false, index))
+                .expect("unable to send event");
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueueUpdated)
+                .expect("unable to send event");
+            if index != 0 {
+                self.events_tx
+                    .send_blocking(PlaybackEvent::QueuePositionChanged(index))
                     .expect("unable to send event");
-                events_tx
-                    .send(PlaybackEvent::QueueUpdated)
-                    .await
-                    .expect("unable to send event");
-                if index != 0 {
-                    events_tx
-                        .send(PlaybackEvent::QueuePositionChanged(index))
-                        .await
-                        .expect("unable to send event");
-                }
-            });
+            }
         } else {
             self.original_queue = queue.clone();
             let length = queue.len();
             queue[self.queue_next..length].shuffle(&mut rng());
             self.shuffle = true;
-
-            let events_tx = self.events_tx.clone();
             let queue_next = self.queue_next;
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::ShuffleToggled(true, queue_next))
-                    .await
-                    .expect("unable to send event");
-                events_tx
-                    .send(PlaybackEvent::QueueUpdated)
-                    .await
-                    .expect("unable to send event");
-            });
+            drop(queue);
+
+            self.events_tx
+                .send_blocking(PlaybackEvent::ShuffleToggled(true, queue_next))
+                .expect("unable to send event");
+            self.events_tx
+                .send_blocking(PlaybackEvent::QueueUpdated)
+                .expect("unable to send event");
         }
     }
 
@@ -942,13 +843,9 @@ impl PlaybackThread {
                 .set_volume(volume_scaled)
                 .expect("failed to set volume");
 
-            let events_tx = self.events_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                events_tx
-                    .send(PlaybackEvent::VolumeChanged(volume))
-                    .await
-                    .expect("unable to send event");
-            });
+            self.events_tx
+                .send_blocking(PlaybackEvent::VolumeChanged(volume))
+                .expect("unable to send event");
         }
     }
 
@@ -962,13 +859,9 @@ impl PlaybackThread {
             state
         };
 
-        let events_tx = self.events_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            events_tx
-                .send(PlaybackEvent::RepeatChanged(state))
-                .await
-                .expect("unable to send event");
-        });
+        self.events_tx
+            .send_blocking(PlaybackEvent::RepeatChanged(state))
+            .expect("unable to send event");
     }
 
     /// Toggles between play/pause.

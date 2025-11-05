@@ -43,163 +43,91 @@ impl PlaybackInterface {
     }
 
     pub fn play(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Play)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(PlaybackCommand::Play).unwrap();
     }
 
     pub fn pause(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Pause)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(PlaybackCommand::Pause).unwrap();
     }
 
     pub fn open(&self, path: PathBuf) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Open(path))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::Open(path))
+            .unwrap();
     }
 
     pub fn queue(&self, item: QueueItemData) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Queue(item))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::Queue(item))
+            .unwrap();
     }
 
     pub fn queue_list(&self, items: Vec<QueueItemData>) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::QueueList(items))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::QueueList(items))
+            .unwrap();
     }
 
     pub fn next(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Next)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(PlaybackCommand::Next).unwrap();
     }
 
     pub fn previous(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Previous)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::Previous)
+            .unwrap();
     }
 
     pub fn clear_queue(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::ClearQueue)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::ClearQueue)
+            .unwrap();
     }
 
     pub fn jump(&self, index: usize) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Jump(index))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::Jump(index))
+            .unwrap();
     }
 
     pub fn jump_unshuffled(&self, index: usize) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::JumpUnshuffled(index))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::JumpUnshuffled(index))
+            .unwrap();
     }
 
     pub fn seek(&self, position: f64) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Seek(position))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::Seek(position))
+            .unwrap();
     }
 
     pub fn set_volume(&self, volume: f64) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::SetVolume(volume))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::SetVolume(volume))
+            .unwrap();
     }
 
     pub fn replace_queue(&self, items: Vec<QueueItemData>) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::ReplaceQueue(items))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::ReplaceQueue(items))
+            .unwrap();
     }
 
     pub fn stop(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::Stop)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(PlaybackCommand::Stop).unwrap();
     }
 
     pub fn toggle_shuffle(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::ToggleShuffle)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::ToggleShuffle)
+            .unwrap();
     }
 
     pub fn set_repeat(&self, state: RepeatState) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(PlaybackCommand::SetRepeat(state))
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx
+            .send_blocking(PlaybackCommand::SetRepeat(state))
+            .unwrap();
     }
 
     pub fn get_sender(&self) -> Sender<PlaybackCommand> {
