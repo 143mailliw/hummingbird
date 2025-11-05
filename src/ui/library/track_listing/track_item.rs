@@ -10,7 +10,7 @@ use crate::ui::models::PlaylistEvent;
 use crate::{
     library::{db::LibraryAccess, types::Track},
     playback::{
-        interface::{GPUIPlaybackInterface, replace_queue},
+        interface::{PlaybackInterface, replace_queue},
         queue::QueueItemData,
     },
     ui::{
@@ -275,7 +275,7 @@ impl Render for TrackItem {
                                     Some(track_id),
                                     album_id,
                                 );
-                                let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                                let playback_interface = cx.global::<PlaybackInterface>();
                                 let queue_length = cx
                                     .global::<Models>()
                                     .queue
@@ -308,7 +308,7 @@ impl Render for TrackItem {
                                     Some(track_id),
                                     album_id,
                                 );
-                                let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                                let playback_interface = cx.global::<PlaybackInterface>();
                                 playback_interface.queue(data);
                             },
                         ))
@@ -375,7 +375,7 @@ pub fn play_from_track(cx: &mut App, track: &Track, pl_id: Option<i64>) {
 
     replace_queue(queue_items.clone(), cx);
 
-    let playback_interface = cx.global::<GPUIPlaybackInterface>();
+    let playback_interface = cx.global::<PlaybackInterface>();
     playback_interface.jump_unshuffled(
         queue_items
             .iter()

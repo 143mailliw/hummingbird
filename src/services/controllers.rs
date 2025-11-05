@@ -19,7 +19,7 @@ use crate::{
     media::metadata::Metadata,
     playback::{
         events::{PlaybackCommand, RepeatState},
-        interface::GPUIPlaybackInterface,
+        interface::PlaybackInterface,
         thread::PlaybackState,
     },
     ui::models::{Models, PlaybackInfo},
@@ -391,7 +391,7 @@ pub fn make_cl(cx: &mut App, window: &mut Window) {
 
         let mut list = ControllerList::default();
 
-        let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
+        let sender = cx.global::<PlaybackInterface>().get_sender();
         let bridge = ControllerBridge::new(sender);
 
         #[cfg(target_os = "macos")]

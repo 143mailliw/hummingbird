@@ -14,7 +14,7 @@ use crate::{
         types::{Playlist, PlaylistType},
     },
     playback::{
-        interface::{GPUIPlaybackInterface, replace_queue},
+        interface::{PlaybackInterface, replace_queue},
         queue::QueueItemData,
     },
     ui::{
@@ -239,7 +239,7 @@ impl Render for PlaylistView {
                                                     })
                                                     .collect();
 
-                                                cx.global::<GPUIPlaybackInterface>()
+                                                cx.global::<PlaybackInterface>()
                                                     .queue_list(queue_items);
                                             })),
                                     )
@@ -273,7 +273,7 @@ impl Render for PlaylistView {
                                                     .shuffling
                                                     .read(cx))
                                                 {
-                                                    cx.global::<GPUIPlaybackInterface>()
+                                                    cx.global::<PlaybackInterface>()
                                                         .toggle_shuffle();
                                                 }
 

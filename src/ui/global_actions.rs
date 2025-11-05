@@ -3,7 +3,7 @@ use tracing::{debug, info};
 
 use crate::{
     library::scan::ScanInterface,
-    playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
+    playback::{interface::PlaybackInterface, thread::PlaybackState},
     ui::command_palette::OpenPalette,
 };
 
@@ -81,7 +81,7 @@ fn quit(_: &Quit, cx: &mut App) {
 
 fn play_pause(_: &PlayPause, cx: &mut App) {
     let state = cx.global::<PlaybackInfo>().playback_state.read(cx);
-    let interface = cx.global::<GPUIPlaybackInterface>();
+    let interface = cx.global::<PlaybackInterface>();
     match state {
         PlaybackState::Stopped => {
             interface.play();
@@ -96,12 +96,12 @@ fn play_pause(_: &PlayPause, cx: &mut App) {
 }
 
 fn next(_: &Next, cx: &mut App) {
-    let interface = cx.global::<GPUIPlaybackInterface>();
+    let interface = cx.global::<PlaybackInterface>();
     interface.next();
 }
 
 fn previous(_: &Previous, cx: &mut App) {
-    let interface = cx.global::<GPUIPlaybackInterface>();
+    let interface = cx.global::<PlaybackInterface>();
     interface.previous();
 }
 

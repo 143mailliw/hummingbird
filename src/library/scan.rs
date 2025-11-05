@@ -49,24 +49,18 @@ enum ScanCommand {
 
 pub struct ScanInterface {
     events_rx: Option<Receiver<ScanEvent>>,
-    command_tx: Sender<ScanCommand>,
+    cmd_tx: Sender<ScanCommand>,
 }
 
 impl ScanInterface {
-    pub(self) fn new(
-        events_rx: Option<Receiver<ScanEvent>>,
-        command_tx: Sender<ScanCommand>,
-    ) -> Self {
-        ScanInterface {
-            events_rx,
-            command_tx,
-        }
+    pub(self) fn new(events_rx: Option<Receiver<ScanEvent>>, cmd_tx: Sender<ScanCommand>) -> Self {
+        ScanInterface { events_rx, cmd_tx }
     }
 
     pub fn scan(&self) {
-        let command_tx = self.command_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            command_tx
+            cmd_tx
                 .send(ScanCommand::Scan)
                 .await
                 .expect("could not send tx");
@@ -74,9 +68,9 @@ impl ScanInterface {
     }
 
     pub fn force_scan(&self) {
-        let command_tx = self.command_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            command_tx
+            cmd_tx
                 .send(ScanCommand::ForceScan)
                 .await
                 .expect("could not send tx");
@@ -84,9 +78,9 @@ impl ScanInterface {
     }
 
     pub fn stop(&self) {
-        let command_tx = self.command_tx.clone();
+        let cmd_tx = self.cmd_tx.clone();
         crate::RUNTIME.spawn(async move {
-            command_tx
+            cmd_tx
                 .send(ScanCommand::Stop)
                 .await
                 .expect("could not send tx");
@@ -210,7 +204,7 @@ fn scan_path_for_album_art(path: &Path) -> Option<Box<[u8]>> {
 
 impl ScanThread {
     pub fn start(pool: SqlitePool, settings: ScanSettings) -> ScanInterface {
-        let (commands_tx, commands_rx) = async_channel::bounded(10);
+        let (cmd_tx, commands_rx) = async_channel::bounded(10);
         let (events_tx, events_rx) = async_channel::unbounded();
 
         std::thread::Builder::new()
@@ -238,7 +232,7 @@ impl ScanThread {
             })
             .expect("could not start playback thread");
 
-        ScanInterface::new(Some(events_rx), commands_tx)
+        ScanInterface::new(Some(events_rx), cmd_tx)
     }
 
     fn run(&mut self) {
