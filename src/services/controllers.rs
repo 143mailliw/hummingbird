@@ -105,113 +105,69 @@ impl ControllerBridge {
     }
 
     pub fn play(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Play)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Play)
+            .unwrap();
     }
 
     pub fn pause(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Pause)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Pause)
+            .unwrap();
     }
 
     pub fn toggle_play_pause(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::TogglePlayPause)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::TogglePlayPause)
+            .unwrap();
     }
 
     pub fn stop(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Stop)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Stop)
+            .unwrap();
     }
 
     pub fn next(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Next)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Next)
+            .unwrap();
     }
 
     pub fn previous(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Previous)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Previous)
+            .unwrap();
     }
 
     pub fn jump(&self, index: usize) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Jump(index))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Jump(index))
+            .unwrap();
     }
 
     pub fn seek(&self, position: f64) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Seek(position))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::Seek(position))
+            .unwrap();
     }
 
     pub fn set_volume(&self, volume: f64) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::SetVolume(volume))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::SetVolume(volume))
+            .unwrap();
     }
 
     pub fn toggle_shuffle(&self) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::ToggleShuffle)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::ToggleShuffle)
+            .unwrap();
     }
 
     pub fn set_repeat(&self, repeat: RepeatState) {
-        let playback_thread = self.playback_thread.clone();
-        crate::RUNTIME.spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::SetRepeat(repeat))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        });
+        self.playback_thread
+            .send_blocking(PlaybackCommand::SetRepeat(repeat))
+            .unwrap();
     }
 }
 

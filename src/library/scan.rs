@@ -58,33 +58,15 @@ impl ScanInterface {
     }
 
     pub fn scan(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(ScanCommand::Scan)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(ScanCommand::Scan).unwrap();
     }
 
     pub fn force_scan(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(ScanCommand::ForceScan)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(ScanCommand::ForceScan).unwrap();
     }
 
     pub fn stop(&self) {
-        let cmd_tx = self.cmd_tx.clone();
-        crate::RUNTIME.spawn(async move {
-            cmd_tx
-                .send(ScanCommand::Stop)
-                .await
-                .expect("could not send tx");
-        });
+        self.cmd_tx.send_blocking(ScanCommand::Stop).unwrap();
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -299,13 +281,9 @@ impl ScanThread {
                         self.to_process.clear();
                         self.is_force = false;
 
-                        let event_tx = self.event_tx.clone();
-                        crate::RUNTIME.spawn(async move {
-                            event_tx
-                                .send(ScanEvent::Cleaning)
-                                .await
-                                .expect("could not send scan started event");
-                        });
+                        self.event_tx
+                            .send_blocking(ScanEvent::Cleaning)
+                            .expect("could not send scan started event");
                     }
                 }
                 ScanCommand::ForceScan => {
@@ -323,13 +301,9 @@ impl ScanThread {
 
                         self.scan_record = FxHashMap::default();
 
-                        let event_tx = self.event_tx.clone();
-                        crate::RUNTIME.spawn(async move {
-                            event_tx
-                                .send(ScanEvent::Cleaning)
-                                .await
-                                .expect("could not send scan started event");
-                        });
+                        self.event_tx
+                            .send_blocking(ScanEvent::Cleaning)
+                            .expect("could not send scan started event");
                     }
                 }
                 ScanCommand::Stop => {
@@ -406,14 +380,9 @@ impl ScanThread {
                 self.discovered_total += 1;
 
                 if self.discovered_total.is_multiple_of(20) {
-                    let event_tx = self.event_tx.clone();
-                    let discovered_total = self.discovered_total;
-                    crate::RUNTIME.spawn(async move {
-                        event_tx
-                            .send(ScanEvent::DiscoverProgress(discovered_total))
-                            .await
-                            .expect("could not send discovered event");
-                    });
+                    self.event_tx
+                        .send_blocking(ScanEvent::DiscoverProgress(self.discovered_total))
+                        .expect("could not send discovered event");
                 }
             }
         }
@@ -691,10 +660,9 @@ impl ScanThread {
             info!("Scan complete, writing scan record and stopping");
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
-            let event_tx = self.event_tx.clone();
-            crate::RUNTIME.spawn(async move {
-                event_tx.send(ScanEvent::ScanCompleteIdle).await.unwrap();
-            });
+            self.event_tx
+                .send_blocking(ScanEvent::ScanCompleteIdle)
+                .unwrap();
             return;
         }
 
@@ -714,14 +682,12 @@ impl ScanThread {
             self.scanned += 1;
 
             if self.scanned.is_multiple_of(5) {
-                let event_tx = self.event_tx.clone();
-                let scan_progress = ScanEvent::ScanProgress {
-                    current: self.scanned,
-                    total: self.discovered_total,
-                };
-                crate::RUNTIME.spawn(async move {
-                    event_tx.send(scan_progress).await.unwrap();
-                });
+                self.event_tx
+                    .send_blocking(ScanEvent::ScanProgress {
+                        current: self.scanned,
+                        total: self.discovered_total,
+                    })
+                    .unwrap();
             }
         } else {
             warn!("Could not read metadata for file: {:?}", path);
