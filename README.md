@@ -57,12 +57,4 @@ cargo build --release
 ```
 
 # Contributing
-If you make a pull request, try not to introduce any warnings (other than unused
-enums/fields, which is fine if you're working on an API that could be used by
-future extention support), and ensure your code was formatted with `rustfmt`
-before submitting.
-
-Avoid breaking platforms if possible. Pull requests will be tested on Linux and
-macOS - if your commit breaks these platforms, it will not be merged. Your
-commit should not break the build on Windows, but due to time constraints it
-may not be tested.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
