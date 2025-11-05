@@ -313,11 +313,7 @@ pub fn run() -> anyhow::Result<()> {
         )
     })?;
 
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .worker_threads(1)
-        .build()?;
-    let pool = rt
+    let pool = crate::RUNTIME
         .block_on(create_pool(data_dir.join("library.db")))
         .inspect_err(|error| {
             tracing::error!(?error, "fatal: unable to create database pool");
@@ -326,8 +322,6 @@ pub fn run() -> anyhow::Result<()> {
     Application::new()
         .with_assets(HummingbirdAssetSource::new(pool.clone()))
         .run(move |cx: &mut App| {
-            cx.set_global(crate::Runtime(rt));
-
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
             register_actions(cx);

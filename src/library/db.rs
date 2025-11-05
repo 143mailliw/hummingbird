@@ -1,7 +1,6 @@
 use std::{path::Path, sync::Arc};
 
 use gpui::App;
-use smol::block_on;
 use sqlx::{
     SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
@@ -399,12 +398,12 @@ pub trait LibraryAccess {
 impl LibraryAccess for App {
     fn list_albums(&self, sort_method: AlbumSortMethod) -> Result<Vec<(u32, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(list_albums(&pool.0, sort_method))
+        crate::RUNTIME.block_on(list_albums(&pool.0, sort_method))
     }
 
     fn list_tracks_in_album(&self, album_id: i64) -> Result<Arc<Vec<Track>>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(list_tracks_in_album(&pool.0, album_id))
+        crate::RUNTIME.block_on(list_tracks_in_album(&pool.0, album_id))
     }
 
     fn get_album_by_id(
@@ -413,59 +412,59 @@ impl LibraryAccess for App {
         method: AlbumMethod,
     ) -> Result<Arc<Album>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_album_by_id(&pool.0, album_id, method))
+        crate::RUNTIME.block_on(get_album_by_id(&pool.0, album_id, method))
     }
 
     fn get_artist_name_by_id(&self, artist_id: i64) -> Result<Arc<String>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_artist_name_by_id(&pool.0, artist_id))
+        crate::RUNTIME.block_on(get_artist_name_by_id(&pool.0, artist_id))
     }
 
     fn get_artist_by_id(&self, artist_id: i64) -> Result<Arc<Artist>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_artist_by_id(&pool.0, artist_id))
+        crate::RUNTIME.block_on(get_artist_by_id(&pool.0, artist_id))
     }
 
     fn get_track_by_id(&self, track_id: i64) -> Result<Arc<Track>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_track_by_id(&pool.0, track_id))
+        crate::RUNTIME.block_on(get_track_by_id(&pool.0, track_id))
     }
 
     /// Lists all albums for searching. Returns a vector of tuples containing the id, name, and artist
     /// name.
     fn list_albums_search(&self) -> Result<Vec<(u32, String, String)>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(list_albums_search(&pool.0))
+        crate::RUNTIME.block_on(list_albums_search(&pool.0))
     }
 
     fn add_playlist_item(&self, playlist_id: i64, track_id: i64) -> Result<i64, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(add_playlist_item(&pool.0, playlist_id, track_id))
+        crate::RUNTIME.block_on(add_playlist_item(&pool.0, playlist_id, track_id))
     }
 
     fn create_playlist(&self, name: &str) -> Result<i64, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(create_playlist(&pool.0, name))
+        crate::RUNTIME.block_on(create_playlist(&pool.0, name))
     }
 
     fn delete_playlist(&self, playlist_id: i64) -> Result<(), sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(delete_playlist(&pool.0, playlist_id))
+        crate::RUNTIME.block_on(delete_playlist(&pool.0, playlist_id))
     }
 
     fn get_all_playlists(&self) -> Result<Arc<Vec<PlaylistWithCount>>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_all_playlists(&pool.0))
+        crate::RUNTIME.block_on(get_all_playlists(&pool.0))
     }
 
     fn get_playlist(&self, playlist_id: i64) -> Result<Arc<Playlist>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_playlist(&pool.0, playlist_id))
+        crate::RUNTIME.block_on(get_playlist(&pool.0, playlist_id))
     }
 
     fn get_playlist_track_files(&self, playlist_id: i64) -> Result<Arc<Vec<String>>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_playlist_track_files(&pool.0, playlist_id))
+        crate::RUNTIME.block_on(get_playlist_track_files(&pool.0, playlist_id))
     }
 
     fn get_playlist_tracks(
@@ -473,27 +472,27 @@ impl LibraryAccess for App {
         playlist_id: i64,
     ) -> Result<Arc<Vec<(i64, i64, i64)>>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_playlist_tracks(&pool.0, playlist_id))
+        crate::RUNTIME.block_on(get_playlist_tracks(&pool.0, playlist_id))
     }
 
     fn move_playlist_item(&self, item_id: i64, new_position: i64) -> Result<(), sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(move_playlist_item(&pool.0, item_id, new_position))
+        crate::RUNTIME.block_on(move_playlist_item(&pool.0, item_id, new_position))
     }
 
     fn remove_playlist_item(&self, item_id: i64) -> Result<(), sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(remove_playlist_item(&pool.0, item_id))
+        crate::RUNTIME.block_on(remove_playlist_item(&pool.0, item_id))
     }
 
     fn get_playlist_item(&self, item_id: i64) -> Result<PlaylistItem, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_playlist_item(&pool.0, item_id))
+        crate::RUNTIME.block_on(get_playlist_item(&pool.0, item_id))
     }
 
     fn get_track_stats(&self) -> Result<Arc<TrackStats>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(get_track_stats(&pool.0))
+        crate::RUNTIME.block_on(get_track_stats(&pool.0))
     }
 
     fn playlist_has_track(
@@ -502,6 +501,6 @@ impl LibraryAccess for App {
         track_id: i64,
     ) -> Result<Option<i64>, sqlx::Error> {
         let pool: &Pool = self.global();
-        block_on(playlist_has_track(&pool.0, playlist_id, track_id))
+        crate::RUNTIME.block_on(playlist_has_track(&pool.0, playlist_id, track_id))
     }
 }

@@ -10,7 +10,6 @@ use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{DynamicImage, EncodableLayout, codecs::jpeg::JpegEncoder, imageops::thumbnail};
 use rustc_hash::FxHashMap;
-use smol::block_on;
 use sqlx::SqlitePool;
 use tracing::{debug, error, info, warn};
 
@@ -66,35 +65,32 @@ impl ScanInterface {
 
     pub fn scan(&self) {
         let command_tx = self.command_tx.clone();
-        smol::spawn(async move {
+        crate::RUNTIME.spawn(async move {
             command_tx
                 .send(ScanCommand::Scan)
                 .await
                 .expect("could not send tx");
-        })
-        .detach();
+        });
     }
 
     pub fn force_scan(&self) {
         let command_tx = self.command_tx.clone();
-        smol::spawn(async move {
+        crate::RUNTIME.spawn(async move {
             command_tx
                 .send(ScanCommand::ForceScan)
                 .await
                 .expect("could not send tx");
-        })
-        .detach();
+        });
     }
 
     pub fn stop(&self) {
         let command_tx = self.command_tx.clone();
-        smol::spawn(async move {
+        crate::RUNTIME.spawn(async move {
             command_tx
                 .send(ScanCommand::Stop)
                 .await
                 .expect("could not send tx");
-        })
-        .detach();
+        });
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -310,13 +306,12 @@ impl ScanThread {
                         self.is_force = false;
 
                         let event_tx = self.event_tx.clone();
-                        smol::spawn(async move {
+                        crate::RUNTIME.spawn(async move {
                             event_tx
                                 .send(ScanEvent::Cleaning)
                                 .await
                                 .expect("could not send scan started event");
-                        })
-                        .detach();
+                        });
                     }
                 }
                 ScanCommand::ForceScan => {
@@ -335,13 +330,12 @@ impl ScanThread {
                         self.scan_record = FxHashMap::default();
 
                         let event_tx = self.event_tx.clone();
-                        smol::spawn(async move {
+                        crate::RUNTIME.spawn(async move {
                             event_tx
                                 .send(ScanEvent::Cleaning)
                                 .await
                                 .expect("could not send scan started event");
-                        })
-                        .detach();
+                        });
                     }
                 }
                 ScanCommand::Stop => {
@@ -420,13 +414,12 @@ impl ScanThread {
                 if self.discovered_total.is_multiple_of(20) {
                     let event_tx = self.event_tx.clone();
                     let discovered_total = self.discovered_total;
-                    smol::spawn(async move {
+                    crate::RUNTIME.spawn(async move {
                         event_tx
                             .send(ScanEvent::DiscoverProgress(discovered_total))
                             .await
                             .expect("could not send discovered event");
-                    })
-                    .detach();
+                    });
                 }
             }
         }
@@ -705,10 +698,9 @@ impl ScanThread {
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
             let event_tx = self.event_tx.clone();
-            smol::spawn(async move {
+            crate::RUNTIME.spawn(async move {
                 event_tx.send(ScanEvent::ScanCompleteIdle).await.unwrap();
-            })
-            .detach();
+            });
             return;
         }
 
@@ -716,7 +708,7 @@ impl ScanThread {
         let metadata = self.read_metadata_for_path(&path);
 
         if let Some(metadata) = metadata {
-            let result = block_on(self.update_metadata(metadata, &path));
+            let result = crate::RUNTIME.block_on(self.update_metadata(metadata, &path));
 
             if let Err(err) = result {
                 error!(
@@ -733,10 +725,9 @@ impl ScanThread {
                     current: self.scanned,
                     total: self.discovered_total,
                 };
-                smol::spawn(async move {
+                crate::RUNTIME.spawn(async move {
                     event_tx.send(scan_progress).await.unwrap();
-                })
-                .detach();
+                });
             }
         } else {
             warn!("Could not read metadata for file: {:?}", path);
@@ -766,7 +757,7 @@ impl ScanThread {
             .filter(|v| !v.0.exists())
             .map(|v| v.0)
             .for_each(|v| {
-                block_on(self.delete_track(v));
+                crate::RUNTIME.block_on(self.delete_track(v));
             });
 
         self.scan_state = ScanState::Discovering;

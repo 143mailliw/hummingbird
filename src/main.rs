@@ -4,6 +4,8 @@
     windows_subsystem = "windows"
 )]
 
+use std::sync::LazyLock;
+
 use services::mmb::lastfm::{LASTFM_API_KEY, LASTFM_API_SECRET};
 
 mod devices;
@@ -15,8 +17,13 @@ mod settings;
 mod ui;
 mod util;
 
-struct Runtime(pub tokio::runtime::Runtime);
-impl gpui::Global for Runtime {}
+static RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .worker_threads(1)
+        .build()
+        .unwrap()
+});
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
