@@ -1,4 +1,3 @@
-use core::panic;
 use std::{
     fs,
     sync::{Arc, RwLock},
@@ -310,36 +309,42 @@ pub struct DropImageDummyModel;
 
 impl EventEmitter<Vec<Arc<RenderImage>>> for DropImageDummyModel {}
 
-pub async fn run() {
+pub fn run() -> anyhow::Result<()> {
     let dirs = get_dirs();
-    let directory = dirs.data_dir().to_path_buf();
-    if !directory.exists() {
-        fs::create_dir_all(&directory)
-            .unwrap_or_else(|e| panic!("couldn't create data directory, {:?}, {:?}", directory, e));
-    }
-    let file = directory.join("library.db");
+    let data_dir = dirs.data_dir().to_path_buf();
+    fs::create_dir_all(&data_dir).inspect_err(|error| {
+        tracing::error!(
+            ?error,
+            "couldn't create data directory '{}'",
+            data_dir.display(),
+        )
+    })?;
 
-    let pool_result = create_pool(file).await;
-    let Ok(pool) = pool_result else {
-        panic!(
-            "fatal: unable to create database pool: {:?}",
-            pool_result.unwrap_err()
-        );
-    };
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .worker_threads(1)
+        .build()?;
+    let pool = rt
+        .block_on(create_pool(data_dir.join("library.db")))
+        .inspect_err(|error| {
+            tracing::error!(?error, "fatal: unable to create database pool");
+        })?;
 
     Application::new()
         .with_assets(HummingbirdAssetSource::new(pool.clone()))
         .run(move |cx: &mut App| {
+            cx.set_global(crate::Runtime(rt));
+
             let bounds = Bounds::centered(None, size(px(1024.0), px(700.0)), cx);
             find_fonts(cx).expect("unable to load fonts");
             register_actions(cx);
 
             let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
-            let storage = Storage::new(directory.clone().join("app_data.json"));
+            let storage = Storage::new(data_dir.join("app_data.json"));
             let storage_data = storage.load_or_default();
 
-            setup_theme(cx, directory.join("theme.json"));
-            setup_settings(cx, directory.join("settings.json"));
+            setup_theme(cx, data_dir.join("theme.json"));
+            setup_settings(cx, data_dir.join("settings.json"));
 
             build_models(
                 cx,
@@ -458,4 +463,6 @@ pub async fn run() {
             )
             .unwrap();
         });
+
+    Ok(())
 }
