@@ -27,7 +27,6 @@ gpui = "0.2.0"
 image = "0.25"
 indexmap = { version = "2", features = ["std", "serde"] }
 intx = "0.1"
-isahc = { version = "1", features = ["json", "static-ssl"] }
 md5 = "0.8"
 moka = { version = "0.12", features = ["future"] }
 notify = "8"
@@ -50,6 +49,11 @@ tracing-subscriber = "0.3"
 unicode-segmentation = "1"
 url = "2.5.4"
 urlencoding = "2"
+zed-reqwest = { version = "0.12.15-zed", default-features = false, features = [
+    "json",
+    "macos-system-configuration",
+    "rustls-tls-native-roots",
+] }
 raw-window-handle = "0.6"
 regex = "1"
 base64 = "0.22"
