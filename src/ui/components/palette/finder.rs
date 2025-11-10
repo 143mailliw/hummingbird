@@ -425,6 +425,8 @@ where
     }
 }
 
+type OnAcceptOverride = Option<Arc<dyn Fn(&mut App) + Send + Sync>>;
+
 pub struct FinderItem<T, MatcherFunc, OnAccept>
 where
     T: Send + Sync + PartialEq + PaletteItem + 'static,
@@ -439,7 +441,7 @@ where
     current_selection: usize,
     weak_parent: WeakEntity<Finder<T, MatcherFunc, OnAccept>>,
     item_data: Option<Arc<T>>,
-    on_accept_override: Option<Arc<dyn Fn(&mut App) + Send + Sync>>,
+    on_accept_override: OnAcceptOverride,
 }
 
 #[derive(Clone)]
@@ -555,17 +557,22 @@ where
             .on_click(cx.listener(move |_, _, _, cx| {
                 if let Some(override_fn) = on_accept_override.clone() {
                     override_fn(cx);
-                } else if let Some(parent) = weak_parent.upgrade() {
-                    if let Some(item) = item_data.clone() {
-                        parent.update(cx, |finder, cx| {
-                            (finder.on_accept)(&item, cx);
-                        });
-                    }
+                } else if let Some(parent) = weak_parent.upgrade()
+                    && let Some(item) = item_data.clone()
+                {
+                    parent.update(cx, |finder, cx| {
+                        (finder.on_accept)(&item, cx);
+                    });
                 }
             }))
             .when_some(self.left.clone(), |div_outer, left| {
                 div_outer.child(match left {
-                    FinderItemLeft::Text(text) => div().child(text).mr(px(8.0)),
+                    FinderItemLeft::Text(text) => div()
+                        .child(text)
+                        .text_ellipsis()
+                        .text_sm()
+                        .text_color(theme.text_secondary)
+                        .mr(px(4.0)),
                     FinderItemLeft::Icon(icon_name) => {
                         use crate::ui::components::icons::icon;
                         div()

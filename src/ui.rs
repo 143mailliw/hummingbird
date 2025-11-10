@@ -3,6 +3,7 @@ pub mod app;
 mod arguments;
 mod assets;
 mod caching;
+mod command_palette;
 pub mod components;
 mod constants;
 mod controls;

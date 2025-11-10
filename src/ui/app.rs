@@ -21,7 +21,9 @@ use crate::{
         SettingsGlobal, setup_settings,
         storage::{Storage, StorageData},
     },
-    ui::{assets::HummingbirdAssetSource, constants::APP_SHADOW_SIZE},
+    ui::{
+        assets::HummingbirdAssetSource, command_palette::CommandPalette, constants::APP_SHADOW_SIZE,
+    },
 };
 
 use super::{
@@ -49,6 +51,7 @@ struct WindowShadow {
     pub search: Entity<SearchView>,
     pub show_queue: Entity<bool>,
     pub show_about: Entity<bool>,
+    pub palette: Entity<CommandPalette>,
 }
 
 impl Render for WindowShadow {
@@ -209,6 +212,7 @@ impl Render for WindowShadow {
                     )
                     .child(self.controls.clone())
                     .child(self.search.clone())
+                    .child(self.palette.clone())
                     .when(show_about, |this| {
                         this.child(about_dialog(&|_, cx| {
                             let show_about = cx.global::<Models>().show_about.clone();
@@ -407,6 +411,8 @@ pub async fn run() {
 
                     make_cl(cx, window);
 
+                    let palette = CommandPalette::new(cx, window);
+
                     cx.new(|cx| {
                         cx.observe_window_appearance(window, |_, _, cx| {
                             cx.refresh_windows();
@@ -442,6 +448,7 @@ pub async fn run() {
                             search: SearchView::new(cx),
                             show_queue,
                             show_about,
+                            palette,
                         }
                     })
                 },

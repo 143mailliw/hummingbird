@@ -4,15 +4,14 @@ use tracing::{debug, info};
 use crate::{
     library::scan::ScanInterface,
     playback::{interface::GPUIPlaybackInterface, thread::PlaybackState},
+    ui::command_palette::OpenPalette,
 };
 
 use super::models::{Models, PlaybackInfo};
 
-actions!(
-    hummingbird,
-    [About, Quit, PlayPause, Next, Previous, Search, ForceScan]
-);
-
+actions!(hummingbird, [Quit, About, Search]);
+actions!(player, [PlayPause, Next, Previous]);
+actions!(scan, [ForceScan]);
 actions!(hummingbird, [HideSelf, HideOthers, ShowAll]);
 
 pub fn register_actions(cx: &mut App) {
@@ -37,10 +36,13 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("cmd-alt-h", HideOthers, None)]);
     } else {
         cx.bind_keys([KeyBinding::new("ctrl-w", Quit, None)]);
-        cx.bind_keys([KeyBinding::new("ctrl-right", Next, None)]);
-        cx.bind_keys([KeyBinding::new("ctrl-left", Previous, None)]);
-        cx.bind_keys([KeyBinding::new("ctrl-f", Search, None)]);
     }
+
+    cx.bind_keys([KeyBinding::new("secondary-right", Next, None)]);
+    cx.bind_keys([KeyBinding::new("secondary-left", Previous, None)]);
+    cx.bind_keys([KeyBinding::new("secondary-p", Search, None)]);
+    cx.bind_keys([KeyBinding::new("secondary-shift-p", OpenPalette, None)]);
+
     cx.bind_keys([KeyBinding::new("alt-shift-s", ForceScan, None)]);
     cx.bind_keys([KeyBinding::new("space", PlayPause, None)]);
     cx.set_menus(vec![
