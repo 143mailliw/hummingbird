@@ -18,6 +18,10 @@ mod release_view;
 mod sidebar;
 mod track_listing;
 
+pub fn bind_actions(cx: &mut App) {
+    playlist_view::bind_actions(cx);
+}
+
 #[derive(Clone)]
 enum LibraryView {
     Album(Entity<AlbumView>),

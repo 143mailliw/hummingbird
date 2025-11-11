@@ -1,14 +1,19 @@
-use std::sync::Arc;
+use std::{
+    any::{Any, TypeId},
+    sync::Arc,
+};
 
 use ahash::AHashMap;
 use gpui::{
-    App, AppContext, Context, Entity, FontWeight, ParentElement, Render, Styled, Window, div, px,
-    rems, uniform_list,
+    App, AppContext, Context, Entity, FocusHandle, FontWeight, InteractiveElement, KeyBinding,
+    ParentElement, Render, Styled, Window, actions, div, px, rems, uniform_list,
 };
+use tracing::{error, info};
 
 use crate::{
     library::{
         db::LibraryAccess,
+        playlist::export_playlist,
         types::{Playlist, PlaylistType},
     },
     playback::{
@@ -32,11 +37,19 @@ use crate::{
 
 use super::track_listing::track_item::TrackPlaylistInfo;
 
+actions!(playlist, [Export]);
+
+pub fn bind_actions(cx: &mut App) {
+    cx.bind_keys([KeyBinding::new("secondary-s", Export, None)]);
+}
+
 pub struct PlaylistView {
     playlist: Arc<Playlist>,
     playlist_track_ids: Arc<Vec<(i64, i64, i64)>>,
     views: Entity<AHashMap<usize, Entity<TrackItem>>>,
     render_counter: Entity<usize>,
+    focus_handle: FocusHandle,
+    first_render: bool,
 }
 
 impl PlaylistView {
@@ -66,20 +79,37 @@ impl PlaylistView {
                 playlist_track_ids: cx.get_playlist_tracks(playlist_id).unwrap(),
                 views: cx.new(|_| AHashMap::new()),
                 render_counter: cx.new(|_| 0),
+                focus_handle: cx.focus_handle(),
+                first_render: true,
             }
         })
     }
 }
 
 impl Render for PlaylistView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
-        let theme = cx.global::<Theme>();
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
         let items_clone = self.playlist_track_ids.clone();
         let views_model = self.views.clone();
         let render_counter = self.render_counter.clone();
         let pl_id = self.playlist.id;
+        let playlist_name = self.playlist.name.0.clone();
+
+        let theme = cx.global::<Theme>();
+
+        if self.first_render {
+            self.first_render = false;
+            self.focus_handle.focus(window);
+        }
 
         div()
+            .id("playlist-view")
+            .track_focus(&self.focus_handle)
+            .on_action(move |_: &Export, _, cx| {
+                info!("Exporting playlist");
+                if let Err(err) = export_playlist(cx, pl_id, &playlist_name) {
+                    error!("Failed to export playlist: {}", err);
+                }
+            })
             .pt(px(10.0))
             .flex()
             .flex_col()

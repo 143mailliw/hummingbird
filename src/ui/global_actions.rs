@@ -31,7 +31,6 @@ pub fn register_actions(cx: &mut App) {
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         cx.bind_keys([KeyBinding::new("cmd-right", Next, None)]);
         cx.bind_keys([KeyBinding::new("cmd-left", Previous, None)]);
-        cx.bind_keys([KeyBinding::new("cmd-f", Search, None)]);
         cx.bind_keys([KeyBinding::new("cmd-h", HideSelf, None)]);
         cx.bind_keys([KeyBinding::new("cmd-alt-h", HideOthers, None)]);
     } else {
@@ -41,6 +40,7 @@ pub fn register_actions(cx: &mut App) {
     cx.bind_keys([KeyBinding::new("secondary-right", Next, None)]);
     cx.bind_keys([KeyBinding::new("secondary-left", Previous, None)]);
     cx.bind_keys([KeyBinding::new("secondary-p", Search, None)]);
+    cx.bind_keys([KeyBinding::new("secondary-f", Search, None)]);
     cx.bind_keys([KeyBinding::new("secondary-shift-p", OpenPalette, None)]);
 
     cx.bind_keys([KeyBinding::new("alt-shift-s", ForceScan, None)]);

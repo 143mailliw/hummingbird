@@ -22,7 +22,8 @@ use crate::{
         storage::{Storage, StorageData},
     },
     ui::{
-        assets::HummingbirdAssetSource, command_palette::CommandPalette, constants::APP_SHADOW_SIZE,
+        assets::HummingbirdAssetSource, command_palette::CommandPalette,
+        constants::APP_SHADOW_SIZE, library,
     },
 };
 
@@ -350,6 +351,7 @@ pub async fn run() {
 
             input::bind_actions(cx);
             modal::bind_actions(cx);
+            library::bind_actions(cx);
 
             create_album_cache(cx);
 
