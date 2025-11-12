@@ -1,0 +1,11 @@
+[application]
+theme_colors = [] # TODO: fix this, this shouldn't be required
+
+[deployment]
+application_name = "Hummingbird"
+application_generic_name = "Music Player"
+application_machine_name = "hummingbird-player"
+organization_name = "mailliw"
+desktop_entry = "org.mailliw.hummingbird"
+desktop_entry_categories = ["Audio", "AudioVideo"]
+icon = "res/icon/icon.svg"

@@ -5,6 +5,9 @@
 .direnv/
 result
 
+# bundle artifacts
+**.AppImage
+
 **/.DS_Store
 .env
 .idea
