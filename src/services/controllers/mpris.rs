@@ -346,7 +346,7 @@ impl InitPlaybackController for MprisController {
             data: server_data,
         };
 
-        let server = smol::block_on(Server::new("org.mailliw.hummingbird", server))?;
+        let server = crate::RUNTIME.block_on(Server::new("org.mailliw.hummingbird", server))?;
 
         Ok(Arc::new(Mutex::new(MprisController { data, server })))
     }
