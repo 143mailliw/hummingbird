@@ -105,7 +105,7 @@ pub struct Queue {
 impl EventEmitter<(PathBuf, QueueItemUIData)> for Queue {}
 
 #[derive(Clone)]
-pub struct MMBSList(pub FxHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);
+pub struct MMBSList(pub FxHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService + Send>>>);
 
 #[derive(Clone)]
 pub enum MMBSEvent {
@@ -204,7 +204,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         #[allow(clippy::unnecessary_to_owned)]
         for mmbs in list.0.values().cloned() {
             let ev = ev.clone();
-            cx.spawn(async move |_| {
+            crate::RUNTIME.spawn(async move {
                 let mut borrow = mmbs.lock().await;
                 match ev {
                     MMBSEvent::NewTrack(path) => borrow.new_track(path),
@@ -214,8 +214,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
                     MMBSEvent::DurationChanged(duration) => borrow.duration_changed(duration),
                 }
                 .await;
-            })
-            .detach();
+            });
         }
     })
     .detach();
