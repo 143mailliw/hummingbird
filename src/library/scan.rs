@@ -63,15 +63,21 @@ impl ScanInterface {
     }
 
     pub fn scan(&self) {
-        self.cmd_tx.send(ScanCommand::Scan);
+        self.cmd_tx
+            .blocking_send(ScanCommand::Scan)
+            .expect("could not send scan start command");
     }
 
     pub fn force_scan(&self) {
-        self.cmd_tx.send(ScanCommand::ForceScan);
+        self.cmd_tx
+            .blocking_send(ScanCommand::ForceScan)
+            .expect("could not send force re-scan start command");
     }
 
     pub fn stop(&self) {
-        self.cmd_tx.send(ScanCommand::Stop);
+        self.cmd_tx
+            .blocking_send(ScanCommand::Stop)
+            .expect("could not send scan stop command");
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -286,7 +292,9 @@ impl ScanThread {
                         self.to_process.clear();
                         self.is_force = false;
 
-                        self.event_tx.send(ScanEvent::Cleaning);
+                        self.event_tx
+                            .send(ScanEvent::Cleaning)
+                            .expect("could not send scan event");
                     }
                 }
                 ScanCommand::ForceScan => {
@@ -304,7 +312,9 @@ impl ScanThread {
 
                         self.scan_record = FxHashMap::default();
 
-                        self.event_tx.send(ScanEvent::Cleaning);
+                        self.event_tx
+                            .send(ScanEvent::Cleaning)
+                            .expect("could not send scan event");
                     }
                 }
                 ScanCommand::Stop => {
@@ -382,7 +392,8 @@ impl ScanThread {
 
                 if self.discovered_total.is_multiple_of(20) {
                     self.event_tx
-                        .send(ScanEvent::DiscoverProgress(self.discovered_total));
+                        .send(ScanEvent::DiscoverProgress(self.discovered_total))
+                        .expect("could not send scan event");
                 }
             }
         }
@@ -660,7 +671,9 @@ impl ScanThread {
             info!("Scan complete, writing scan record and stopping");
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
-            self.event_tx.send(ScanEvent::ScanCompleteIdle);
+            self.event_tx
+                .send(ScanEvent::ScanCompleteIdle)
+                .expect("could not send scan event");
             return;
         }
 
@@ -680,10 +693,12 @@ impl ScanThread {
             self.scanned += 1;
 
             if self.scanned.is_multiple_of(5) {
-                self.event_tx.send(ScanEvent::ScanProgress {
-                    current: self.scanned,
-                    total: self.discovered_total,
-                });
+                self.event_tx
+                    .send(ScanEvent::ScanProgress {
+                        current: self.scanned,
+                        total: self.discovered_total,
+                    })
+                    .expect("could not send scan event");
             }
         } else {
             warn!("Could not read metadata for file: {:?}", path);
