@@ -1,8 +1,8 @@
 use std::{ffi::c_void, path::Path, sync::Arc, time::Duration};
 
-use async_lock::Mutex;
 use async_trait::async_trait;
 use raw_window_handle::RawWindowHandle;
+use tokio::sync::Mutex;
 use windows::{
     Foundation::TypedEventHandler,
     Media::{
