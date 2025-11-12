@@ -2856,8 +2856,6 @@ name = "hummingbird"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-channel 2.5.0",
- "async-lock",
  "async-trait",
  "base64",
  "bitflags 2.10.0",

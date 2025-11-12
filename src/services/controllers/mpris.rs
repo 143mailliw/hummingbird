@@ -3,7 +3,6 @@ use std::{
     sync::Arc,
 };
 
-use async_lock::{Mutex, RwLock};
 use async_trait::async_trait;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use mpris_server::{
@@ -11,6 +10,7 @@ use mpris_server::{
     Signal, Time, Volume,
 };
 use raw_window_handle::RawWindowHandle;
+use tokio::sync::{Mutex, RwLock};
 use tracing::debug;
 use zbus::fdo;
 

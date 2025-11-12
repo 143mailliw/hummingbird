@@ -7,12 +7,11 @@ mod windows;
 
 use std::{path::Path, sync::Arc};
 
-use async_channel::Sender;
-use async_lock::Mutex;
 use async_trait::async_trait;
 use gpui::{App, AppContext, Entity, Global, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use rustc_hash::FxHashMap;
+use tokio::sync::{Mutex, mpsc::UnboundedSender};
 use tracing::{error, warn};
 
 use crate::{
@@ -95,78 +94,70 @@ pub trait PlaybackController {
 
 #[derive(Clone)]
 pub struct ControllerBridge {
-    playback_thread: Sender<PlaybackCommand>,
+    playback_thread: UnboundedSender<PlaybackCommand>,
 }
 
 #[allow(dead_code)]
 impl ControllerBridge {
-    pub fn new(playback_thread: Sender<PlaybackCommand>) -> Self {
+    pub fn new(playback_thread: UnboundedSender<PlaybackCommand>) -> Self {
         Self { playback_thread }
     }
 
     pub fn play(&self) {
-        self.playback_thread
-            .send_blocking(PlaybackCommand::Play)
-            .unwrap();
+        self.playback_thread.send(PlaybackCommand::Play).unwrap();
     }
 
     pub fn pause(&self) {
-        self.playback_thread
-            .send_blocking(PlaybackCommand::Pause)
-            .unwrap();
+        self.playback_thread.send(PlaybackCommand::Pause).unwrap();
     }
 
     pub fn toggle_play_pause(&self) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::TogglePlayPause)
+            .send(PlaybackCommand::TogglePlayPause)
             .unwrap();
     }
 
     pub fn stop(&self) {
-        self.playback_thread
-            .send_blocking(PlaybackCommand::Stop)
-            .unwrap();
+        self.playback_thread.send(PlaybackCommand::Stop).unwrap();
     }
 
     pub fn next(&self) {
-        self.playback_thread
-            .send_blocking(PlaybackCommand::Next)
-            .unwrap();
+        self.playback_thread.send(PlaybackCommand::Next).unwrap();
     }
 
     pub fn previous(&self) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::Previous)
+            .send(PlaybackCommand::Previous)
             .unwrap();
     }
 
     pub fn jump(&self, index: usize) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::Jump(index))
+            .send(PlaybackCommand::Jump(index))
             .unwrap();
     }
 
     pub fn seek(&self, position: f64) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::Seek(position))
+            .send(PlaybackCommand::Seek(position))
             .unwrap();
     }
 
     pub fn set_volume(&self, volume: f64) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::SetVolume(volume))
+            .send(PlaybackCommand::SetVolume(volume))
             .unwrap();
     }
 
     pub fn toggle_shuffle(&self) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::ToggleShuffle)
+            .send(PlaybackCommand::ToggleShuffle)
             .unwrap();
     }
 
     pub fn set_repeat(&self, repeat: RepeatState) {
         self.playback_thread
-            .send_blocking(PlaybackCommand::SetRepeat(repeat))
+            .send(PlaybackCommand::SetRepeat(repeat))
             .unwrap();
     }
 }

@@ -1,6 +1,5 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
-use async_channel::bounded;
 use gpui::{
     App, AppContext, Context, ElementId, Entity, EventEmitter, FontWeight, InteractiveElement,
     IntoElement, ListAlignment, ListState, ParentElement, Render, SharedString,
@@ -12,6 +11,7 @@ use nucleo::{
     pattern::{CaseMatching, Normalization},
 };
 use rustc_hash::FxHashMap;
+use tokio::sync::mpsc::channel;
 use tracing::debug;
 
 use crate::ui::{components::input::EnrichedInputAction, theme::Theme};
@@ -78,7 +78,7 @@ where
             let config = Config::DEFAULT;
 
             // make notification channel
-            let (sender, receiver) = bounded(10);
+            let (sender, mut receiver) = channel(10);
             let notify = Arc::new(move || {
                 // if it's full it doesn't really matter, it'll already update
                 _ = sender.try_send(());

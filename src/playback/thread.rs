@@ -6,8 +6,8 @@ use std::{
     thread::sleep,
 };
 
-use async_channel::{Receiver, Sender};
 use rand::{rng, seq::SliceRandom};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tracing::{debug, error, info, warn};
 
 use crate::{
@@ -49,10 +49,10 @@ pub struct PlaybackThread {
     playback_settings: PlaybackSettings,
 
     /// The command receiver.
-    commands_rx: Receiver<PlaybackCommand>,
+    commands_rx: UnboundedReceiver<PlaybackCommand>,
 
     /// The event sender.
-    events_tx: Sender<PlaybackEvent>,
+    events_tx: UnboundedSender<PlaybackEvent>,
 
     /// The current media provider.
     ///
@@ -120,8 +120,8 @@ impl PlaybackThread {
         settings: PlaybackSettings,
     ) -> PlaybackInterface {
         // TODO: use the refresh rate for the bounds
-        let (cmd_tx, commands_rx) = async_channel::unbounded();
-        let (events_tx, events_rx) = async_channel::unbounded();
+        let (cmd_tx, commands_rx) = unbounded_channel();
+        let (events_tx, events_rx) = unbounded_channel();
 
         std::thread::Builder::new()
             .name("playback".to_string())
@@ -267,12 +267,12 @@ impl PlaybackThread {
                 .clone(),
         );
         self.events_tx
-            .send_blocking(PlaybackEvent::MetadataUpdate(metadata))
+            .send(PlaybackEvent::MetadataUpdate(metadata))
             .expect("unable to send event");
 
         let image = provider.read_image().expect("failed to decode image");
         self.events_tx
-            .send_blocking(PlaybackEvent::AlbumArtUpdate(image))
+            .send(PlaybackEvent::AlbumArtUpdate(image))
             .expect("unable to send event");
     }
 
@@ -322,7 +322,7 @@ impl PlaybackThread {
             self.state = PlaybackState::Paused;
 
             self.events_tx
-                .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Paused))
+                .send(PlaybackEvent::StateChanged(PlaybackState::Paused))
                 .expect("unable to send event");
         }
     }
@@ -374,7 +374,7 @@ impl PlaybackThread {
             self.state = PlaybackState::Playing;
 
             self.events_tx
-                .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Playing))
+                .send(PlaybackEvent::StateChanged(PlaybackState::Playing))
                 .expect("unable to send event");
         }
 
@@ -388,7 +388,7 @@ impl PlaybackThread {
                 error!("Unable to open file: {:?}", err);
             };
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(0))
+                .send(PlaybackEvent::QueuePositionChanged(0))
                 .expect("unable to send event");
             self.queue_next = 1;
         }
@@ -463,16 +463,16 @@ impl PlaybackThread {
 
         let path = path.clone();
         self.events_tx
-            .send_blocking(PlaybackEvent::SongChanged(path))
+            .send(PlaybackEvent::SongChanged(path))
             .expect("unable to send event");
 
         if let Ok(duration) = provider.duration_secs() {
             self.events_tx
-                .send_blocking(PlaybackEvent::DurationChanged(duration))
+                .send(PlaybackEvent::DurationChanged(duration))
                 .expect("unable to send event");
         } else {
             self.events_tx
-                .send_blocking(PlaybackEvent::DurationChanged(0))
+                .send(PlaybackEvent::DurationChanged(0))
                 .expect("unable to send event");
         }
 
@@ -491,7 +491,7 @@ impl PlaybackThread {
         self.update_ts();
 
         self.events_tx
-            .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Playing))
+            .send(PlaybackEvent::StateChanged(PlaybackState::Playing))
             .expect("unable to send event");
 
         Ok(())
@@ -519,7 +519,7 @@ impl PlaybackThread {
                 error!("Unable to open file: {:?}", err);
             }
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(self.queue_next))
+                .send(PlaybackEvent::QueuePositionChanged(self.queue_next))
                 .expect("unable to send event");
             self.queue_next += 1;
         } else if !user_initiated {
@@ -530,7 +530,7 @@ impl PlaybackThread {
                     queue.shuffle(&mut rng());
 
                     self.events_tx
-                        .send_blocking(PlaybackEvent::QueueUpdated)
+                        .send(PlaybackEvent::QueueUpdated)
                         .expect("unable to send event");
                 }
 
@@ -566,7 +566,7 @@ impl PlaybackThread {
             };
             let new_position = self.queue_next - 1;
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(new_position))
+                .send(PlaybackEvent::QueuePositionChanged(new_position))
                 .expect("unable to send event");
         } else if self.queue_next > 1 {
             info!("Opening previous file in queue");
@@ -574,7 +574,7 @@ impl PlaybackThread {
             drop(queue);
             let new_position = self.queue_next - 2;
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(new_position))
+                .send(PlaybackEvent::QueuePositionChanged(new_position))
                 .expect("unable to send event");
             self.queue_next -= 1;
             debug!("queue_next: {}", self.queue_next);
@@ -608,12 +608,12 @@ impl PlaybackThread {
             };
             self.queue_next = pre_len + 1;
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(pre_len))
+                .send(PlaybackEvent::QueuePositionChanged(pre_len))
                 .expect("unable to send event");
         }
 
         self.events_tx
-            .send_blocking(PlaybackEvent::QueueUpdated)
+            .send(PlaybackEvent::QueueUpdated)
             .expect("unable to send event");
     }
 
@@ -650,12 +650,12 @@ impl PlaybackThread {
             };
             self.queue_next = pre_len + 1;
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(pre_len))
+                .send(PlaybackEvent::QueuePositionChanged(pre_len))
                 .expect("unable to send event");
         }
 
         self.events_tx
-            .send_blocking(PlaybackEvent::QueueUpdated)
+            .send(PlaybackEvent::QueueUpdated)
             .expect("unable to send event");
     }
 
@@ -669,7 +669,7 @@ impl PlaybackThread {
             }
 
             self.events_tx
-                .send_blocking(PlaybackEvent::PositionChanged(timestamp))
+                .send(PlaybackEvent::PositionChanged(timestamp))
                 .expect("unable to send event");
 
             self.last_timestamp = timestamp;
@@ -698,7 +698,7 @@ impl PlaybackThread {
             };
             self.queue_next = index + 1;
             self.events_tx
-                .send_blocking(PlaybackEvent::QueuePositionChanged(index))
+                .send(PlaybackEvent::QueuePositionChanged(index))
                 .expect("unable to send event");
         }
     }
@@ -744,7 +744,7 @@ impl PlaybackThread {
         self.jump(0);
 
         self.events_tx
-            .send_blocking(PlaybackEvent::QueueUpdated)
+            .send(PlaybackEvent::QueueUpdated)
             .expect("unable to send event");
     }
 
@@ -756,11 +756,9 @@ impl PlaybackThread {
         self.queue_next = 0;
 
         self.events_tx
-            .send_blocking(PlaybackEvent::QueuePositionChanged(0))
+            .send(PlaybackEvent::QueuePositionChanged(0))
             .unwrap();
-        self.events_tx
-            .send_blocking(PlaybackEvent::QueueUpdated)
-            .unwrap();
+        self.events_tx.send(PlaybackEvent::QueueUpdated).unwrap();
     }
 
     /// Stop the current playback.
@@ -772,7 +770,7 @@ impl PlaybackThread {
         self.state = PlaybackState::Stopped;
 
         self.events_tx
-            .send_blocking(PlaybackEvent::StateChanged(PlaybackState::Stopped))
+            .send(PlaybackEvent::StateChanged(PlaybackState::Stopped))
             .expect("unable to send event");
     }
 
@@ -801,14 +799,14 @@ impl PlaybackThread {
             drop(queue);
 
             self.events_tx
-                .send_blocking(PlaybackEvent::ShuffleToggled(false, index))
+                .send(PlaybackEvent::ShuffleToggled(false, index))
                 .expect("unable to send event");
             self.events_tx
-                .send_blocking(PlaybackEvent::QueueUpdated)
+                .send(PlaybackEvent::QueueUpdated)
                 .expect("unable to send event");
             if index != 0 {
                 self.events_tx
-                    .send_blocking(PlaybackEvent::QueuePositionChanged(index))
+                    .send(PlaybackEvent::QueuePositionChanged(index))
                     .expect("unable to send event");
             }
         } else {
@@ -820,10 +818,10 @@ impl PlaybackThread {
             drop(queue);
 
             self.events_tx
-                .send_blocking(PlaybackEvent::ShuffleToggled(true, queue_next))
+                .send(PlaybackEvent::ShuffleToggled(true, queue_next))
                 .expect("unable to send event");
             self.events_tx
-                .send_blocking(PlaybackEvent::QueueUpdated)
+                .send(PlaybackEvent::QueueUpdated)
                 .expect("unable to send event");
         }
     }
@@ -844,7 +842,7 @@ impl PlaybackThread {
                 .expect("failed to set volume");
 
             self.events_tx
-                .send_blocking(PlaybackEvent::VolumeChanged(volume))
+                .send(PlaybackEvent::VolumeChanged(volume))
                 .expect("unable to send event");
         }
     }
@@ -860,7 +858,7 @@ impl PlaybackThread {
         };
 
         self.events_tx
-            .send_blocking(PlaybackEvent::RepeatChanged(state))
+            .send(PlaybackEvent::RepeatChanged(state))
             .expect("unable to send event");
     }
 

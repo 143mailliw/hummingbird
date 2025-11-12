@@ -5,10 +5,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use async_lock::Mutex;
 use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 use tracing::{debug, error, warn};
 
 use crate::{

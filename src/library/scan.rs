@@ -5,12 +5,14 @@ use std::{
     time::SystemTime,
 };
 
-use async_channel::{Receiver, Sender};
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{DynamicImage, EncodableLayout, codecs::jpeg::JpegEncoder, imageops::thumbnail};
 use rustc_hash::FxHashMap;
 use sqlx::SqlitePool;
+use tokio::sync::mpsc::{
+    Receiver, Sender, UnboundedReceiver, UnboundedSender, channel, unbounded_channel,
+};
 use tracing::{debug, error, info, warn};
 
 /// The version of the scanning process. If this version number is incremented, a re-scan of all
@@ -48,25 +50,28 @@ enum ScanCommand {
 }
 
 pub struct ScanInterface {
-    events_rx: Option<Receiver<ScanEvent>>,
+    events_rx: Option<UnboundedReceiver<ScanEvent>>,
     cmd_tx: Sender<ScanCommand>,
 }
 
 impl ScanInterface {
-    pub(self) fn new(events_rx: Option<Receiver<ScanEvent>>, cmd_tx: Sender<ScanCommand>) -> Self {
+    pub(self) fn new(
+        events_rx: Option<UnboundedReceiver<ScanEvent>>,
+        cmd_tx: Sender<ScanCommand>,
+    ) -> Self {
         ScanInterface { events_rx, cmd_tx }
     }
 
     pub fn scan(&self) {
-        self.cmd_tx.send_blocking(ScanCommand::Scan).unwrap();
+        self.cmd_tx.send(ScanCommand::Scan);
     }
 
     pub fn force_scan(&self) {
-        self.cmd_tx.send_blocking(ScanCommand::ForceScan).unwrap();
+        self.cmd_tx.send(ScanCommand::ForceScan);
     }
 
     pub fn stop(&self) {
-        self.cmd_tx.send_blocking(ScanCommand::Stop).unwrap();
+        self.cmd_tx.send(ScanCommand::Stop);
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -75,12 +80,12 @@ impl ScanInterface {
 
         let state_model = cx.global::<Models>().scan_state.clone();
 
-        let Some(events_rx) = events_rx else {
+        let Some(mut events_rx) = events_rx else {
             return;
         };
         cx.spawn(async move |cx| {
             loop {
-                while let Ok(event) = events_rx.recv().await {
+                while let Some(event) = events_rx.recv().await {
                     state_model
                         .update(cx, |m, cx| {
                             *m = event;
@@ -105,7 +110,7 @@ pub enum ScanState {
 }
 
 pub struct ScanThread {
-    event_tx: Sender<ScanEvent>,
+    event_tx: UnboundedSender<ScanEvent>,
     command_rx: Receiver<ScanCommand>,
     pool: SqlitePool,
     scan_settings: ScanSettings,
@@ -186,8 +191,8 @@ fn scan_path_for_album_art(path: &Path) -> Option<Box<[u8]>> {
 
 impl ScanThread {
     pub fn start(pool: SqlitePool, settings: ScanSettings) -> ScanInterface {
-        let (cmd_tx, commands_rx) = async_channel::bounded(10);
-        let (events_tx, events_rx) = async_channel::unbounded();
+        let (cmd_tx, commands_rx) = channel(10);
+        let (events_tx, events_rx) = unbounded_channel();
 
         std::thread::Builder::new()
             .name("scanner".to_string())
@@ -281,9 +286,7 @@ impl ScanThread {
                         self.to_process.clear();
                         self.is_force = false;
 
-                        self.event_tx
-                            .send_blocking(ScanEvent::Cleaning)
-                            .expect("could not send scan started event");
+                        self.event_tx.send(ScanEvent::Cleaning);
                     }
                 }
                 ScanCommand::ForceScan => {
@@ -301,9 +304,7 @@ impl ScanThread {
 
                         self.scan_record = FxHashMap::default();
 
-                        self.event_tx
-                            .send_blocking(ScanEvent::Cleaning)
-                            .expect("could not send scan started event");
+                        self.event_tx.send(ScanEvent::Cleaning);
                     }
                 }
                 ScanCommand::Stop => {
@@ -381,8 +382,7 @@ impl ScanThread {
 
                 if self.discovered_total.is_multiple_of(20) {
                     self.event_tx
-                        .send_blocking(ScanEvent::DiscoverProgress(self.discovered_total))
-                        .expect("could not send discovered event");
+                        .send(ScanEvent::DiscoverProgress(self.discovered_total));
                 }
             }
         }
@@ -660,9 +660,7 @@ impl ScanThread {
             info!("Scan complete, writing scan record and stopping");
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
-            self.event_tx
-                .send_blocking(ScanEvent::ScanCompleteIdle)
-                .unwrap();
+            self.event_tx.send(ScanEvent::ScanCompleteIdle);
             return;
         }
 
@@ -682,12 +680,10 @@ impl ScanThread {
             self.scanned += 1;
 
             if self.scanned.is_multiple_of(5) {
-                self.event_tx
-                    .send_blocking(ScanEvent::ScanProgress {
-                        current: self.scanned,
-                        total: self.discovered_total,
-                    })
-                    .unwrap();
+                self.event_tx.send(ScanEvent::ScanProgress {
+                    current: self.scanned,
+                    total: self.discovered_total,
+                });
             }
         } else {
             warn!("Could not read metadata for file: {:?}", path);

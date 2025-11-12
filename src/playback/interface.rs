@@ -2,8 +2,8 @@
 
 use std::{path::PathBuf, sync::Arc};
 
-use async_channel::{Receiver, Sender};
 use gpui::App;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
     playback::events::RepeatState,
@@ -28,14 +28,17 @@ use super::{
 ///
 /// For the functions provided by this interface, see the documentation for the playback thread.
 pub struct PlaybackInterface {
-    cmd_tx: Sender<PlaybackCommand>,
-    events_rx: Option<Receiver<PlaybackEvent>>,
+    cmd_tx: UnboundedSender<PlaybackCommand>,
+    events_rx: Option<UnboundedReceiver<PlaybackEvent>>,
 }
 
 impl gpui::Global for PlaybackInterface {}
 
 impl PlaybackInterface {
-    pub fn new(cmd_tx: Sender<PlaybackCommand>, events_rx: Receiver<PlaybackEvent>) -> Self {
+    pub fn new(
+        cmd_tx: UnboundedSender<PlaybackCommand>,
+        events_rx: UnboundedReceiver<PlaybackEvent>,
+    ) -> Self {
         Self {
             cmd_tx: cmd_tx,
             events_rx: Some(events_rx),
@@ -43,94 +46,76 @@ impl PlaybackInterface {
     }
 
     pub fn play(&self) {
-        self.cmd_tx.send_blocking(PlaybackCommand::Play).unwrap();
+        self.cmd_tx.send(PlaybackCommand::Play).unwrap();
     }
 
     pub fn pause(&self) {
-        self.cmd_tx.send_blocking(PlaybackCommand::Pause).unwrap();
+        self.cmd_tx.send(PlaybackCommand::Pause).unwrap();
     }
 
     pub fn open(&self, path: PathBuf) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::Open(path))
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::Open(path)).unwrap();
     }
 
     pub fn queue(&self, item: QueueItemData) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::Queue(item))
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::Queue(item)).unwrap();
     }
 
     pub fn queue_list(&self, items: Vec<QueueItemData>) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::QueueList(items))
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::QueueList(items)).unwrap();
     }
 
     pub fn next(&self) {
-        self.cmd_tx.send_blocking(PlaybackCommand::Next).unwrap();
+        self.cmd_tx.send(PlaybackCommand::Next).unwrap();
     }
 
     pub fn previous(&self) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::Previous)
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::Previous).unwrap();
     }
 
     pub fn clear_queue(&self) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::ClearQueue)
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::ClearQueue).unwrap();
     }
 
     pub fn jump(&self, index: usize) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::Jump(index))
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::Jump(index)).unwrap();
     }
 
     pub fn jump_unshuffled(&self, index: usize) {
         self.cmd_tx
-            .send_blocking(PlaybackCommand::JumpUnshuffled(index))
+            .send(PlaybackCommand::JumpUnshuffled(index))
             .unwrap();
     }
 
     pub fn seek(&self, position: f64) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::Seek(position))
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::Seek(position)).unwrap();
     }
 
     pub fn set_volume(&self, volume: f64) {
         self.cmd_tx
-            .send_blocking(PlaybackCommand::SetVolume(volume))
+            .send(PlaybackCommand::SetVolume(volume))
             .unwrap();
     }
 
     pub fn replace_queue(&self, items: Vec<QueueItemData>) {
         self.cmd_tx
-            .send_blocking(PlaybackCommand::ReplaceQueue(items))
+            .send(PlaybackCommand::ReplaceQueue(items))
             .unwrap();
     }
 
     pub fn stop(&self) {
-        self.cmd_tx.send_blocking(PlaybackCommand::Stop).unwrap();
+        self.cmd_tx.send(PlaybackCommand::Stop).unwrap();
     }
 
     pub fn toggle_shuffle(&self) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::ToggleShuffle)
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::ToggleShuffle).unwrap();
     }
 
     pub fn set_repeat(&self, state: RepeatState) {
-        self.cmd_tx
-            .send_blocking(PlaybackCommand::SetRepeat(state))
-            .unwrap();
+        self.cmd_tx.send(PlaybackCommand::SetRepeat(state)).unwrap();
     }
 
-    pub fn get_sender(&self) -> Sender<PlaybackCommand> {
+    pub fn get_sender(&self) -> UnboundedSender<PlaybackCommand> {
         self.cmd_tx.clone()
     }
 
@@ -150,13 +135,13 @@ impl PlaybackInterface {
 
         let playback_info = app.global::<PlaybackInfo>().clone();
 
-        let Some(events_rx) = events_rx else {
+        let Some(mut events_rx) = events_rx else {
             panic!("broadcast thread already started");
         };
 
         app.spawn(async move |cx| {
             loop {
-                while let Ok(event) = events_rx.recv().await {
+                while let Some(event) = events_rx.recv().await {
                     match event {
                         PlaybackEvent::MetadataUpdate(v) => {
                             let metadata = Arc::new(*v.clone());

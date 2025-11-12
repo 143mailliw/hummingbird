@@ -13,8 +13,6 @@ runtime_shaders = ["gpui/runtime_shaders"]
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
-async-channel = "2"
-async-lock = "3"
 bitflags = "2"
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
