@@ -1,4 +1,4 @@
-use std::{path::Path, ptr::NonNull, sync::Arc};
+use std::{path::Path, ptr::NonNull};
 
 use async_trait::async_trait;
 use block2::RcBlock;
@@ -14,7 +14,6 @@ use objc2_media_player::{
     MPRemoteCommandHandlerStatus,
 };
 use raw_window_handle::RawWindowHandle;
-use tokio::sync::Mutex;
 use tracing::{debug, error};
 
 use crate::{
@@ -315,9 +314,9 @@ impl InitPlaybackController for MacMediaPlayerController {
     fn init(
         bridge: ControllerBridge,
         _handle: Option<RawWindowHandle>,
-    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>> {
+    ) -> anyhow::Result<Box<dyn PlaybackController>> {
         let mmpc = MacMediaPlayerController { bridge };
         unsafe { mmpc.attach_command_handlers() };
-        Ok(Arc::new(Mutex::new(mmpc)))
+        Ok(Box::new(mmpc))
     }
 }

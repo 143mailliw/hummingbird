@@ -10,7 +10,7 @@ use mpris_server::{
     Signal, Time, Volume,
 };
 use raw_window_handle::RawWindowHandle;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tracing::debug;
 use zbus::fdo;
 
@@ -327,7 +327,7 @@ impl InitPlaybackController for MprisController {
     fn init(
         bridge: ControllerBridge,
         _handle: Option<RawWindowHandle>,
-    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>> {
+    ) -> anyhow::Result<Box<dyn PlaybackController>> {
         let data = Arc::new(RwLock::new(MprisControllerData {
             last_mdata: None,
             last_file: None,
@@ -348,7 +348,7 @@ impl InitPlaybackController for MprisController {
 
         let server = crate::RUNTIME.block_on(Server::new("org.mailliw.hummingbird", server))?;
 
-        Ok(Arc::new(Mutex::new(MprisController { data, server })))
+        Ok(Box::new(MprisController { data, server }))
     }
 }
 

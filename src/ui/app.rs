@@ -15,7 +15,7 @@ use crate::{
         scan::{ScanInterface, ScanThread},
     },
     playback::{interface::PlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
-    services::controllers::make_cl,
+    services::controllers::{init_pbc_task, register_pbc_event_handlers},
     settings::{
         SettingsGlobal, setup_settings,
         storage::{Storage, StorageData},
@@ -409,7 +409,8 @@ pub fn run() -> anyhow::Result<()> {
                 |window, cx| {
                     window.set_window_title("Hummingbird");
 
-                    make_cl(cx, window);
+                    register_pbc_event_handlers(cx);
+                    init_pbc_task(cx, window);
 
                     let palette = CommandPalette::new(cx, window);
 

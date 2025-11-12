@@ -1,8 +1,7 @@
-use std::{ffi::c_void, path::Path, sync::Arc, time::Duration};
+use std::{ffi::c_void, path::Path, time::Duration};
 
 use async_trait::async_trait;
 use raw_window_handle::RawWindowHandle;
-use tokio::sync::Mutex;
 use windows::{
     Foundation::TypedEventHandler,
     Media::{
@@ -65,7 +64,7 @@ impl InitPlaybackController for WindowsController {
     fn init(
         bridge: ControllerBridge,
         handle: Option<RawWindowHandle>,
-    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>> {
+    ) -> anyhow::Result<Box<dyn PlaybackController>> {
         let interop: ISystemMediaTransportControlsInterop = windows::core::factory::<
             SystemMediaTransportControls,
             ISystemMediaTransportControlsInterop,
@@ -93,7 +92,7 @@ impl InitPlaybackController for WindowsController {
 
         controller.connect_events()?;
 
-        Ok(Arc::new(Mutex::new(controller)))
+        Ok(Box::new(controller))
     }
 }
 
