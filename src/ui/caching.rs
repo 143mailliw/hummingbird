@@ -1,12 +1,11 @@
 use std::{collections::VecDeque, mem::take};
 
-use ahash::HashMapExt;
 use futures::FutureExt;
 use gpui::{
     App, AppContext, Asset, AssetLogger, ElementId, Entity, ImageAssetLoader, ImageCache,
     ImageCacheItem, ImageCacheProvider, ImageSource, Resource, hash,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use tracing::{debug, error};
 
 pub fn hummingbird_cache(
@@ -62,7 +61,7 @@ impl HummingbirdImageCache {
             HummingbirdImageCache {
                 max_items,
                 usage_list: VecDeque::with_capacity(max_items),
-                cache: FxHashMap::with_capacity(max_items),
+                cache: FxHashMap::with_capacity_and_hasher(max_items, FxBuildHasher::default()),
             }
         })
     }

@@ -1,100 +1,99 @@
-use std::{fs::File, hash::Hasher, io::Cursor, sync::Arc};
+use std::{
+    hash::Hasher,
+    io::Cursor,
+    path::{Path, PathBuf},
+    sync::{Arc, LazyLock},
+};
 
-use ahash::AHasher;
-use async_lock::Mutex;
-use gpui::{App, AppContext, Entity, Global, RenderImage, SharedString, Task};
+use gpui::{App, Entity, RenderImage, Task};
 use image::{Frame, ImageReader, imageops::thumbnail};
+use moka::future::Cache;
+use rustc_hash::FxHasher;
 use smallvec::smallvec;
-use tracing::{debug, error};
+use tracing::{debug, error, trace_span};
 
 use crate::{
-    media::{builtin::symphonia::SymphoniaProvider, traits::MediaProvider},
+    media::{builtin::symphonia::SymphoniaProvider, metadata::Metadata, traits::MediaProvider},
     playback::queue::{DataSource, QueueItemUIData},
     util::rgb_to_bgr,
 };
 
-#[derive(Clone)]
-pub struct AlbumCache {
-    pub cache: Arc<Mutex<moka::future::Cache<u64, Arc<RenderImage>>>>,
+static ALBUM_CACHE: LazyLock<Cache<u64, Arc<RenderImage>>> = LazyLock::new(|| Cache::new(30));
+
+async fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>> {
+    crate::RUNTIME
+        .spawn_blocking(move || {
+            let mut image = ImageReader::new(Cursor::new(data))
+                .with_guessed_format()?
+                .decode()?
+                .into_rgba8();
+
+            rgb_to_bgr(&mut image);
+
+            let frame = if thumb {
+                Frame::new(thumbnail(&image, 80, 80))
+            } else {
+                Frame::new(image)
+            };
+
+            Ok(Arc::new(RenderImage::new(smallvec![frame])))
+        })
+        .await
+        .map_or_else(|join_err| Err(anyhow::anyhow!(join_err)), Into::into)
+        .inspect_err(|err| error!(?err, "Failed to decode image: {err}"))
 }
 
-impl AlbumCache {
-    pub fn new() -> Self {
-        Self {
-            cache: Arc::new(Mutex::new(moka::future::Cache::new(30))),
+async fn read_metadata(path: &Path) -> anyhow::Result<QueueItemUIData> {
+    trace_span!("reading metadata", path = %path.display());
+    let file = tokio::fs::File::open(path).await?.into_std().await;
+    let (mut ui_data, album_art) = crate::RUNTIME
+        .spawn_blocking(|| {
+            // TODO: Switch to a different media provider based on the file
+            let mut media_provider = SymphoniaProvider::default();
+            media_provider.open(file, None)?;
+            media_provider.start_playback()?;
+
+            let album_art = media_provider
+                .read_image()
+                .inspect_err(|err| debug!(?err, "No image provided: {err}"))
+                .ok()
+                .flatten()
+                .map(|data| {
+                    let mut hasher = FxHasher::default();
+                    hasher.write(&data);
+                    (hasher.finish(), data)
+                });
+
+            let Metadata { name, artist, .. } = media_provider.read_metadata()?;
+            Ok((
+                QueueItemUIData {
+                    name: name.as_ref().map(Into::into),
+                    artist_name: artist.as_ref().map(Into::into),
+                    source: DataSource::Metadata,
+                    image: None,
+                },
+                album_art,
+            ))
+        })
+        .await
+        .map_or_else(|join_err| Err(anyhow::anyhow!(join_err)), Into::into)?;
+
+    if let Some((hash, data)) = album_art {
+        trace_span!("retrieving album art", ?ui_data, path = %path.display());
+        let image = ALBUM_CACHE
+            .try_get_with(hash, async {
+                debug!(%hash, "album art cache miss, decoding image");
+                decode_image(data, true).await
+            })
+            .await;
+
+        match image {
+            Ok(image) => ui_data.image = Some(image),
+            Err(err) => error!(?err, "Failed to read image for metadata: {err}"),
         }
     }
-}
 
-impl Global for AlbumCache {}
-
-pub fn create_album_cache(cx: &mut App) {
-    cx.set_global(AlbumCache::new());
-}
-
-fn decode_image(data: Box<[u8]>, thumb: bool) -> anyhow::Result<Arc<RenderImage>> {
-    let mut image = ImageReader::new(Cursor::new(data))
-        .with_guessed_format()?
-        .decode()?
-        .into_rgba8();
-
-    rgb_to_bgr(&mut image);
-
-    let frame = if thumb {
-        Frame::new(thumbnail(&image, 80, 80))
-    } else {
-        Frame::new(image)
-    };
-
-    Ok(Arc::new(RenderImage::new(smallvec![frame])))
-}
-
-async fn read_metadata(path: String, cache: &mut AlbumCache) -> anyhow::Result<QueueItemUIData> {
-    let file = File::open(&path)?;
-
-    // TODO: Switch to a different media provider based on the file
-    let mut media_provider = SymphoniaProvider::default();
-    media_provider.open(file, None)?;
-    media_provider.start_playback()?;
-
-    let album_art_source = media_provider.read_image().ok().flatten();
-
-    let album_art = if let Some(v) = album_art_source {
-        let cache_lock = cache.cache.lock().await;
-
-        // hash before hand to avoid storing the entire image as a key
-        let mut hasher = AHasher::default();
-        hasher.write(&v);
-        let hash = hasher.finish();
-
-        if let Some(image) = cache_lock.get(&hash).await {
-            debug!("read_metadata cache hit for {}", hash);
-            Some(image.clone())
-        } else {
-            let image = decode_image(v, true);
-            if let Ok(image) = image {
-                debug!("read_metadata cache miss for {}", hash);
-                cache_lock.insert(hash, image.clone()).await;
-                Some(image)
-            } else if let Err(err) = image {
-                error!("Failed to read image for metadata: {}", err);
-                None
-            } else {
-                unreachable!()
-            }
-        }
-    } else {
-        None
-    };
-
-    let metadata = media_provider.read_metadata()?;
-
-    Ok(QueueItemUIData {
-        image: album_art,
-        name: metadata.name.as_ref().map(SharedString::from),
-        artist_name: metadata.artist.as_ref().map(SharedString::from),
-        source: DataSource::Metadata,
-    })
+    Ok(ui_data)
 }
 
 pub trait Decode {
@@ -104,7 +103,7 @@ pub trait Decode {
         thumb: bool,
         entity: Entity<Option<Arc<RenderImage>>>,
     ) -> Task<()>;
-    fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()>;
+    fn read_metadata(&self, path: PathBuf, entity: Entity<Option<QueueItemUIData>>) -> Task<()>;
 }
 
 impl Decode for App {
@@ -115,49 +114,29 @@ impl Decode for App {
         entity: Entity<Option<Arc<RenderImage>>>,
     ) -> Task<()> {
         self.spawn(async move |cx| {
-            let decode_task = cx
-                .background_spawn(async move { decode_image(data, thumb) })
-                .await;
-
-            let Ok(image) = decode_task else {
-                error!("Failed to decode image - {:?}", decode_task);
-                entity
-                    .update(cx, |m, cx| {
-                        *m = None;
-                        cx.notify();
-                    })
-                    .expect("Failed to update entity");
-                return;
-            };
-
+            let img = decode_image(data, thumb).await.ok();
             entity
                 .update(cx, |m, cx| {
-                    *m = Some(image);
+                    *m = img;
                     cx.notify();
                 })
-                .expect("Failed to update entity");
+                .expect("Failed to update RenderImage entity");
         })
     }
 
-    fn read_metadata(&self, path: String, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
-        let mut cache = self.global::<AlbumCache>().clone();
-
-        self.spawn(async move |cx| {
-            let read_task = cx
-                .background_spawn(async move { read_metadata(path, &mut cache).await })
-                .await;
-
-            let Ok(metadata) = read_task else {
-                error!("Failed to read metadata - {:?}", read_task);
-                return;
-            };
-
-            entity
+    fn read_metadata(&self, path: PathBuf, entity: Entity<Option<QueueItemUIData>>) -> Task<()> {
+        self.spawn(async move |cx| match read_metadata(&path).await {
+            Err(err) => error!(
+                ?err,
+                "Failed to read metadata for '{}': {err}",
+                path.display()
+            ),
+            Ok(metadata) => entity
                 .update(cx, |m, cx| {
                     *m = Some(metadata);
                     cx.notify();
                 })
-                .expect("Failed to update entity");
+                .expect("Failed to update metadata entity"),
         })
     }
 }

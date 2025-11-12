@@ -1,4 +1,3 @@
-use core::panic;
 use std::{
     fs,
     sync::{Arc, RwLock},
@@ -15,8 +14,8 @@ use crate::{
         db::create_pool,
         scan::{ScanInterface, ScanThread},
     },
-    playback::{interface::GPUIPlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
-    services::controllers::make_cl,
+    playback::{interface::PlaybackInterface, queue::QueueItemData, thread::PlaybackThread},
+    services::controllers::{init_pbc_task, register_pbc_event_handlers},
     settings::{
         SettingsGlobal, setup_settings,
         storage::{Storage, StorageData},
@@ -35,7 +34,6 @@ use super::{
     components::{input, modal},
     constants::APP_ROUNDING,
     controls::Controls,
-    data::create_album_cache,
     global_actions::register_actions,
     header::Header,
     library::Library,
@@ -191,7 +189,7 @@ impl Render for WindowShadow {
                             .map(|path| QueueItemData::new(cx, path.clone(), None, None))
                             .collect();
 
-                        let playback_interface = cx.global::<GPUIPlaybackInterface>();
+                        let playback_interface = cx.global::<PlaybackInterface>();
                         playback_interface.queue_list(items);
                     })
                     .overflow_hidden()
@@ -311,22 +309,22 @@ pub struct DropImageDummyModel;
 
 impl EventEmitter<Vec<Arc<RenderImage>>> for DropImageDummyModel {}
 
-pub async fn run() {
+pub fn run() -> anyhow::Result<()> {
     let dirs = get_dirs();
-    let directory = dirs.data_dir().to_path_buf();
-    if !directory.exists() {
-        fs::create_dir_all(&directory)
-            .unwrap_or_else(|e| panic!("couldn't create data directory, {:?}, {:?}", directory, e));
-    }
-    let file = directory.join("library.db");
+    let data_dir = dirs.data_dir().to_path_buf();
+    fs::create_dir_all(&data_dir).inspect_err(|error| {
+        tracing::error!(
+            ?error,
+            "couldn't create data directory '{}'",
+            data_dir.display(),
+        )
+    })?;
 
-    let pool_result = create_pool(file).await;
-    let Ok(pool) = pool_result else {
-        panic!(
-            "fatal: unable to create database pool: {:?}",
-            pool_result.unwrap_err()
-        );
-    };
+    let pool = crate::RUNTIME
+        .block_on(create_pool(data_dir.join("library.db")))
+        .inspect_err(|error| {
+            tracing::error!(?error, "fatal: unable to create database pool");
+        })?;
 
     Application::new()
         .with_assets(HummingbirdAssetSource::new(pool.clone()))
@@ -336,11 +334,11 @@ pub async fn run() {
             register_actions(cx);
 
             let queue: Arc<RwLock<Vec<QueueItemData>>> = Arc::new(RwLock::new(Vec::new()));
-            let storage = Storage::new(directory.clone().join("app_data.json"));
+            let storage = Storage::new(data_dir.join("app_data.json"));
             let storage_data = storage.load_or_default();
 
-            setup_theme(cx, directory.join("theme.json"));
-            setup_settings(cx, directory.join("settings.json"));
+            setup_theme(cx, data_dir.join("theme.json"));
+            setup_settings(cx, data_dir.join("settings.json"));
 
             build_models(
                 cx,
@@ -354,8 +352,6 @@ pub async fn run() {
             input::bind_actions(cx);
             modal::bind_actions(cx);
             library::bind_actions(cx);
-
-            create_album_cache(cx);
 
             let settings = cx.global::<SettingsGlobal>().model.read(cx);
             let playback_settings = settings.playback.clone();
@@ -376,7 +372,7 @@ pub async fn run() {
             })
             .detach();
 
-            let mut playback_interface: GPUIPlaybackInterface =
+            let mut playback_interface: PlaybackInterface =
                 PlaybackThread::start(queue, playback_settings);
             playback_interface.start_broadcast(cx);
 
@@ -413,7 +409,8 @@ pub async fn run() {
                 |window, cx| {
                     window.set_window_title("Hummingbird");
 
-                    make_cl(cx, window);
+                    register_pbc_event_handlers(cx);
+                    init_pbc_task(cx, window);
 
                     let palette = CommandPalette::new(cx, window);
 
@@ -461,4 +458,6 @@ pub async fn run() {
             )
             .unwrap();
         });
+
+    Ok(())
 }

@@ -1,101 +1,150 @@
+use std::collections::BTreeMap;
+
 use chrono::{DateTime, Utc};
 
-use super::{
-    requests::LFMRequestBuilder,
-    types::{GetSession, GetToken, Session},
-};
+use super::types::{GetSession, GetToken, Session};
 
 pub struct LastFMClient {
+    client: zed_reqwest::Client,
+    endpoint: url::Url,
     api_key: String,
-    api_secret: &'static str,
+    api_secret: String,
     auth_session: Option<String>,
 }
 
 impl LastFMClient {
-    pub fn new(key: String, secret: &'static str) -> Self {
+    pub fn new(api_key: String, api_secret: String) -> Self {
         LastFMClient {
-            api_key: key,
-            api_secret: secret,
+            api_key,
+            api_secret,
             auth_session: None,
+            endpoint: "https://ws.audioscrobbler.com/2.0".parse().unwrap(),
+            client: zed_reqwest::Client::builder()
+                .user_agent("HummingbirdMMBS/1.0")
+                .build()
+                .unwrap(),
         }
+    }
+
+    pub fn _set_endpoint<U: TryInto<url::Url>>(
+        &mut self,
+        endpoint: U,
+    ) -> Result<&mut Self, U::Error> {
+        self.endpoint = endpoint.try_into()?;
+        Ok(self)
     }
 
     pub fn set_session(&mut self, session: String) {
         self.auth_session = Some(session);
     }
 
-    pub async fn get_token(&mut self) -> anyhow::Result<String> {
-        let token = LFMRequestBuilder::new(self.api_key.clone())
-            .add_param("method", "auth.gettoken".to_string())
-            .read()
-            .sign(self.api_secret)
-            .send_request::<GetToken>()
-            .await?;
+    fn get<'a>(
+        &'a self,
+        params: impl IntoIterator<Item = (&'a str, &'a str)>,
+    ) -> zed_reqwest::RequestBuilder {
+        let params: BTreeMap<_, _> = Some(("api_key", &*self.api_key))
+            .into_iter()
+            .chain(params)
+            .collect();
 
-        Ok(token.token)
+        let mut req = self
+            .client
+            .get(self.endpoint.clone())
+            .query(&[("format", "json")]);
+        let mut sig = md5::Context::new();
+        for (k, v) in params {
+            req = req.query(&[(k, v)]);
+            sig.consume(k);
+            sig.consume(v);
+        }
+        sig.consume(&self.api_secret);
+
+        req.query(&[("api_sig", format_args!("{:x}", sig.finalize()))])
     }
 
-    pub async fn get_session(&mut self, token: String) -> anyhow::Result<Session> {
-        let session = LFMRequestBuilder::new(self.api_key.clone())
-            .add_param("method", "auth.getsession".to_string())
-            .add_param("token", token)
-            .write()
-            .sign(self.api_secret)
-            .send_request::<GetSession>()
-            .await?;
+    fn post<'a>(
+        &'a self,
+        params: impl IntoIterator<Item = (&'a str, &'a str)>,
+    ) -> zed_reqwest::RequestBuilder {
+        let mut req = self.get(params).build().unwrap();
+        *req.method_mut() = zed_reqwest::Method::POST;
+        *req.body_mut() = req
+            .url()
+            .query()
+            .unwrap()
+            .strip_prefix("format=json&")
+            .map(String::from)
+            .map(zed_reqwest::Body::wrap);
+        req.url_mut()
+            .query_pairs_mut()
+            .clear()
+            .append_pair("format", "json");
+        zed_reqwest::RequestBuilder::from_parts(self.client.clone(), req)
+    }
 
-        Ok(session.session)
+    pub async fn get_token(&mut self) -> anyhow::Result<String> {
+        let req = self.get([("method", "auth.gettoken")]);
+        let GetToken { token } = req.send().await?.json().await?;
+        Ok(token)
+    }
+
+    pub async fn get_session(&mut self, token: &str) -> anyhow::Result<Session> {
+        let req = self.post([("method", "auth.getsession"), ("token", token)]);
+        let GetSession { session } = req.send().await?.json().await?;
+        Ok(session)
     }
 
     pub async fn scrobble(
         &mut self,
-        artist: String,
-        track: String,
+        artist: &str,
+        track: &str,
         timestamp: DateTime<Utc>,
-        album: Option<String>,
+        album: Option<&str>,
         duration: Option<u64>,
     ) -> anyhow::Result<()> {
-        let Some(session) = self.auth_session.clone() else {
+        let Some(session) = self.auth_session.as_deref() else {
             return Err(anyhow::Error::msg("not logged in"));
         };
-        LFMRequestBuilder::new(self.api_key.clone())
-            .add_param("method", "track.scrobble".to_string())
-            .add_param("artist[0]", artist)
-            .add_param("track[0]", track)
-            .add_param("timestamp[0]", timestamp.timestamp().to_string())
-            .add_optional_param("album[0]", album)
-            .add_optional_param("duration[0]", duration.map(|a| u64::to_string(&a)))
-            .add_param("sk", session)
-            .write()
-            .sign(self.api_secret)
-            .send_write_request_ns()
-            .await?;
+        let req = self.post(
+            [
+                ("method", "track.scrobble"),
+                ("artist[0]", artist),
+                ("track[0]", track),
+                ("timestamp[0]", &timestamp.timestamp().to_string()),
+            ]
+            .into_iter()
+            .chain(Some("album[0]").zip(album))
+            .chain(Some("duration[0]").zip(duration.map(|d| d.to_string()).as_deref()))
+            .chain(Some(("sk", session))),
+        );
 
+        req.send().await?.error_for_status()?;
         Ok(())
     }
 
     pub async fn now_playing(
         &mut self,
-        artist: String,
-        track: String,
-        album: Option<String>,
+        artist: &str,
+        track: &str,
+        album: Option<&str>,
         duration: Option<u64>,
     ) -> anyhow::Result<()> {
-        let Some(session) = self.auth_session.clone() else {
+        let Some(session) = self.auth_session.as_deref() else {
             return Err(anyhow::Error::msg("not logged in"));
         };
-        LFMRequestBuilder::new(self.api_key.clone())
-            .add_param("method", "track.updateNowPlaying".to_string())
-            .add_param("artist", artist)
-            .add_param("track", track)
-            .add_optional_param("album", album)
-            .add_optional_param("duration", duration.map(|a| u64::to_string(&a)))
-            .add_param("sk", session)
-            .write()
-            .sign(self.api_secret)
-            .send_write_request_ns()
-            .await?;
+        let req = self.post(
+            [
+                ("method", "track.updateNowPlaying"),
+                ("artist", artist),
+                ("track", track),
+            ]
+            .into_iter()
+            .chain(Some("album").zip(album))
+            .chain(Some("duration").zip(duration.map(|d| d.to_string()).as_deref()))
+            .chain(Some(("sk", session))),
+        );
 
+        req.send().await?.error_for_status()?;
         Ok(())
     }
 }

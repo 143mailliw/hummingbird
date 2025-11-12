@@ -97,10 +97,7 @@ impl QueueItemData {
 
             // vital information left blank, try retriving the metadata from disk
             // much slower, especially on windows
-            let path_clone = path.clone();
-
-            cx.read_metadata(path_clone.to_string_lossy().to_string(), cx.entity())
-                .detach();
+            cx.read_metadata(path, cx.entity()).detach();
         });
 
         model

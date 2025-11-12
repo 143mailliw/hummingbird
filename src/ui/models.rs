@@ -5,10 +5,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use ahash::AHashMap;
-use async_lock::Mutex;
 use gpui::{App, AppContext, Entity, EventEmitter, Global, RenderImage};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 use tracing::{debug, error, warn};
 
 use crate::{
@@ -105,7 +105,7 @@ pub struct Queue {
 impl EventEmitter<(PathBuf, QueueItemUIData)> for Queue {}
 
 #[derive(Clone)]
-pub struct MMBSList(pub AHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService>>>);
+pub struct MMBSList(pub FxHashMap<String, Arc<Mutex<dyn MediaMetadataBroadcastService + Send>>>);
 
 #[derive(Clone)]
 pub enum MMBSEvent {
@@ -134,7 +134,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
     let albumart: Entity<Option<Arc<RenderImage>>> = cx.new(|_| None);
     let queue: Entity<Queue> = cx.new(move |_| queue);
     let scan_state: Entity<ScanEvent> = cx.new(|_| ScanEvent::ScanCompleteIdle);
-    let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(AHashMap::new()));
+    let mmbs: Entity<MMBSList> = cx.new(|_| MMBSList(FxHashMap::default()));
     let show_about: Entity<bool> = cx.new(|_| false);
     let lastfm: Entity<LastFMState> = cx.new(|cx| {
         let dirs = get_dirs();
@@ -204,7 +204,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
         #[allow(clippy::unnecessary_to_owned)]
         for mmbs in list.0.values().cloned() {
             let ev = ev.clone();
-            cx.spawn(async move |_| {
+            crate::RUNTIME.spawn(async move {
                 let mut borrow = mmbs.lock().await;
                 match ev {
                     MMBSEvent::NewTrack(path) => borrow.new_track(path),
@@ -214,8 +214,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
                     MMBSEvent::DurationChanged(duration) => borrow.duration_changed(duration),
                 }
                 .await;
-            })
-            .detach();
+            });
         }
     })
     .detach();
@@ -272,7 +271,7 @@ pub fn build_models(cx: &mut App, queue: Queue, storage_data: &StorageData) {
 
 pub fn create_last_fm_mmbs(cx: &mut App, mmbs_list: &Entity<MMBSList>, session: String) {
     if let (Some(key), Some(secret)) = (LASTFM_API_KEY, LASTFM_API_SECRET) {
-        let mut client = LastFMClient::new(key.to_string(), secret);
+        let mut client = LastFMClient::new(key.to_string(), secret.to_string());
         client.set_session(session);
         let mmbs = LastFM::new(client);
         mmbs_list.update(cx, |m, _| {

@@ -5,24 +5,24 @@ mod mpris;
 #[cfg(target_os = "windows")]
 mod windows;
 
-use std::{path::Path, sync::Arc};
+use std::path::{Path, PathBuf};
 
-use ahash::AHashMap;
-use async_channel::Sender;
-use async_lock::Mutex;
 use async_trait::async_trait;
-use gpui::{App, AppContext, Entity, Global, Window};
+use futures::StreamExt;
+use gpui::{App, Global, Window};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+use rustc_hash::FxHashMap;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::{error, warn};
 
 use crate::{
     media::metadata::Metadata,
     playback::{
         events::{PlaybackCommand, RepeatState},
-        interface::GPUIPlaybackInterface,
+        interface::PlaybackInterface,
         thread::PlaybackState,
     },
-    ui::models::{Models, PlaybackInfo},
+    ui::models::{ImageEvent, Models, PlaybackInfo},
 };
 
 /// The InitPlaybackController trait allows you to initialize a new PlaybackController. All
@@ -36,7 +36,7 @@ pub trait InitPlaybackController {
     fn init(
         bridge: ControllerBridge,
         handle: Option<RawWindowHandle>,
-    ) -> anyhow::Result<Arc<Mutex<dyn PlaybackController>>>;
+    ) -> anyhow::Result<Box<dyn PlaybackController>>;
 }
 
 #[async_trait]
@@ -58,7 +58,7 @@ pub trait InitPlaybackController {
 ///
 /// All implementations of this trait should be proceeded by `#[async_trait]`, from the async-trait
 /// library.
-pub trait PlaybackController {
+pub trait PlaybackController: Send {
     /// Indicates that the position in the current file has changed.
     async fn position_changed(&mut self, new_position: u64) -> anyhow::Result<()>;
 
@@ -95,146 +95,214 @@ pub trait PlaybackController {
 
 #[derive(Clone)]
 pub struct ControllerBridge {
-    playback_thread: Sender<PlaybackCommand>,
+    playback_thread: UnboundedSender<PlaybackCommand>,
 }
 
 #[allow(dead_code)]
 impl ControllerBridge {
-    pub fn new(playback_thread: Sender<PlaybackCommand>) -> Self {
+    pub fn new(playback_thread: UnboundedSender<PlaybackCommand>) -> Self {
         Self { playback_thread }
     }
 
     pub fn play(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Play)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread.send(PlaybackCommand::Play).unwrap();
     }
 
     pub fn pause(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Pause)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread.send(PlaybackCommand::Pause).unwrap();
     }
 
     pub fn toggle_play_pause(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::TogglePlayPause)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::TogglePlayPause)
+            .unwrap();
     }
 
     pub fn stop(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Stop)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread.send(PlaybackCommand::Stop).unwrap();
     }
 
     pub fn next(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Next)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread.send(PlaybackCommand::Next).unwrap();
     }
 
     pub fn previous(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Previous)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::Previous)
+            .unwrap();
     }
 
     pub fn jump(&self, index: usize) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Jump(index))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::Jump(index))
+            .unwrap();
     }
 
     pub fn seek(&self, position: f64) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::Seek(position))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::Seek(position))
+            .unwrap();
     }
 
     pub fn set_volume(&self, volume: f64) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::SetVolume(volume))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::SetVolume(volume))
+            .unwrap();
     }
 
     pub fn toggle_shuffle(&self) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::ToggleShuffle)
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::ToggleShuffle)
+            .unwrap();
     }
 
     pub fn set_repeat(&self, repeat: RepeatState) {
-        let playback_thread = self.playback_thread.clone();
-        smol::spawn(async move {
-            playback_thread
-                .send(PlaybackCommand::SetRepeat(repeat))
-                .await
-                .expect("could not send tx (from ControllerBridge)");
-        })
-        .detach();
+        self.playback_thread
+            .send(PlaybackCommand::SetRepeat(repeat))
+            .unwrap();
     }
 }
 
-pub type ControllerList = AHashMap<String, Arc<Mutex<dyn PlaybackController>>>;
+type ControllerList = FxHashMap<String, Box<dyn PlaybackController>>;
 
 // has to be held in memory
 #[allow(dead_code)]
-pub struct CLHolder(pub Entity<ControllerList>);
+pub struct PbcHandle(UnboundedSender<PbcEvent>, tokio::task::JoinHandle<()>);
 
-impl Global for CLHolder {}
+impl Global for PbcHandle {}
 
-pub fn make_cl(cx: &mut App, window: &mut Window) {
+enum PbcEvent {
+    MetadataChanged(Metadata),
+    AlbumArtChanged(Box<[u8]>),
+    PositionChanged(u64),
+    DurationChanged(u64),
+    NewFile(PathBuf),
+    VolumeChanged(f64),
+    RepeatStateChanged(RepeatState),
+    PlaybackStateChanged(PlaybackState),
+    ShuffleStateChanged(bool),
+}
+
+impl PbcEvent {
+    async fn handle_event(&self, pbc: &mut dyn PlaybackController) -> anyhow::Result<()> {
+        match self {
+            Self::MetadataChanged(metadata) => pbc.metadata_changed(metadata).await,
+            Self::AlbumArtChanged(art) => pbc.album_art_changed(art).await,
+            Self::PositionChanged(pos) => pbc.position_changed(*pos).await,
+            Self::DurationChanged(dur) => pbc.duration_changed(*dur).await,
+            Self::NewFile(path) => pbc.new_file(path).await,
+            Self::VolumeChanged(vol) => pbc.volume_changed(*vol).await,
+            Self::RepeatStateChanged(state) => pbc.repeat_state_changed(*state).await,
+            Self::PlaybackStateChanged(state) => pbc.playback_state_changed(*state).await,
+            Self::ShuffleStateChanged(shuffle) => pbc.shuffle_state_changed(*shuffle).await,
+        }
+    }
+}
+
+pub fn register_pbc_event_handlers(cx: &mut App) {
+    let models = cx.global::<Models>();
+    let metadata = models.metadata.clone();
+    let albumart = models.albumart.clone();
+
+    cx.observe(&metadata, |e, cx| {
+        let meta = e.read(cx).clone();
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::MetadataChanged(meta)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.subscribe(&albumart, |_, ImageEvent(img), cx| {
+        let PbcHandle(tx, _) = cx.global();
+        // FIXME: this is really way too expensive
+        if let Err(_) = tx.send(PbcEvent::AlbumArtChanged(img.clone())) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    let playback_info = cx.global::<PlaybackInfo>();
+    let position = playback_info.position.clone();
+    let duration = playback_info.duration.clone();
+    let track = playback_info.current_track.clone();
+    let volume = playback_info.volume.clone();
+    let repeat = playback_info.repeating.clone();
+    let state = playback_info.playback_state.clone();
+    let shuffle = playback_info.shuffling.clone();
+
+    cx.observe(&position, |e, cx| {
+        let &pos = e.read(cx);
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::PositionChanged(pos)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.observe(&duration, |e, cx| {
+        let &dur = e.read(cx);
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::DurationChanged(dur)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.observe(&track, |e, cx| {
+        if let Some(track) = e.read(cx)
+            && let path = track.get_path().clone()
+            && let PbcHandle(tx, _) = cx.global()
+            && let Err(_) = tx.send(PbcEvent::NewFile(path))
+        {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.observe(&volume, |e, cx| {
+        let &vol = e.read(cx);
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::VolumeChanged(vol)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.observe(&repeat, |e, cx| {
+        let &repeat = e.read(cx);
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::RepeatStateChanged(repeat)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.observe(&state, |e, cx| {
+        let &state = e.read(cx);
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::PlaybackStateChanged(state)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+
+    cx.observe(&shuffle, |e, cx| {
+        let &shuffle = e.read(cx);
+        let PbcHandle(tx, _) = cx.global();
+        if let Err(_) = tx.send(PbcEvent::ShuffleStateChanged(shuffle)) {
+            error!("playback controller channel closed");
+        }
+    })
+    .detach();
+}
+
+pub fn init_pbc_task(cx: &mut App, window: &mut Window) {
+    let mut list = ControllerList::default();
+
+    let sender = cx.global::<PlaybackInterface>().get_sender();
+    let bridge = ControllerBridge::new(sender);
+
     let rwh = if cfg!(target_os = "linux") {
         // X11 windows panic with unimplemented and we don't need it here
         None
@@ -244,199 +312,52 @@ pub fn make_cl(cx: &mut App, window: &mut Window) {
             .map(|v| v.as_raw())
     };
 
-    // cloning actually is neccesary because of the async move closure in pc_mutex
-    #[allow(clippy::unnecessary_to_owned)]
-    let cl = cx.new(|cx| {
-        let models = cx.global::<Models>();
-        let metadata = models.metadata.clone();
-        let albumart = models.albumart.clone();
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(macos_pc) = macos::MacMediaPlayerController::init(bridge, rwh) {
+            list.insert("macos".to_string(), macos_pc);
+        } else {
+            error!("Failed to initialize MacMediaPlayerController!");
+            warn!("Desktop integration will be unavailable.");
+        }
+    }
 
-        cx.observe(&metadata, |m: &mut ControllerList, e, cx| {
-            let metadata = Arc::new(e.read(cx).clone());
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(mpris_pc) = mpris::MprisController::init(bridge, rwh) {
+            list.insert("mpris".to_string(), mpris_pc);
+        } else {
+            error!("Failed to initialize MprisController!");
+            warn!("Desktop integration will be unavailable.");
+        };
+    }
 
-            for pc_mutex in m.values().cloned() {
-                let metadata = metadata.clone();
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.metadata_changed(&metadata).await {
-                        error!("Error updating metadata for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(windows_pc) = windows::WindowsController::init(bridge, rwh) {
+            list.insert("windows".to_string(), windows_pc);
+        } else {
+            error!("Failed to initialize WindowsController!");
+            warn!("Desktop integration will be unavailable.");
+        };
+    }
 
-        cx.subscribe(&albumart, |m, _, ev, cx| {
-            let art = Arc::new(ev.0.clone());
+    let (pbc_tx, mut pbc_rx) = tokio::sync::mpsc::unbounded_channel::<PbcEvent>();
+    let task = crate::RUNTIME.spawn(async move {
+        tracing::debug_span!("playback_controller_task");
 
-            for pc_mutex in m.values().cloned() {
-                let art = art.clone();
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.album_art_changed(&art).await {
-                        error!("Error updating album art for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
-
-        let playback_info = cx.global::<PlaybackInfo>();
-        let position = playback_info.position.clone();
-        let duration = playback_info.duration.clone();
-        let track = playback_info.current_track.clone();
-        let volume = playback_info.volume.clone();
-        let repeat = playback_info.repeating.clone();
-        let state = playback_info.playback_state.clone();
-        let shuffle = playback_info.shuffling.clone();
-
-        cx.observe(&position, |m: &mut ControllerList, e, cx| {
-            let position = *e.read(cx);
-
-            for pc_mutex in m.values().cloned() {
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.position_changed(position).await {
-                        error!("Error updating position for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
-
-        cx.observe(&duration, |m: &mut ControllerList, e, cx| {
-            let duration = *e.read(cx);
-
-            for pc_mutex in m.values().cloned() {
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.duration_changed(duration).await {
-                        error!("Error updating duration for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
-
-        cx.observe(&track, |m: &mut ControllerList, e, cx| {
-            if let Some(track) = e.read(cx) {
-                let path = Arc::new(track.get_path().clone());
-
-                for pc_mutex in m.values().cloned() {
-                    let path = path.clone();
-                    cx.spawn(async move |_, _| {
-                        let mut pc = pc_mutex.lock().await;
-                        if let Err(err) = pc.new_file(&path).await {
-                            error!("Error submitting new file to PC: {}", err);
-                        };
-                    })
-                    .detach();
-                }
-            }
-        })
-        .detach();
-
-        cx.observe(&volume, |m: &mut ControllerList, e, cx| {
-            let volume = *e.read(cx);
-
-            for pc_mutex in m.values().cloned() {
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.volume_changed(volume).await {
-                        error!("Error updating volume for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
-
-        cx.observe(&repeat, |m: &mut ControllerList, e, cx| {
-            let repeat = *e.read(cx);
-
-            for pc_mutex in m.values().cloned() {
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.repeat_state_changed(repeat).await {
-                        error!("Error updating repeat state for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
-
-        cx.observe(&state, |m: &mut ControllerList, e, cx| {
-            let state = *e.read(cx);
-
-            for pc_mutex in m.values().cloned() {
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.playback_state_changed(state).await {
-                        error!("Error updating playback state for PC: {}", err);
-                    };
-                })
-                .detach();
-            }
-        })
-        .detach();
-
-        cx.observe(&shuffle, |m: &mut ControllerList, e, cx| {
-            let shuffle = *e.read(cx);
-
-            for pc_mutex in m.values().cloned() {
-                cx.spawn(async move |_, _| {
-                    let mut pc = pc_mutex.lock().await;
-                    if let Err(err) = pc.shuffle_state_changed(shuffle).await {
-                        error!("Error updating shuffle state for PC: {}", err)
+        while let Some(event) = pbc_rx.recv().await {
+            futures::stream::iter(&mut list)
+                .for_each_concurrent(None, async |(name, pbc)| {
+                    if let Err(err) = event.handle_event(pbc.as_mut()).await {
+                        error!(?err, "playback controller '{name}': {err}");
                     }
                 })
-                .detach();
-            }
-        })
-        .detach();
-
-        let mut list = ControllerList::new();
-
-        let sender = cx.global::<GPUIPlaybackInterface>().get_sender();
-        let bridge = ControllerBridge::new(sender);
-
-        #[cfg(target_os = "macos")]
-        {
-            if let Ok(macos_pc) = macos::MacMediaPlayerController::init(bridge, rwh) {
-                list.insert("macos".to_string(), macos_pc);
-            } else {
-                error!("Failed to initialize MacMediaPlayerController!");
-                warn!("Desktop integration will be unavailable.");
-            }
+                .await;
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(mpris_pc) = mpris::MprisController::init(bridge, rwh) {
-                list.insert("mpris".to_string(), mpris_pc);
-            } else {
-                error!("Failed to initialize MprisController!");
-                warn!("Desktop integration will be unavailable.");
-            };
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            if let Ok(windows_pc) = windows::WindowsController::init(bridge, rwh) {
-                list.insert("windows".to_string(), windows_pc);
-            } else {
-                error!("Failed to initialize WindowsController!");
-                warn!("Desktop integration will be unavailable.");
-            };
-        }
-
-        list
+        tracing::info!("channel closed, ending task");
     });
 
-    cx.set_global(CLHolder(cl));
+    cx.set_global(PbcHandle(pbc_tx, task));
 }

@@ -4,7 +4,7 @@ use clap::Parser;
 use gpui::App;
 use tracing::info;
 
-use crate::playback::{interface::GPUIPlaybackInterface, queue::QueueItemData};
+use crate::playback::{interface::PlaybackInterface, queue::QueueItemData};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -15,7 +15,7 @@ struct Args {
 
 /// Parses the arguments provided by the user and handles them. Returns true if files were provided
 /// for playback as command line arguments.
-pub fn parse_args_and_prepare(cx: &mut App, interface: &GPUIPlaybackInterface) -> bool {
+pub fn parse_args_and_prepare(cx: &mut App, interface: &PlaybackInterface) -> bool {
     let args = Args::parse();
 
     if let Some(files) = &args.files {

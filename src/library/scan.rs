@@ -5,13 +5,14 @@ use std::{
     time::SystemTime,
 };
 
-use ahash::AHashMap;
-use async_channel::{Receiver, Sender};
 use globwalk::GlobWalkerBuilder;
 use gpui::{App, Global};
 use image::{DynamicImage, EncodableLayout, codecs::jpeg::JpegEncoder, imageops::thumbnail};
-use smol::block_on;
+use rustc_hash::FxHashMap;
 use sqlx::SqlitePool;
+use tokio::sync::mpsc::{
+    Receiver, Sender, UnboundedReceiver, UnboundedSender, channel, unbounded_channel,
+};
 use tracing::{debug, error, info, warn};
 
 /// The version of the scanning process. If this version number is incremented, a re-scan of all
@@ -49,52 +50,34 @@ enum ScanCommand {
 }
 
 pub struct ScanInterface {
-    events_rx: Option<Receiver<ScanEvent>>,
-    command_tx: Sender<ScanCommand>,
+    events_rx: Option<UnboundedReceiver<ScanEvent>>,
+    cmd_tx: Sender<ScanCommand>,
 }
 
 impl ScanInterface {
     pub(self) fn new(
-        events_rx: Option<Receiver<ScanEvent>>,
-        command_tx: Sender<ScanCommand>,
+        events_rx: Option<UnboundedReceiver<ScanEvent>>,
+        cmd_tx: Sender<ScanCommand>,
     ) -> Self {
-        ScanInterface {
-            events_rx,
-            command_tx,
-        }
+        ScanInterface { events_rx, cmd_tx }
     }
 
     pub fn scan(&self) {
-        let command_tx = self.command_tx.clone();
-        smol::spawn(async move {
-            command_tx
-                .send(ScanCommand::Scan)
-                .await
-                .expect("could not send tx");
-        })
-        .detach();
+        self.cmd_tx
+            .blocking_send(ScanCommand::Scan)
+            .expect("could not send scan start command");
     }
 
     pub fn force_scan(&self) {
-        let command_tx = self.command_tx.clone();
-        smol::spawn(async move {
-            command_tx
-                .send(ScanCommand::ForceScan)
-                .await
-                .expect("could not send tx");
-        })
-        .detach();
+        self.cmd_tx
+            .blocking_send(ScanCommand::ForceScan)
+            .expect("could not send force re-scan start command");
     }
 
     pub fn stop(&self) {
-        let command_tx = self.command_tx.clone();
-        smol::spawn(async move {
-            command_tx
-                .send(ScanCommand::Stop)
-                .await
-                .expect("could not send tx");
-        })
-        .detach();
+        self.cmd_tx
+            .blocking_send(ScanCommand::Stop)
+            .expect("could not send scan stop command");
     }
 
     pub fn start_broadcast(&mut self, cx: &mut App) {
@@ -103,12 +86,12 @@ impl ScanInterface {
 
         let state_model = cx.global::<Models>().scan_state.clone();
 
-        let Some(events_rx) = events_rx else {
+        let Some(mut events_rx) = events_rx else {
             return;
         };
         cx.spawn(async move |cx| {
             loop {
-                while let Ok(event) = events_rx.recv().await {
+                while let Some(event) = events_rx.recv().await {
                     state_model
                         .update(cx, |m, cx| {
                             *m = event;
@@ -133,7 +116,7 @@ pub enum ScanState {
 }
 
 pub struct ScanThread {
-    event_tx: Sender<ScanEvent>,
+    event_tx: UnboundedSender<ScanEvent>,
     command_rx: Receiver<ScanCommand>,
     pool: SqlitePool,
     scan_settings: ScanSettings,
@@ -142,7 +125,7 @@ pub struct ScanThread {
     to_process: Vec<PathBuf>,
     scan_state: ScanState,
     provider_table: Vec<(&'static [&'static str], Box<dyn MediaProvider>)>,
-    scan_record: AHashMap<PathBuf, u64>,
+    scan_record: FxHashMap<PathBuf, u64>,
     scan_record_path: Option<PathBuf>,
     scanned: u64,
     discovered_total: u64,
@@ -214,8 +197,8 @@ fn scan_path_for_album_art(path: &Path) -> Option<Box<[u8]>> {
 
 impl ScanThread {
     pub fn start(pool: SqlitePool, settings: ScanSettings) -> ScanInterface {
-        let (commands_tx, commands_rx) = async_channel::bounded(10);
-        let (events_tx, events_rx) = async_channel::unbounded();
+        let (cmd_tx, commands_rx) = channel(10);
+        let (events_tx, events_rx) = unbounded_channel();
 
         std::thread::Builder::new()
             .name("scanner".to_string())
@@ -230,7 +213,7 @@ impl ScanThread {
                     scan_state: ScanState::Idle,
                     provider_table: build_provider_table(),
                     scan_settings: settings,
-                    scan_record: AHashMap::new(),
+                    scan_record: FxHashMap::default(),
                     scan_record_path: None,
                     scanned: 0,
                     discovered_total: 0,
@@ -242,7 +225,7 @@ impl ScanThread {
             })
             .expect("could not start playback thread");
 
-        ScanInterface::new(Some(events_rx), commands_tx)
+        ScanInterface::new(Some(events_rx), cmd_tx)
     }
 
     fn run(&mut self) {
@@ -309,14 +292,9 @@ impl ScanThread {
                         self.to_process.clear();
                         self.is_force = false;
 
-                        let event_tx = self.event_tx.clone();
-                        smol::spawn(async move {
-                            event_tx
-                                .send(ScanEvent::Cleaning)
-                                .await
-                                .expect("could not send scan started event");
-                        })
-                        .detach();
+                        self.event_tx
+                            .send(ScanEvent::Cleaning)
+                            .expect("could not send scan event");
                     }
                 }
                 ScanCommand::ForceScan => {
@@ -332,16 +310,11 @@ impl ScanThread {
                         self.is_force = true;
                         self.force_encountered_albums.clear();
 
-                        self.scan_record = AHashMap::new();
+                        self.scan_record = FxHashMap::default();
 
-                        let event_tx = self.event_tx.clone();
-                        smol::spawn(async move {
-                            event_tx
-                                .send(ScanEvent::Cleaning)
-                                .await
-                                .expect("could not send scan started event");
-                        })
-                        .detach();
+                        self.event_tx
+                            .send(ScanEvent::Cleaning)
+                            .expect("could not send scan event");
                     }
                 }
                 ScanCommand::Stop => {
@@ -418,15 +391,9 @@ impl ScanThread {
                 self.discovered_total += 1;
 
                 if self.discovered_total.is_multiple_of(20) {
-                    let event_tx = self.event_tx.clone();
-                    let discovered_total = self.discovered_total;
-                    smol::spawn(async move {
-                        event_tx
-                            .send(ScanEvent::DiscoverProgress(discovered_total))
-                            .await
-                            .expect("could not send discovered event");
-                    })
-                    .detach();
+                    self.event_tx
+                        .send(ScanEvent::DiscoverProgress(self.discovered_total))
+                        .expect("could not send scan event");
                 }
             }
         }
@@ -704,11 +671,9 @@ impl ScanThread {
             info!("Scan complete, writing scan record and stopping");
             self.write_scan_record();
             self.scan_state = ScanState::Idle;
-            let event_tx = self.event_tx.clone();
-            smol::spawn(async move {
-                event_tx.send(ScanEvent::ScanCompleteIdle).await.unwrap();
-            })
-            .detach();
+            self.event_tx
+                .send(ScanEvent::ScanCompleteIdle)
+                .expect("could not send scan event");
             return;
         }
 
@@ -716,7 +681,7 @@ impl ScanThread {
         let metadata = self.read_metadata_for_path(&path);
 
         if let Some(metadata) = metadata {
-            let result = block_on(self.update_metadata(metadata, &path));
+            let result = crate::RUNTIME.block_on(self.update_metadata(metadata, &path));
 
             if let Err(err) = result {
                 error!(
@@ -728,15 +693,12 @@ impl ScanThread {
             self.scanned += 1;
 
             if self.scanned.is_multiple_of(5) {
-                let event_tx = self.event_tx.clone();
-                let scan_progress = ScanEvent::ScanProgress {
-                    current: self.scanned,
-                    total: self.discovered_total,
-                };
-                smol::spawn(async move {
-                    event_tx.send(scan_progress).await.unwrap();
-                })
-                .detach();
+                self.event_tx
+                    .send(ScanEvent::ScanProgress {
+                        current: self.scanned,
+                        total: self.discovered_total,
+                    })
+                    .expect("could not send scan event");
             }
         } else {
             warn!("Could not read metadata for file: {:?}", path);
@@ -766,7 +728,7 @@ impl ScanThread {
             .filter(|v| !v.0.exists())
             .map(|v| v.0)
             .for_each(|v| {
-                block_on(self.delete_track(v));
+                crate::RUNTIME.block_on(self.delete_track(v));
             });
 
         self.scan_state = ScanState::Discovering;

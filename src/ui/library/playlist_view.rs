@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use ahash::AHashMap;
 use gpui::{
     App, AppContext, Context, Entity, FocusHandle, Focusable, FontWeight, InteractiveElement,
     KeyBinding, ParentElement, Render, Styled, Window, actions, div, px, rems, uniform_list,
 };
+use rustc_hash::FxHashMap;
 use tracing::{error, info};
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
         types::{Playlist, PlaylistType},
     },
     playback::{
-        interface::{GPUIPlaybackInterface, replace_queue},
+        interface::{PlaybackInterface, replace_queue},
         queue::QueueItemData,
     },
     ui::{
@@ -44,7 +44,7 @@ pub fn bind_actions(cx: &mut App) {
 pub struct PlaylistView {
     playlist: Arc<Playlist>,
     playlist_track_ids: Arc<Vec<(i64, i64, i64)>>,
-    views: Entity<AHashMap<usize, Entity<TrackItem>>>,
+    views: Entity<FxHashMap<usize, Entity<TrackItem>>>,
     render_counter: Entity<usize>,
     focus_handle: FocusHandle,
     first_render: bool,
@@ -63,7 +63,7 @@ impl PlaylistView {
                             this.playlist_track_ids =
                                 cx.get_playlist_tracks(this.playlist.id).unwrap();
 
-                            this.views = cx.new(|_| AHashMap::new());
+                            this.views = cx.new(|_| FxHashMap::default());
                             this.render_counter = cx.new(|_| 0);
                         }
                     }
@@ -92,7 +92,7 @@ impl PlaylistView {
             Self {
                 playlist: cx.get_playlist(playlist_id).unwrap(),
                 playlist_track_ids: cx.get_playlist_tracks(playlist_id).unwrap(),
-                views: cx.new(|_| AHashMap::new()),
+                views: cx.new(|_| FxHashMap::default()),
                 render_counter: cx.new(|_| 0),
                 focus_handle,
                 first_render: true,
@@ -239,7 +239,7 @@ impl Render for PlaylistView {
                                                     })
                                                     .collect();
 
-                                                cx.global::<GPUIPlaybackInterface>()
+                                                cx.global::<PlaybackInterface>()
                                                     .queue_list(queue_items);
                                             })),
                                     )
@@ -273,7 +273,7 @@ impl Render for PlaylistView {
                                                     .shuffling
                                                     .read(cx))
                                                 {
-                                                    cx.global::<GPUIPlaybackInterface>()
+                                                    cx.global::<PlaybackInterface>()
                                                         .toggle_shuffle();
                                                 }
 

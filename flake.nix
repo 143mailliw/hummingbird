@@ -73,6 +73,9 @@
           adapters = lib.flatten [
             (lib.optional isLinux pkgs.stdenvAdapters.useMoldLinker)
           ];
+          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain (rust-bin.stable.latest.default.override {
+            extensions = ["rust-analyzer" "rust-src" "clippy" "rustfmt"];
+          });
           craneDevShell = craneLib.devShell.override {
             mkShell = pkgs.mkShell.override {
               stdenv = builtins.foldl' (acc: adapter: adapter acc) pkgs.llvmPackages_latest.stdenv adapters;

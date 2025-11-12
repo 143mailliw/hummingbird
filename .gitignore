@@ -1,5 +1,5 @@
 # cargo artifacts
-/target
+target/
 
 # nix artifacts
 .direnv/
@@ -10,4 +10,5 @@ result
 
 **/.DS_Store
 .env
-.idea
+.idea/
+.vscode/

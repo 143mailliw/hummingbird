@@ -9,7 +9,7 @@ use crate::{
         types::{Album, Artist, Track},
     },
     playback::{
-        interface::{GPUIPlaybackInterface, replace_queue},
+        interface::{PlaybackInterface, replace_queue},
         queue::QueueItemData,
         thread::PlaybackState,
     },
@@ -252,7 +252,7 @@ impl Render for ReleaseView {
                                                         })
                                                         .collect();
 
-                                                    cx.global::<GPUIPlaybackInterface>()
+                                                    cx.global::<PlaybackInterface>()
                                                         .queue_list(queue_items);
                                                 },
                                             ))
@@ -284,7 +284,7 @@ impl Render for ReleaseView {
                                                         .shuffling
                                                         .read(cx))
                                                     {
-                                                        cx.global::<GPUIPlaybackInterface>()
+                                                        cx.global::<PlaybackInterface>()
                                                             .toggle_shuffle();
                                                     }
 
