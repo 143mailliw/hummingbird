@@ -1,12 +1,13 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use gpui::{
-    Action, App, AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString,
-    Styled, Window, actions, div, px,
+    Action, App, AppContext, Context, Entity, EventEmitter, FocusHandle, Global, IntoElement,
+    ParentElement, Render, SharedString, Styled, Window, actions, div, px,
 };
 use nucleo::Utf32String;
 use rustc_hash::FxHashMap;
 use std::hash::Hash;
+use tracing::error;
 
 use crate::ui::{
     components::{
@@ -18,22 +19,25 @@ use crate::ui::{
 
 actions!(hummingbird, [OpenPalette]);
 
-struct Command {
+pub struct Command {
     category: Option<SharedString>,
     name: SharedString,
     action: Box<dyn Action + Send + Sync>,
+    focus_handle: Option<FocusHandle>,
 }
 
 impl Command {
-    fn new(
+    pub fn new(
         category: Option<impl Into<SharedString>>,
         name: impl Into<SharedString>,
         action: impl Action + Send + Sync,
+        focus_handle: Option<FocusHandle>,
     ) -> Arc<Self> {
         Arc::new(Command {
             category: category.map(Into::into),
             name: name.into(),
             action: Box::new(action),
+            focus_handle,
         })
     }
 }
@@ -88,17 +92,28 @@ type OnAccept = Box<dyn Fn(&Arc<Command>, &mut App) + 'static>;
 pub struct CommandPalette {
     show: bool,
     palette: Entity<Palette<Command, MatcherFunc, OnAccept>>,
-    items: FxHashMap<&'static str, Arc<Command>>,
+    items: FxHashMap<(&'static str, i64), Arc<Command>>,
 }
 
 impl CommandPalette {
-    pub fn new(cx: &mut App, window: &mut Window) -> Entity<Self> {
+    pub fn new(cx: &mut App, _: &mut Window) -> Entity<Self> {
         cx.new(|cx| {
             let matcher: MatcherFunc = Box::new(|item, _| item.name.to_string().into());
 
             let weak_self = cx.weak_entity();
             let on_accept: OnAccept = Box::new(move |item, cx| {
+                if let Some(focus_handle) = &item.focus_handle {
+                    if let Err(err) =
+                        cx.update_window(cx.active_window().unwrap(), |_, window, _| {
+                            focus_handle.focus(window);
+                        })
+                    {
+                        error!("Failed to focus window, action may not trigger: {}", err);
+                    }
+                }
+                
                 cx.dispatch_action(&(*item.action));
+                
                 weak_self
                     .update(cx, |this: &mut Self, cx| {
                         this.show = false;
@@ -109,44 +124,62 @@ impl CommandPalette {
 
             let mut items = FxHashMap::default();
 
+            cx.subscribe_self(move |this: &mut Self, ev, cx| {
+                match ev {
+                    CommandEvent::NewCommand(id, command) => {
+                        this.items.insert(*id, command.clone())
+                    }
+                    CommandEvent::RemoveCommand(id) => this.items.remove(id),
+                };
+
+                let vec: Vec<_> = this.items.values().cloned().collect();
+
+                this.palette.update(cx, |_, cx| {
+                    cx.emit(vec);
+                });
+
+                cx.notify();
+            })
+            .detach();
+
             // add basic items
             items.insert(
-                "hummingbird::quit",
-                Command::new(Some("Hummingbird"), "Quit", Quit),
+                ("hummingbird::quit", 0),
+                Command::new(Some("Hummingbird"), "Quit", Quit, None),
             );
             items.insert(
-                "hummingbird::about",
-                Command::new(Some("Hummingbird"), "About", About),
+                ("hummingbird::about", 0),
+                Command::new(Some("Hummingbird"), "About", About, None),
             );
             items.insert(
-                "hummingbird::search",
-                Command::new(Some("Hummingbird"), "Search", Search),
+                ("hummingbird::search", 0),
+                Command::new(Some("Hummingbird"), "Search", Search, None),
             );
 
             items.insert(
-                "player::playpause",
-                Command::new(Some("Playback"), "Pause/Resume Current Track", PlayPause),
+                ("player::playpause", 0),
+                Command::new(
+                    Some("Playback"),
+                    "Pause/Resume Current Track",
+                    PlayPause,
+                    None,
+                ),
             );
             items.insert(
-                "player::next",
-                Command::new(Some("Playback"), "Next Track", Next),
+                ("player::next", 0),
+                Command::new(Some("Playback"), "Next Track", Next, None),
             );
             items.insert(
-                "player::previous",
-                Command::new(Some("Playback"), "Previous Track", Previous),
+                ("player::previous", 0),
+                Command::new(Some("Playback"), "Previous Track", Previous, None),
             );
 
             items.insert(
-                "scan::forcescan",
-                Command::new(Some("Scan"), "Rescan Entire Library", ForceScan),
+                ("scan::forcescan", 0),
+                Command::new(Some("Scan"), "Rescan Entire Library", ForceScan, None),
             );
 
-            let palette = Palette::new(
-                cx,
-                items.iter().map(|v| v.1.clone()).collect(),
-                matcher,
-                on_accept,
-            );
+            let palette = Palette::new(cx, items.values().cloned().collect(), matcher, on_accept);
 
             let weak_self = cx.weak_entity();
             App::on_action(cx, move |_: &OpenPalette, cx: &mut App| {
@@ -193,3 +226,41 @@ impl Render for CommandPalette {
         }
     }
 }
+
+enum CommandEvent {
+    NewCommand((&'static str, i64), Arc<Command>),
+    RemoveCommand((&'static str, i64)),
+}
+
+impl EventEmitter<CommandEvent> for CommandPalette {}
+
+pub trait CommandManager {
+    fn register_command(&mut self, name: (&'static str, i64), command: Arc<Command>);
+    fn unregister_command(&mut self, name: (&'static str, i64));
+}
+
+impl CommandManager for App {
+    fn register_command(&mut self, name: (&'static str, i64), command: Arc<Command>) {
+        let commands = self.global::<CommandPaletteHolder>().0.clone();
+        commands.update(self, move |_, cx| {
+            cx.emit(CommandEvent::NewCommand(name, command));
+        })
+    }
+
+    fn unregister_command(&mut self, name: (&'static str, i64)) {
+        let commands = self.global::<CommandPaletteHolder>().0.clone();
+        commands.update(self, move |_, cx| {
+            cx.emit(CommandEvent::RemoveCommand(name));
+        })
+    }
+}
+
+pub struct CommandPaletteHolder(Entity<CommandPalette>);
+
+impl CommandPaletteHolder {
+    pub fn new(palette: Entity<CommandPalette>) -> Self {
+        Self(palette)
+    }
+}
+
+impl Global for CommandPaletteHolder {}

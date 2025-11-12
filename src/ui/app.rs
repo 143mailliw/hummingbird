@@ -22,8 +22,10 @@ use crate::{
         storage::{Storage, StorageData},
     },
     ui::{
-        assets::HummingbirdAssetSource, command_palette::CommandPalette,
-        constants::APP_SHADOW_SIZE, library,
+        assets::HummingbirdAssetSource,
+        command_palette::{CommandPalette, CommandPaletteHolder},
+        constants::APP_SHADOW_SIZE,
+        library,
     },
 };
 
@@ -414,6 +416,8 @@ pub async fn run() {
                     make_cl(cx, window);
 
                     let palette = CommandPalette::new(cx, window);
+
+                    cx.set_global(CommandPaletteHolder::new(palette.clone()));
 
                     cx.new(|cx| {
                         cx.observe_window_appearance(window, |_, _, cx| {

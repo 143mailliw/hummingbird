@@ -1,12 +1,9 @@
-use std::{
-    any::{Any, TypeId},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use ahash::AHashMap;
 use gpui::{
-    App, AppContext, Context, Entity, FocusHandle, FontWeight, InteractiveElement, KeyBinding,
-    ParentElement, Render, Styled, Window, actions, div, px, rems, uniform_list,
+    App, AppContext, Context, Entity, FocusHandle, Focusable, FontWeight, InteractiveElement,
+    KeyBinding, ParentElement, Render, Styled, Window, actions, div, px, rems, uniform_list,
 };
 use tracing::{error, info};
 
@@ -21,6 +18,7 @@ use crate::{
         queue::QueueItemData,
     },
     ui::{
+        command_palette::{Command, CommandManager},
         components::{
             button::{ButtonIntent, ButtonSize, button},
             icons::{CIRCLE_PLUS, PLAY, PLAYLIST, SHUFFLE, STAR, icon},
@@ -74,12 +72,29 @@ impl PlaylistView {
             )
             .detach();
 
+            let focus_handle = cx.focus_handle();
+
+            cx.register_command(
+                ("playlist::export", playlist_id),
+                Command::new(
+                    Some("Playlist"),
+                    "Export Playlist to M3U",
+                    Export,
+                    Some(focus_handle.clone()),
+                ),
+            );
+
+            cx.on_release(move |_, cx| {
+                cx.unregister_command(("playlist::export", playlist_id));
+            })
+            .detach();
+
             Self {
                 playlist: cx.get_playlist(playlist_id).unwrap(),
                 playlist_track_ids: cx.get_playlist_tracks(playlist_id).unwrap(),
                 views: cx.new(|_| AHashMap::new()),
                 render_counter: cx.new(|_| 0),
-                focus_handle: cx.focus_handle(),
+                focus_handle,
                 first_render: true,
             }
         })
