@@ -1,3 +1,6 @@
+[config]
+blueprint = "false"
+
 [application]
 theme_colors = [] # TODO: fix this, this shouldn't be required
 
