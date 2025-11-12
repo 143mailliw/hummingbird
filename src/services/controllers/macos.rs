@@ -1,6 +1,5 @@
 use std::{path::Path, ptr::NonNull, sync::Arc};
 
-use async_lock::Mutex;
 use async_trait::async_trait;
 use block2::RcBlock;
 use objc2::{AnyThread, rc::Retained, runtime::ProtocolObject};
@@ -15,6 +14,7 @@ use objc2_media_player::{
     MPRemoteCommandHandlerStatus,
 };
 use raw_window_handle::RawWindowHandle;
+use tokio::sync::Mutex;
 use tracing::{debug, error};
 
 use crate::{
