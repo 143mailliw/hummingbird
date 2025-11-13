@@ -172,7 +172,7 @@ pub struct PbcHandle(UnboundedSender<PbcEvent>, tokio::task::JoinHandle<()>);
 impl Global for PbcHandle {}
 
 enum PbcEvent {
-    MetadataChanged(Metadata),
+    MetadataChanged(Box<Metadata>),
     AlbumArtChanged(Box<[u8]>),
     PositionChanged(u64),
     DurationChanged(u64),
@@ -207,8 +207,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&metadata, |e, cx| {
         let meta = e.read(cx).clone();
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::MetadataChanged(meta)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::MetadataChanged(Box::new(meta))) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -216,8 +216,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.subscribe(&albumart, |_, ImageEvent(img), cx| {
         let PbcHandle(tx, _) = cx.global();
         // FIXME: this is really way too expensive
-        if let Err(_) = tx.send(PbcEvent::AlbumArtChanged(img.clone())) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::AlbumArtChanged(img.clone())) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -234,8 +234,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&position, |e, cx| {
         let &pos = e.read(cx);
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::PositionChanged(pos)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::PositionChanged(pos)) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -243,8 +243,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&duration, |e, cx| {
         let &dur = e.read(cx);
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::DurationChanged(dur)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::DurationChanged(dur)) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -253,9 +253,9 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
         if let Some(track) = e.read(cx)
             && let path = track.get_path().clone()
             && let PbcHandle(tx, _) = cx.global()
-            && let Err(_) = tx.send(PbcEvent::NewFile(path))
+            && let Err(err) = tx.send(PbcEvent::NewFile(path))
         {
-            error!("playback controller channel closed");
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -263,8 +263,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&volume, |e, cx| {
         let &vol = e.read(cx);
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::VolumeChanged(vol)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::VolumeChanged(vol)) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -272,8 +272,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&repeat, |e, cx| {
         let &repeat = e.read(cx);
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::RepeatStateChanged(repeat)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::RepeatStateChanged(repeat)) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -281,8 +281,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&state, |e, cx| {
         let &state = e.read(cx);
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::PlaybackStateChanged(state)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::PlaybackStateChanged(state)) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();
@@ -290,8 +290,8 @@ pub fn register_pbc_event_handlers(cx: &mut App) {
     cx.observe(&shuffle, |e, cx| {
         let &shuffle = e.read(cx);
         let PbcHandle(tx, _) = cx.global();
-        if let Err(_) = tx.send(PbcEvent::ShuffleStateChanged(shuffle)) {
-            error!("playback controller channel closed");
+        if let Err(err) = tx.send(PbcEvent::ShuffleStateChanged(shuffle)) {
+            error!("playback controller channel closed: {err}");
         }
     })
     .detach();

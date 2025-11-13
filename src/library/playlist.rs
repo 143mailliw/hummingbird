@@ -5,9 +5,9 @@ use tracing::error;
 use crate::ui::app::Pool;
 
 #[cfg(windows)]
-const LINE_ENDING: &'static str = "\r\n";
+const LINE_ENDING: &str = "\r\n";
 #[cfg(not(windows))]
-const LINE_ENDING: &'static str = "\n";
+const LINE_ENDING: &str = "\n";
 
 #[derive(sqlx::FromRow)]
 struct PlaylistEntry {

@@ -654,11 +654,3 @@ impl Render for SecondaryControls {
         )
     }
 }
-
-pub struct EmptyView;
-
-impl Render for EmptyView {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-    }
-}

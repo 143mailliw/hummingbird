@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use gpui::{
-    App, AppContext, Context, Entity, FocusHandle, Focusable, FontWeight, InteractiveElement,
-    KeyBinding, ParentElement, Render, Styled, Window, actions, div, px, rems, uniform_list,
+    App, AppContext, Context, Entity, FocusHandle, FontWeight, InteractiveElement, KeyBinding,
+    ParentElement, Render, Styled, Window, actions, div, px, rems, uniform_list,
 };
 use rustc_hash::FxHashMap;
 use tracing::{error, info};
@@ -57,17 +57,15 @@ impl PlaylistView {
 
             cx.subscribe(
                 &playlist_tracker,
-                move |this: &mut Self, _, ev: &PlaylistEvent, cx| match ev {
-                    PlaylistEvent::PlaylistUpdated(id) => {
-                        if *id == this.playlist.id {
-                            this.playlist_track_ids =
-                                cx.get_playlist_tracks(this.playlist.id).unwrap();
+                move |this: &mut Self, _, ev: &PlaylistEvent, cx| {
+                    if let PlaylistEvent::PlaylistUpdated(id) = ev
+                        && *id == this.playlist.id
+                    {
+                        this.playlist_track_ids = cx.get_playlist_tracks(this.playlist.id).unwrap();
 
-                            this.views = cx.new(|_| FxHashMap::default());
-                            this.render_counter = cx.new(|_| 0);
-                        }
+                        this.views = cx.new(|_| FxHashMap::default());
+                        this.render_counter = cx.new(|_| 0);
                     }
-                    _ => (),
                 },
             )
             .detach();

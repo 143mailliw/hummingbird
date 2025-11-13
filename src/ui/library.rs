@@ -90,7 +90,7 @@ impl Library {
                             }
                         }
                         ViewSwitchMessage::Refresh => {
-                            let last = m.read(cx).iter().last().unwrap().clone();
+                            let last = *m.read(cx).iter().last().unwrap();
 
                             make_view(&last, cx, m)
                         }

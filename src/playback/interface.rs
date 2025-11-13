@@ -40,7 +40,7 @@ impl PlaybackInterface {
         events_rx: UnboundedReceiver<PlaybackEvent>,
     ) -> Self {
         Self {
-            cmd_tx: cmd_tx,
+            cmd_tx,
             events_rx: Some(events_rx),
         }
     }

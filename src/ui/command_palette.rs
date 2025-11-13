@@ -22,7 +22,7 @@ actions!(hummingbird, [OpenPalette]);
 pub struct Command {
     category: Option<SharedString>,
     name: SharedString,
-    action: Box<dyn Action + Send + Sync>,
+    action: Box<dyn Action + Sync>,
     focus_handle: Option<FocusHandle>,
 }
 
@@ -30,7 +30,7 @@ impl Command {
     pub fn new(
         category: Option<impl Into<SharedString>>,
         name: impl Into<SharedString>,
-        action: impl Action + Send + Sync,
+        action: impl Action + Sync,
         focus_handle: Option<FocusHandle>,
     ) -> Arc<Self> {
         Arc::new(Command {
@@ -60,9 +60,7 @@ impl PaletteItem for Command {
         &self,
         _: &mut gpui::App,
     ) -> Option<super::components::palette::FinderItemLeft> {
-        self.category
-            .clone()
-            .map(|category| FinderItemLeft::Text(category))
+        self.category.clone().map(FinderItemLeft::Text)
     }
 
     fn middle_content(&self, _: &mut gpui::App) -> SharedString {
@@ -102,18 +100,17 @@ impl CommandPalette {
 
             let weak_self = cx.weak_entity();
             let on_accept: OnAccept = Box::new(move |item, cx| {
-                if let Some(focus_handle) = &item.focus_handle {
-                    if let Err(err) =
+                if let Some(focus_handle) = &item.focus_handle
+                    && let Err(err) =
                         cx.update_window(cx.active_window().unwrap(), |_, window, _| {
                             focus_handle.focus(window);
                         })
-                    {
-                        error!("Failed to focus window, action may not trigger: {}", err);
-                    }
+                {
+                    error!("Failed to focus window, action may not trigger: {}", err);
                 }
-                
+
                 cx.dispatch_action(&(*item.action));
-                
+
                 weak_self
                     .update(cx, |this: &mut Self, cx| {
                         this.show = false;
@@ -206,7 +203,7 @@ impl Render for CommandPalette {
             let palette = self.palette.clone();
             let weak_self = cx.weak_entity();
 
-            palette.update(cx, |palette, cx| {
+            palette.update(cx, |palette, _| {
                 palette.focus(window);
             });
 
