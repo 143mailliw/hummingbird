@@ -1,5 +1,6 @@
 use gpui::{App, AppContext};
 use sqlx::SqlitePool;
+use tokio::{fs::File, io::AsyncWriteExt};
 use tracing::error;
 
 use crate::ui::app::Pool;
@@ -54,14 +55,14 @@ pub fn export_playlist(cx: &mut App, pl_id: i64, playlist_name: &str) -> anyhow:
 
     let pool = cx.global::<Pool>().0.clone();
 
-    cx.background_spawn(async move {
+    crate::RUNTIME.spawn(async move {
         let result = async {
             let path = path_future.await??;
 
             if let Some(path) = path {
                 let output = make_m3u(&pool, pl_id).await?;
-                let mut file = std::fs::File::create(path)?;
-                std::io::Write::write_all(&mut file, output.as_bytes())?;
+                let mut file = File::create(path).await?;
+                file.write_all(output.as_bytes()).await?;
             }
 
             anyhow::Ok(())
@@ -71,8 +72,7 @@ pub fn export_playlist(cx: &mut App, pl_id: i64, playlist_name: &str) -> anyhow:
         if let Err(err) = result {
             error!("Failed to export playlist: {err}");
         }
-    })
-    .detach();
+    });
 
     Ok(())
 }
