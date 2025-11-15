@@ -1,6 +1,12 @@
-use gpui::{App, AppContext};
-use sqlx::SqlitePool;
-use tokio::{fs::File, io::AsyncWriteExt};
+use std::path::{Path, PathBuf};
+
+use futures::future::join_all;
+use gpui::{App, AppContext, PathPromptOptions};
+use sqlx::{Sqlite, SqlitePool};
+use tokio::{
+    fs::File,
+    io::{AsyncBufReadExt, AsyncWriteExt},
+};
 use tracing::error;
 
 use crate::ui::app::Pool;
@@ -71,6 +77,126 @@ pub fn export_playlist(cx: &mut App, pl_id: i64, playlist_name: &str) -> anyhow:
 
         if let Err(err) = result {
             error!("Failed to export playlist: {err}");
+        }
+    });
+
+    Ok(())
+}
+
+struct M3UEntry {
+    duration: Option<u32>,
+    track_artist_names: Option<String>,
+    track_title: Option<String>,
+    album_title: Option<String>,
+    artist_name: Option<String>,
+    location: PathBuf,
+}
+
+async fn parse_m3u(path: &PathBuf) -> anyhow::Result<Vec<M3UEntry>> {
+    let file = File::open(path).await?;
+    let reader = tokio::io::BufReader::new(file);
+    let mut lines = reader.lines();
+
+    let mut entries = Vec::new();
+    let mut current_entry = M3UEntry {
+        duration: None,
+        track_artist_names: None,
+        track_title: None,
+        album_title: None,
+        artist_name: None,
+        location: PathBuf::new(),
+    };
+
+    while let Some(line) = lines.next_line().await? {
+        if let Some(line) = line.strip_prefix("#EXTINF:") {
+            let info: Vec<&str> = line.splitn(2, ',').collect();
+
+            if info.len() == 2 {
+                current_entry.duration = info[0].parse::<u32>().ok();
+
+                let delims = ['-', ':', '–'];
+                let title_artist: Vec<&str> = info[1].splitn(2, &delims).collect();
+                if title_artist.len() == 2 {
+                    current_entry.track_artist_names = Some(title_artist[0].trim().to_string());
+                    current_entry.track_title = Some(title_artist[1].trim().to_string());
+                } else {
+                    current_entry.track_title = Some(info[1].to_string());
+                }
+            }
+        } else if let Some(album_title) = line.strip_prefix("#EXTALB:") {
+            current_entry.album_title = Some(album_title.to_string());
+        } else if let Some(artist_name) = line.strip_prefix("#EXTART:") {
+            current_entry.artist_name = Some(artist_name.to_string());
+        } else if !line.starts_with('#') && !line.is_empty() {
+            current_entry.location = line.into();
+            entries.push(current_entry);
+            current_entry = M3UEntry {
+                duration: None,
+                track_artist_names: None,
+                track_title: None,
+                album_title: None,
+                artist_name: None,
+                location: PathBuf::new(),
+            };
+        }
+    }
+
+    Ok(entries)
+}
+
+pub fn import_playlist(cx: &mut App, playlist_id: i64) -> anyhow::Result<()> {
+    let path_future = cx.prompt_for_paths(PathPromptOptions {
+        files: true,
+        directories: false,
+        multiple: false,
+        prompt: Some("Select a M3U file...".into()),
+    });
+
+    let pool = cx.global::<Pool>().0.clone();
+
+    crate::RUNTIME.spawn(async move {
+        let result = async {
+            let path = path_future.await??;
+
+            if let Some(path) = path.as_ref().and_then(|v| v.first()) {
+                let data = parse_m3u(path).await?;
+
+                let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
+                let iter = data.iter().map(|entry| {
+                    sqlx::query_scalar::<Sqlite, i64>(lookup_query)
+                        .bind(format!("%{}", entry.location.to_string_lossy()))
+                        .fetch_one(&pool)
+                });
+
+                let ids = join_all(iter).await.into_iter().flatten();
+
+                let mut tx = pool.begin().await?;
+
+                let reset_query = include_str!("../../queries/playlist/empty_playlist.sql");
+                sqlx::query(reset_query)
+                    .bind(playlist_id)
+                    .execute(&mut *tx)
+                    .await?;
+
+                let insert_query = include_str!("../../queries/playlist/add_track.sql");
+
+                for track_id in ids {
+                    sqlx::query(insert_query)
+                        .bind(playlist_id)
+                        .bind(track_id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+
+                tx.commit().await?;
+            }
+
+            anyhow::Ok(())
+        }
+        .await;
+
+        if let Err(err) = result {
+            error!("Failed to import playlist: {err}");
         }
     });
 
