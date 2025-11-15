@@ -20,6 +20,9 @@ jobs:
     env:
       ARCH: "${{ endsWith(matrix.os, 'arm') && 'aarch64' || 'x86_64' }}"
 
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
