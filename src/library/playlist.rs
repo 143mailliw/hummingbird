@@ -58,7 +58,7 @@ pub fn export_playlist(cx: &mut App, pl_id: i64, playlist_name: &str) -> anyhow:
         .document_dir()
         .ok_or_else(|| anyhow::anyhow!("Failed to get documents directory"))?;
 
-    let suggested_name = format!("{playlist_name}.m3u");
+    let suggested_name = format!("{playlist_name}.m3u8");
 
     let path_future = cx.prompt_for_new_path(dir, Some(&suggested_name));
 
