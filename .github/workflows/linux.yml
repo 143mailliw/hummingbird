@@ -24,16 +24,24 @@ jobs:
           sudo apt-get install -y libasound2-dev pkg-config libxkbcommon-dev libxkbcommon-x11-dev libx11-xcb-dev libpulse-dev
       - name: Update rust
         run: rustup update
+      - name: Install cntp build tools
+        run: |
+          cargo install --git https://github.com/vicr123/contemporary-rs.git cargo-cntp-bundle
+          cargo install --git https://github.com/vicr123/contemporary-rs.git cargo-cntp-deploy
       - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --verbose --release
+      - name: Bundle
+        run: |
+          cargo cntp-bundle --no-open --verbose
+          cargo cntp-deploy --no-open --verbose --output-file hummingbird-x86_64.AppImage
       - uses: actions/upload-artifact@v4
         with:
           name: hummingbird
-          path: target/release/hummingbird
+          path: hummingbird-x86_64.AppImage
       - uses: softprops/action-gh-release@v2
         with:
-          files: target/release/hummingbird
+          files: hummingbird-x86_64.AppImage
           prerelease: true
           name: latest
           tag_name: latest
