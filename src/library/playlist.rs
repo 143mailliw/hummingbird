@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{ffi::OsStr, path::PathBuf};
 
 use futures::future::join_all;
 use gpui::{App, PathPromptOptions};
@@ -170,12 +170,21 @@ pub fn import_playlist(cx: &mut App, playlist_id: i64) -> anyhow::Result<()> {
                         let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
                         let iter = data.into_iter().map(|entry| {
                             sqlx::query_scalar::<Sqlite, i64>(lookup_query)
-                                .bind(format!("%{}", entry.location.to_string_lossy()))
+                                .bind(entry.location.to_string_lossy().to_string())
                                 .bind(entry.track_title)
                                 .bind(entry.artist_name)
                                 .bind(entry.album_title)
                                 .bind(entry.track_artist_names)
                                 .bind(entry.duration)
+                                .bind(format!(
+                                    "%{}%",
+                                    entry
+                                        .location
+                                        .file_prefix()
+                                        .map(OsStr::to_str)
+                                        .flatten()
+                                        .unwrap_or_default()
+                                ))
                                 .fetch_one(&pool)
                         });
 
