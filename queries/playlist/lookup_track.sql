@@ -26,5 +26,5 @@ SELECT t.id FROM track t
             AND ($4 IS NULL OR a.title = $4)
             AND ($5 IS NULL OR t.artist_names = $5)
             AND ($6 IS NULL OR (t.duration > $6 - 1 AND t.duration < $6 + 1))
-            AND ($7 IS NULL OR (t.location LIKE $7 AND $2 IS NULL))
+            AND ($7 IS NULL OR $2 IS NOT NULL OR t.location LIKE $7)
         );
