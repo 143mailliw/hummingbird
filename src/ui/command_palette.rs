@@ -183,6 +183,10 @@ impl CommandPalette {
                 weak_self
                     .update(cx, |this: &mut Self, cx| {
                         this.show = true;
+                        this.palette.update(cx, |palette, cx| {
+                            palette.reset(cx);
+                        });
+
                         cx.notify();
                     })
                     .ok();

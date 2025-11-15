@@ -35,7 +35,7 @@ use crate::{
 
 use super::track_listing::track_item::TrackPlaylistInfo;
 
-actions!(playlist, [Export]);
+actions!(playlist, [Export, Import]);
 
 pub fn bind_actions(cx: &mut App) {
     cx.bind_keys([KeyBinding::new("secondary-s", Export, None)]);

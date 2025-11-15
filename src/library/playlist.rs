@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use futures::future::join_all;
-use gpui::{App, AppContext, PathPromptOptions};
+use gpui::{App, PathPromptOptions};
 use sqlx::{Sqlite, SqlitePool};
 use tokio::{
     fs::File,
@@ -9,7 +9,10 @@ use tokio::{
 };
 use tracing::error;
 
-use crate::ui::app::Pool;
+use crate::ui::{
+    app::Pool,
+    models::{Models, PlaylistEvent},
+};
 
 #[cfg(windows)]
 const LINE_ENDING: &str = "\r\n";
@@ -153,52 +156,63 @@ pub fn import_playlist(cx: &mut App, playlist_id: i64) -> anyhow::Result<()> {
     });
 
     let pool = cx.global::<Pool>().0.clone();
+    let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
 
-    crate::RUNTIME.spawn(async move {
-        let result = async {
-            let path = path_future.await??;
+    cx.spawn(async move |cx| {
+        crate::RUNTIME
+            .spawn(async move {
+                let result = async {
+                    let path = path_future.await??;
 
-            if let Some(path) = path.as_ref().and_then(|v| v.first()) {
-                let data = parse_m3u(path).await?;
+                    if let Some(path) = path.as_ref().and_then(|v| v.first()) {
+                        let data = parse_m3u(path).await?;
 
-                let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
-                let iter = data.iter().map(|entry| {
-                    sqlx::query_scalar::<Sqlite, i64>(lookup_query)
-                        .bind(format!("%{}", entry.location.to_string_lossy()))
-                        .fetch_one(&pool)
-                });
+                        let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
+                        let iter = data.iter().map(|entry| {
+                            sqlx::query_scalar::<Sqlite, i64>(lookup_query)
+                                .bind(format!("%{}", entry.location.to_string_lossy()))
+                                .fetch_one(&pool)
+                        });
 
-                let ids = join_all(iter).await.into_iter().flatten();
+                        let ids = join_all(iter).await.into_iter().flatten();
 
-                let mut tx = pool.begin().await?;
+                        let mut tx = pool.begin().await?;
 
-                let reset_query = include_str!("../../queries/playlist/empty_playlist.sql");
-                sqlx::query(reset_query)
-                    .bind(playlist_id)
-                    .execute(&mut *tx)
-                    .await?;
+                        let reset_query = include_str!("../../queries/playlist/empty_playlist.sql");
+                        sqlx::query(reset_query)
+                            .bind(playlist_id)
+                            .execute(&mut *tx)
+                            .await?;
 
-                let insert_query = include_str!("../../queries/playlist/add_track.sql");
+                        let insert_query = include_str!("../../queries/playlist/add_track.sql");
 
-                for track_id in ids {
-                    sqlx::query(insert_query)
-                        .bind(playlist_id)
-                        .bind(track_id)
-                        .execute(&mut *tx)
-                        .await?;
+                        for track_id in ids {
+                            sqlx::query(insert_query)
+                                .bind(playlist_id)
+                                .bind(track_id)
+                                .execute(&mut *tx)
+                                .await?;
+                        }
+
+                        tx.commit().await?;
+                    }
+
+                    anyhow::Ok(())
                 }
+                .await;
 
-                tx.commit().await?;
-            }
+                if let Err(err) = result {
+                    error!("Failed to import playlist: {err}");
+                }
+            })
+            .await
+            .ok();
 
-            anyhow::Ok(())
-        }
-        .await;
-
-        if let Err(err) = result {
-            error!("Failed to import playlist: {err}");
-        }
-    });
+        playlist_tracker.update(cx, |_, cx| {
+            cx.emit(PlaylistEvent::PlaylistUpdated(playlist_id))
+        })
+    })
+    .detach();
 
     Ok(())
 }

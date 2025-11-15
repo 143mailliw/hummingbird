@@ -6,7 +6,14 @@ use navigation::NavigationView;
 use release_view::ReleaseView;
 use tracing::debug;
 
-use crate::ui::library::{playlist_view::PlaylistView, sidebar::Sidebar};
+use crate::ui::{
+    command_palette::{Command, CommandManager},
+    library::{
+        playlist_view::{Import, PlaylistView},
+        sidebar::Sidebar,
+        update_playlist::UpdatePlaylist,
+    },
+};
 
 use super::models::Models;
 
@@ -17,6 +24,7 @@ mod playlist_view;
 mod release_view;
 mod sidebar;
 mod track_listing;
+mod update_playlist;
 
 pub fn bind_actions(cx: &mut App) {
     playlist_view::bind_actions(cx);
@@ -33,6 +41,9 @@ pub struct Library {
     view: LibraryView,
     navigation_view: Entity<NavigationView>,
     sidebar: Entity<Sidebar>,
+    show_update_playlist: Entity<bool>,
+    update_playlist: Entity<UpdatePlaylist>,
+    focus_handle: FocusHandle,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -113,10 +124,32 @@ impl Library {
             )
             .detach();
 
+            let focus_handle = cx.focus_handle();
+
+            cx.register_command(
+                ("playlist::import", 0),
+                Command::new(
+                    Some("Playlist"),
+                    "Import M3U Playlist",
+                    Import,
+                    Some(focus_handle.clone()),
+                ),
+            );
+
+            cx.on_release(move |_, cx| {
+                cx.unregister_command(("playlist::import", 0));
+            })
+            .detach();
+
+            let show_update_playlist = cx.new(|_| false);
+
             Library {
                 navigation_view: NavigationView::new(cx, switcher_model.clone()),
                 sidebar: Sidebar::new(cx, switcher_model.clone()),
                 view,
+                update_playlist: UpdatePlaylist::new(cx, show_update_playlist.clone()),
+                show_update_playlist,
+                focus_handle,
             }
         })
     }
@@ -124,7 +157,17 @@ impl Library {
 
 impl Render for Library {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let show_update_playlist = self.show_update_playlist.clone();
+
         div()
+            .id("library")
+            .track_focus(&self.focus_handle)
+            .on_action(move |_: &Import, _, cx| {
+                show_update_playlist.update(cx, |v, cx| {
+                    *v = true;
+                    cx.notify();
+                })
+            })
             .w_full()
             .h_full()
             .flex()
@@ -160,5 +203,6 @@ impl Render for Library {
                         }
                     }),
             )
+            .child(self.update_playlist.clone())
     }
 }
