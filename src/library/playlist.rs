@@ -168,9 +168,14 @@ pub fn import_playlist(cx: &mut App, playlist_id: i64) -> anyhow::Result<()> {
                         let data = parse_m3u(path).await?;
 
                         let lookup_query = include_str!("../../queries/playlist/lookup_track.sql");
-                        let iter = data.iter().map(|entry| {
+                        let iter = data.into_iter().map(|entry| {
                             sqlx::query_scalar::<Sqlite, i64>(lookup_query)
                                 .bind(format!("%{}", entry.location.to_string_lossy()))
+                                .bind(entry.track_title)
+                                .bind(entry.artist_name)
+                                .bind(entry.album_title)
+                                .bind(entry.track_artist_names)
+                                .bind(entry.duration)
                                 .fetch_one(&pool)
                         });
 

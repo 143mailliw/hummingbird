@@ -7,5 +7,6 @@ SELECT t.id FROM track t
             AND t.title = $2
             AND ($3 IS NULL OR a2.name = $3)
             AND ($4 IS NULL OR a.title = $4)
-            AND ($5 IS NULL OR t.duration = $5 )
+            AND ($5 IS NULL OR t.artist_names = $5)
+            AND ($6 IS NULL OR t.duration = $6 )
         );
