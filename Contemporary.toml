@@ -11,4 +11,5 @@ application_machine_name = "hummingbird-player"
 organization_name = "mailliw"
 desktop_entry = "org.mailliw.hummingbird"
 desktop_entry_categories = ["Audio", "AudioVideo"]
-icon = "res/icon/icon.svg"
+icon = "res/icon.svg"
+disk_image_background = "res/dmg-background.svg"
