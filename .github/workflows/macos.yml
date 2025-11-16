@@ -1,4 +1,4 @@
-name: macOS (ARM binary)
+name: macOS (binary)
 
 on:
     push:
