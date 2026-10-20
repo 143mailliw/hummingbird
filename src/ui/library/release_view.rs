@@ -107,7 +107,12 @@ async fn load_release_data(pool: sqlx::SqlitePool, album_id: i64) -> anyhow::Res
 }
 
 impl ReleaseView {
-    pub(super) fn new(cx: &mut App, album_id: i64, target_track_id: Option<i64>) -> Entity<Self> {
+    pub(super) fn new(
+        cx: &mut App,
+        album_id: i64,
+        target_track_id: Option<i64>,
+        initial_scroll_offset: Option<f32>,
+    ) -> Entity<Self> {
         cx.new(|cx| {
             let pool = cx.global::<Pool>().0.clone();
             let resource = AsyncResource::new(cx, album_id, load_release_data(pool, album_id));
@@ -165,6 +170,13 @@ impl ReleaseView {
             })
             .detach();
 
+            let scroll_handle = ScrollHandle::new();
+            if target_track_id.is_none()
+                && let Some(offset) = initial_scroll_offset
+            {
+                scroll_handle.set_offset(Point::new(px(0.0), px(-offset)));
+            }
+
             ReleaseView {
                 album: None,
                 artist_name: None,
@@ -172,7 +184,7 @@ impl ReleaseView {
                 track_listing: None,
                 collection_summary: SharedString::default(),
                 release_info: None,
-                scroll_handle: ScrollHandle::new(),
+                scroll_handle,
                 pending_scroll: None,
                 scroll_follow: SmoothScrollFollow::new(RELEASE_SCROLL_ANIMATION_DURATION),
                 scroll_frame_scheduled: false,
@@ -183,6 +195,10 @@ impl ReleaseView {
                 target_track_id,
             }
         })
+    }
+
+    pub fn get_scroll_offset(&self) -> f32 {
+        (-self.scroll_handle.offset().y).into()
     }
 
     fn reload(&mut self, cx: &mut Context<Self>) {

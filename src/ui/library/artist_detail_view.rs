@@ -83,6 +83,7 @@ impl ArtistDetailView {
         cx: &mut App,
         artist_id: i64,
         nav_model: Entity<super::NavigationHistory>,
+        initial_scroll_offset: Option<f32>,
     ) -> Entity<Self> {
         let view: Entity<Self> = cx.new(|cx| {
             let liked_sort = *cx.global::<Models>().liked_tracks_sort_method.read(cx);
@@ -121,6 +122,11 @@ impl ArtistDetailView {
             })
             .detach();
 
+            let scroll_handle = ScrollHandle::new();
+            if let Some(offset) = initial_scroll_offset {
+                scroll_handle.set_offset(Point::new(px(0.0), px(-offset)));
+            }
+
             ArtistDetailView {
                 artist_id,
                 artist_name: None,
@@ -130,7 +136,7 @@ impl ArtistDetailView {
                 all_tracks: Arc::new(Vec::new()),
                 liked_tracks: Arc::new(Vec::new()),
                 standalone_tracks: Arc::new(Vec::new()),
-                scroll_handle: ScrollHandle::new(),
+                scroll_handle,
                 grid_views,
                 grid_rendered_keys,
                 nav_model: nav_model.clone(),
@@ -142,6 +148,10 @@ impl ArtistDetailView {
         });
 
         view
+    }
+
+    pub fn get_scroll_offset(&self) -> f32 {
+        (-self.scroll_handle.offset().y).into()
     }
 
     fn new_resource(

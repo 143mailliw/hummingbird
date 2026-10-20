@@ -7,15 +7,13 @@ use cntp_i18n::tr;
 use files_view::FilesView;
 use gpui::{prelude::FluentBuilder, *};
 use release_view::ReleaseView;
+use rustc_hash::FxHashMap;
 use tracing::debug;
 use track_view::TrackView;
 
 #[derive(Clone, Default)]
 struct ScrollStateStorage {
-    album_view_scroll: Option<f32>,
-    track_view_scroll: Option<f32>,
-    artist_view_scroll: Option<f32>,
-    files_view_scroll: Option<f32>,
+    scroll_offsets: FxHashMap<ViewSwitchMessage, f32>,
     files_expanded: Vec<PathBuf>,
 }
 
@@ -294,6 +292,18 @@ enum LibraryView {
 }
 
 impl LibraryView {
+    fn scroll_offset(&self, cx: &App) -> f32 {
+        match self {
+            LibraryView::Album(view) => view.read(cx).get_scroll_offset(cx),
+            LibraryView::Tracks(view) => view.read(cx).get_scroll_offset(cx),
+            LibraryView::Artists(view) => view.read(cx).get_scroll_offset(cx),
+            LibraryView::Files(view) => view.read(cx).get_scroll_offset(),
+            LibraryView::Release(view) => view.read(cx).get_scroll_offset(),
+            LibraryView::ArtistDetail(view) => view.read(cx).get_scroll_offset(),
+            LibraryView::Playlist(view) => view.read(cx).get_scroll_offset(),
+        }
+    }
+
     fn split_key(&self) -> &'static str {
         match self {
             LibraryView::Album(_) => "albums",
@@ -309,6 +319,7 @@ impl LibraryView {
 
 pub struct Library {
     view: LibraryView,
+    view_message: ViewSwitchMessage,
     left_view: Option<LibraryView>,
     right_view: Option<LibraryView>,
     section: LibrarySection,
@@ -321,7 +332,7 @@ pub struct Library {
     _focus_lost_sub: Option<Subscription>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum ViewSwitchMessage {
     Albums,
     Tracks,
@@ -364,38 +375,57 @@ impl ViewSwitchMessage {
     }
 }
 
+enum ViewOpenMode {
+    Navigate,
+    Restore,
+}
+
+impl ViewOpenMode {
+    fn release_target(
+        self,
+        target_track_id: Option<i64>,
+        scroll_offset: Option<f32>,
+    ) -> Option<i64> {
+        // don't repeat the original track jump when restoring history
+        if matches!(self, Self::Restore) && scroll_offset.is_some() {
+            None
+        } else {
+            target_track_id
+        }
+    }
+}
+
 fn make_view(
     message: &ViewSwitchMessage,
+    mode: ViewOpenMode,
     cx: &mut App,
     model: &Entity<NavigationHistory>,
     scroll_state: &ScrollStateStorage,
 ) -> LibraryView {
+    let scroll_offset = scroll_state.scroll_offsets.get(message).copied();
     match message {
-        ViewSwitchMessage::Albums => LibraryView::Album(AlbumView::new(
-            cx,
-            model.clone(),
-            scroll_state.album_view_scroll,
-        )),
-        ViewSwitchMessage::Tracks => {
-            LibraryView::Tracks(TrackView::new(cx, scroll_state.track_view_scroll))
+        ViewSwitchMessage::Albums => {
+            LibraryView::Album(AlbumView::new(cx, model.clone(), scroll_offset))
         }
-        ViewSwitchMessage::Artists => LibraryView::Artists(ArtistView::new(
-            cx,
-            model.clone(),
-            scroll_state.artist_view_scroll,
-        )),
+        ViewSwitchMessage::Tracks => LibraryView::Tracks(TrackView::new(cx, scroll_offset)),
+        ViewSwitchMessage::Artists => {
+            LibraryView::Artists(ArtistView::new(cx, model.clone(), scroll_offset))
+        }
         ViewSwitchMessage::Files => LibraryView::Files(FilesView::new(
             cx,
             scroll_state.files_expanded.clone(),
-            scroll_state.files_view_scroll,
+            scroll_offset,
         )),
         ViewSwitchMessage::Release(id, target_track_id) => {
-            LibraryView::Release(ReleaseView::new(cx, *id, *target_track_id))
+            let target_track_id = mode.release_target(*target_track_id, scroll_offset);
+            LibraryView::Release(ReleaseView::new(cx, *id, target_track_id, scroll_offset))
         }
         ViewSwitchMessage::Artist(id) => {
-            LibraryView::ArtistDetail(ArtistDetailView::new(cx, *id, model.clone()))
+            LibraryView::ArtistDetail(ArtistDetailView::new(cx, *id, model.clone(), scroll_offset))
         }
-        ViewSwitchMessage::Playlist(id) => LibraryView::Playlist(PlaylistView::new(cx, *id)),
+        ViewSwitchMessage::Playlist(id) => {
+            LibraryView::Playlist(PlaylistView::new(cx, *id, scroll_offset))
+        }
         ViewSwitchMessage::Back => panic!("improper use of make_view (cannot make Back)"),
         ViewSwitchMessage::Forward => panic!("improper use of make_view (cannot make Forward)"),
         ViewSwitchMessage::Refresh => panic!("improper use of make_view (cannot make Refresh)"),
@@ -438,9 +468,15 @@ impl Library {
                 };
 
                 if needs_new_left {
-                    self.left_view = left_msg
-                        .as_ref()
-                        .map(|message| make_view(message, cx, model, &self.scroll_state));
+                    self.left_view = left_msg.as_ref().map(|message| {
+                        make_view(
+                            message,
+                            ViewOpenMode::Restore,
+                            cx,
+                            model,
+                            &self.scroll_state,
+                        )
+                    });
                 }
             } else {
                 self.left_view = Some(self.view.clone());
@@ -457,25 +493,25 @@ impl Library {
             let switcher_model = cx.global::<Models>().switcher_model.clone();
             let scroll_state = ScrollStateStorage::default();
             let initial_message = switcher_model.read(cx).current();
-            let view = make_view(&initial_message, cx, &switcher_model, &scroll_state);
+            let view = make_view(
+                &initial_message,
+                ViewOpenMode::Restore,
+                cx,
+                &switcher_model,
+                &scroll_state,
+            );
             let section = library_section_from_history(switcher_model.read(cx));
 
             cx.subscribe(
                 &switcher_model,
                 move |this: &mut Library, m, message, cx| {
-                    if let LibraryView::Album(album_view) = &this.view {
-                        let scroll_pos = album_view.read(cx).get_scroll_offset(cx);
-                        this.scroll_state.album_view_scroll = Some(scroll_pos);
-                    } else if let LibraryView::Tracks(track_view) = &this.view {
-                        let scroll_pos = track_view.read(cx).get_scroll_offset(cx);
-                        this.scroll_state.track_view_scroll = Some(scroll_pos);
-                    } else if let LibraryView::Artists(artist_view) = &this.view {
-                        let scroll_pos = artist_view.read(cx).get_scroll_offset(cx);
-                        this.scroll_state.artist_view_scroll = Some(scroll_pos);
-                    } else if let LibraryView::Files(files_view) = &this.view {
-                        let fv = files_view.read(cx);
-                        this.scroll_state.files_view_scroll = Some(fv.get_scroll_offset());
-                        this.scroll_state.files_expanded = fv.expanded_paths();
+                    let scroll_offset = this.view.scroll_offset(cx);
+                    this.scroll_state
+                        .scroll_offsets
+                        .insert(this.view_message, scroll_offset);
+
+                    if let LibraryView::Files(files_view) = &this.view {
+                        this.scroll_state.files_expanded = files_view.read(cx).expanded_paths();
                     }
 
                     // if we're navigating away from a view that stole focus (e.g. PlaylistView),
@@ -495,7 +531,7 @@ impl Library {
 
                             if let Some(dest) = destination {
                                 debug!("back → {:?}", dest);
-                                make_view(&dest, cx, &m, &this.scroll_state)
+                                make_view(&dest, ViewOpenMode::Restore, cx, &m, &this.scroll_state)
                             } else {
                                 this.view.clone()
                             }
@@ -511,7 +547,7 @@ impl Library {
 
                             if let Some(dest) = destination {
                                 debug!("forward → {:?}", dest);
-                                make_view(&dest, cx, &m, &this.scroll_state)
+                                make_view(&dest, ViewOpenMode::Restore, cx, &m, &this.scroll_state)
                             } else {
                                 this.view.clone()
                             }
@@ -519,7 +555,7 @@ impl Library {
 
                         ViewSwitchMessage::Refresh => {
                             let current = m.read(cx).current();
-                            make_view(&current, cx, &m, &this.scroll_state)
+                            make_view(&current, ViewOpenMode::Restore, cx, &m, &this.scroll_state)
                         }
 
                         _ => {
@@ -528,10 +564,11 @@ impl Library {
                                 cx.notify();
                             });
 
-                            make_view(message, cx, &m, &this.scroll_state)
+                            make_view(message, ViewOpenMode::Navigate, cx, &m, &this.scroll_state)
                         }
                     };
 
+                    this.view_message = m.read(cx).current();
                     this.sync_visible_views(&m, cx);
 
                     cx.notify();
@@ -614,6 +651,7 @@ impl Library {
             let mut library = Library {
                 sidebar: Sidebar::new(cx, switcher_model.clone()),
                 view,
+                view_message: initial_message,
                 left_view: None,
                 right_view: None,
                 section,

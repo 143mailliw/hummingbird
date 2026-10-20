@@ -3,7 +3,7 @@ use std::sync::Arc;
 use cntp_i18n::tr;
 use gpui::{
     App, AppContext, Context, DragMoveEvent, Entity, FocusHandle, FontWeight, InteractiveElement,
-    IntoElement, ParentElement, Render, SharedString, StatefulInteractiveElement, Styled,
+    IntoElement, ParentElement, Point, Render, SharedString, StatefulInteractiveElement, Styled,
     UniformListScrollHandle, Window, actions, div, prelude::FluentBuilder, px, rems, uniform_list,
 };
 use rustc_hash::FxHashMap;
@@ -197,7 +197,11 @@ pub struct PlaylistView {
 }
 
 impl PlaylistView {
-    pub(super) fn new(cx: &mut App, playlist_id: i64) -> Entity<Self> {
+    pub(super) fn new(
+        cx: &mut App,
+        playlist_id: i64,
+        initial_scroll_offset: Option<f32>,
+    ) -> Entity<Self> {
         cx.new(|cx| {
             let playlist_tracker = cx.global::<Models>().playlist_tracker.clone();
 
@@ -296,6 +300,13 @@ impl PlaylistView {
             let views = cx.new(|_| FxHashMap::default());
             let rendered_keys = cx.new(|_| None);
             let scroll_handle = UniformListScrollHandle::new();
+            if let Some(offset) = initial_scroll_offset {
+                scroll_handle
+                    .0
+                    .borrow()
+                    .base_handle
+                    .set_offset(Point::new(px(0.0), px(-offset)));
+            }
 
             Self {
                 playlist,
@@ -311,6 +322,11 @@ impl PlaylistView {
                 sort_method,
             }
         })
+    }
+
+    pub fn get_scroll_offset(&self) -> f32 {
+        let offset = self.scroll_handle.0.borrow().base_handle.offset();
+        (-offset.y).into()
     }
 
     fn update_sort_method(&mut self, sort_method: PlaylistTrackSortMethod, cx: &mut Context<Self>) {
